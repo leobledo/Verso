@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' file: https://lrclib.net https:; media-src blob: file: *; img-src 'self' file: data:;">
+<title>Verso</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* ── design tokens ── */
+  --bg:#171717;
+  --container:#1B1B1B;
+  --track:#303030;
+  --accent:#208FFF;
+  --accent35:rgba(32,143,255,.35);
+  --title:rgba(255,255,255,.7);
+  --text:#e9e9e9;
+  --text-dim:rgba(255,255,255,.45);
+  --rad:16px;
+  --rad-pill:999px;
+  /* ── legacy tokens (modals/menus) ── */
+  --p1:#1B1B1B;--p2:#1f1f1f;--p3:#303030;--p4:#3a3a3a;--p5:#444;
+  --ln:rgba(255,255,255,.07);--ln2:rgba(255,255,255,.12);
+  --tx:#e9e9e9;--tx2:#9a9a9a;--tx3:#6a6a6a;
+  --bl:#208FFF;--bl2:#4ea6ff;--bl-dim:rgba(32,143,255,.15);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
+
+/* ─── APP SHELL ─── */
+.app{height:100vh;display:flex;flex-direction:column;background:var(--bg);padding:14px}
+.workspace{flex:1;display:flex;min-height:0;min-width:0}
+.right-col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}   /* lyrics on top, timeline below */
+
+/* ─── RESIZERS ─── */
+.rsz-h{width:14px;flex-shrink:0;cursor:col-resize;display:flex;align-items:center;justify-content:center}
+.rsz-h::after{content:'';width:2px;height:36px;border-radius:2px;background:transparent;transition:background .15s}
+.rsz-h:hover::after,.rsz-h.drag::after{background:var(--accent)}
+.rsz-v{height:14px;flex-shrink:0;cursor:row-resize;display:flex;align-items:center;justify-content:center;margin:0 2px}
+.rsz-v::after{content:'';height:2px;width:36px;border-radius:2px;background:transparent;transition:background .15s}
+.rsz-v:hover::after,.rsz-v.drag::after{background:var(--accent)}
+
+/* ─── SONGS PANEL ─── */
+.songs{width:330px;flex-shrink:0;background:var(--container);border-radius:var(--rad);display:flex;flex-direction:column;overflow:hidden;position:relative}
+/* refresh button (AE only) — re-read the project comps into the channel list */
+.songs-refresh{position:absolute;top:8px;right:10px;z-index:8;width:28px;height:28px;border-radius:8px;background:var(--track);border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+.songs-refresh:hover{background:#3a3a3a;color:#fff}
+#btnMasterClear:hover{background:rgba(224,102,102,.18);color:#e06666}
+.songs-refresh svg{width:15px;height:15px}
+.songs-refresh.spinning svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.songs-list{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none;-ms-overflow-style:none}
+.songs-list::-webkit-scrollbar{width:0;height:0;display:none}
+
+.channel{background:#242424;border-radius:14px;padding:9px 11px;cursor:pointer;border:1.5px solid transparent;transition:background .25s ease,border-color .2s ease,opacity .3s ease}
+.channel:hover{background:#2c2c2c}
+.channel.dim{opacity:.4}                 /* incomplete (missing artist/song/lyrics) → dimmed */
+.channel.dim:hover{opacity:.72}
+.ch-head{display:flex;align-items:center;gap:10px}
+.ch-av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.ch-meta{flex:1;min-width:0}
+.ch-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.ch-status{width:24px;height:24px;border-radius:50%;display:none;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent);background:rgba(32,143,255,.16)}  /* blue check, only when lyrics loaded */
+.channel.loaded .ch-status{display:flex}
+.ch-status svg{width:13px;height:13px}
+
+.ch-editor{display:flex;flex-direction:column;gap:8px;max-height:0;opacity:0;margin-top:0;overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1),opacity .35s ease,margin-top .45s cubic-bezier(.16,1,.3,1)}
+.channel.expanded .ch-editor{max-height:900px;opacity:1;margin-top:10px}
+.ch-clear{align-self:flex-end;background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:7px;transition:.12s}
+.ch-clear:hover{color:#e06666;background:rgba(224,102,102,.1)}
+.ch-clear svg{width:11px;height:11px}
+.ch-inputs{display:flex;gap:8px}
+.ch-in,.ch-lyr{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;outline:none;transition:border-color .15s,background .15s}
+.ch-in::placeholder,.ch-lyr::placeholder{color:rgba(255,255,255,.42)}
+.ch-in:focus,.ch-lyr:focus{border-color:var(--accent);background:rgba(255,255,255,.07)}
+.ch-in{flex:1;min-width:0;height:30px;border-radius:9px;font-size:12px;padding:0 10px}
+.ch-lyr{width:100%;max-width:100%;min-height:150px;border-radius:10px;font-size:12px;padding:9px 11px;resize:vertical;line-height:1.6;font-family:inherit;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+.ch-lyr::-webkit-scrollbar{width:0;height:0;display:none}
+
+/* ─── LYRICS PANEL ─── */
+.lyrics{flex:1;min-width:200px;background:var(--container);border-radius:var(--rad);position:relative;overflow:hidden;display:flex;flex-direction:column;margin-left:0}
+.lyr-title{position:absolute;top:0;left:0;right:0;text-align:center;padding:20px 24px 14px;z-index:4;pointer-events:none}
+.lyr-song{font-size:16px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyr-artist{font-size:13px;color:var(--text-dim);margin-top:2px}
+.t-icon.spinning svg{animation:spin .8s linear infinite}
+.lyr-stage{flex:1;position:relative;overflow:hidden;cursor:grab}
+.lyr-stage.grabbing{cursor:grabbing}
+.lyr-flow{position:absolute;left:0;right:0;top:0;text-align:center;padding:46% 30px;transition:transform .55s cubic-bezier(.22,.61,.36,1);will-change:transform}
+.lyr-flow.nodrift{transition:none}
+.lyr-line{font-size:21px;font-weight:500;line-height:1.85;cursor:pointer;text-align:center}
+.lyr-line:hover .lk{filter:brightness(1.3)}
+.lk{display:inline-block;color:rgba(255,255,255,.28);transition:color .3s ease}   /* karaoke fill driven per-frame via background-clip:text */
+.lyr-line.section{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;cursor:default;margin-top:.85em;margin-bottom:.15em}   /* breathing room between section blocks */
+.lyr-flow .lyr-line.section:first-child{margin-top:0}
+.lyr-line.section .lk{color:rgba(255,255,255,.3)}
+.lyr-line.section:hover .lk{filter:none}
+.lyr-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;text-align:center;padding:0 30px;line-height:1.7}
+.lyr-fade{position:absolute;left:0;right:0;z-index:3;pointer-events:none}
+.lyr-fade.top{top:0;height:170px;background:linear-gradient(var(--container) 42%,rgba(27,27,27,0))}
+.lyr-fade.bot{bottom:0;height:120px;background:linear-gradient(rgba(27,27,27,0),var(--container) 68%)}
+
+/* ─── TIMELINE ZONE ─── */
+.timeline-zone{flex-shrink:0;background:var(--container);border-radius:var(--rad);padding:10px 14px;display:flex;flex-direction:column;gap:8px;overflow:hidden}   /* own container like the other panels; clips the playhead */
+.tl-wrap{position:relative;height:46px;flex-shrink:0;cursor:pointer}        /* scrub band — left-drag = playhead; middle-drag or wheel = navigate */
+.tl-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:6px;background:var(--track);border-radius:var(--rad-pill);overflow:hidden}
+#tlMarkers{position:absolute;inset:0;pointer-events:none}
+.tl-fade-x{position:absolute;top:0;bottom:0;width:26px;pointer-events:none;z-index:3;display:none}   /* only shown when zoomed in */
+.tl-wrap.zoomed .tl-fade-x{display:block}
+.tl-fade-x.l{left:0;background:linear-gradient(to right,var(--track),rgba(48,48,48,0))}
+.tl-fade-x.r{right:0;background:linear-gradient(to left,var(--track),rgba(48,48,48,0))}
+.tl-marker{position:absolute;top:0;height:100%;background:var(--accent);border-radius:var(--rad-pill);pointer-events:auto;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tl-marker.sel{filter:brightness(1.35);box-shadow:0 0 0 2px rgba(255,255,255,.28);z-index:5}
+/* Playhead: just a tall white line; constant length at any zoom, only its WIDTH thins on zoom, with a track-coloured ring so it never blends into the markers */
+.tl-playhead{position:absolute;top:3px;bottom:3px;width:4px;margin-left:-2px;background:#fff;z-index:20;pointer-events:none;border-radius:3px;box-shadow:0 0 0 2px var(--track),0 0 6px rgba(255,255,255,.5)}
+.tl-tip{position:absolute;bottom:calc(100% + 6px);transform:translateX(-50%);background:#fff;color:#111;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;padding:3px 7px;border-radius:6px;white-space:nowrap;pointer-events:none;display:none;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+/* full-timeline overview, shown only when zoomed */
+.tl-mini{position:relative;height:20px;background:#151515;border-radius:8px;overflow:hidden;cursor:pointer;display:none}
+#tlMiniMarks{position:absolute;inset:0;pointer-events:none}
+.tl-mini-mk{position:absolute;top:50%;transform:translateY(-50%);height:8px;min-width:2px;background:rgba(32,143,255,.5);border-radius:4px}
+.tl-mini-vp{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.4);border-radius:6px;pointer-events:none}
+
+.tl-times{display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.t-timer{font-variant-numeric:tabular-nums;color:#fff;font-weight:700;font-size:13px;background:var(--track);padding:8px 12px;border-radius:11px;min-width:84px;text-align:center;user-select:none}
+.lyr-controls{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px 12px;position:relative;z-index:5}
+.t-time{font-variant-numeric:tabular-nums;color:#fff;font-size:13px;background:var(--track);padding:7px 13px;border-radius:11px;min-width:60px;text-align:center;user-select:none}
+.t-btn{background:var(--track);border:none;color:var(--text);padding:8px 18px;border-radius:11px;cursor:pointer;font-size:13px;transition:background .12s}
+.t-btn:hover{background:#3a3a3a}
+.t-rate{min-width:42px;position:relative}
+.t-icon{width:36px;height:36px;background:var(--track);border:none;color:var(--text-dim);border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s}
+.t-icon:hover{background:#3a3a3a;color:var(--text)}
+.t-icon svg{width:15px;height:15px}
+/* Speed menu — expands horizontally to the LEFT, same easing as the song-panel containers */
+.rate-menu{position:fixed;display:flex;flex-direction:row;align-items:center;gap:4px;background:var(--track);border-radius:11px;padding:4px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.6);max-width:0;opacity:0;overflow:hidden;pointer-events:none;white-space:nowrap;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .25s ease,padding .3s cubic-bezier(.4,0,.2,1)}
+.rate-menu.open{max-width:440px;opacity:1;pointer-events:auto}
+.rate-item{padding:7px 14px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;text-align:center;white-space:nowrap;transition:background .1s}
+.rate-item:hover{background:#3d3d3d}
+.rate-item.cur{background:var(--accent);color:#fff}
+
+/* ─── AE CONTROL BAR (inside After Effects only) ─── */
+.lyr-controls.ae{justify-content:space-between}
+.lc-left,.lc-right{display:flex;align-items:center;gap:8px}
+.t-timer-flat{font-variant-numeric:tabular-nums;color:#fff;font-weight:700;font-size:14px;user-select:none;letter-spacing:.02em}
+/* Import button: neutral like the rest, colours purple only on hover/open */
+#mainActionBtn.ae-import{background:var(--track)}
+#mainActionBtn.ae-import:hover,#mainActionBtn.ae-import.menu-open{background:#7a3df0;color:#fff}
+/* Render icon: colours blue on hover */
+#btnRender:hover{background:var(--accent);color:#fff}
+/* channel avatar as channel icon image */
+.ch-av-img{background-size:cover;background-position:center;background-repeat:no-repeat}
+.ch-av-note{background:var(--track)}
+.ch-av-note svg{width:20px;height:20px;color:#a8a8a8}
+/* Verso single-channel: no left songs panel — the channel container is a popup */
+#songsPanel,#rszH{display:none !important}
+#chPop .modal{width:340px;max-width:92vw;padding:14px;position:relative}
+#chPop .songs-list{padding:0;gap:0;overflow:visible}
+#chPop .channel{cursor:default;border:none;background:transparent;padding:0}
+#chPop .channel .ch-editor{max-height:none;opacity:1;margin-top:12px;overflow:visible}
+/* TH thumbnail preview + Thumbnail button */
+.ch-thumb{width:100%;border-radius:9px;margin-top:2px;display:block;border:1px solid rgba(255,255,255,.1)}
+.ch-thumb-btn:hover{color:var(--accent);background:rgba(32,143,255,.12)}
+
+/* ─── AE/TOUCH v8: 3-zone control bar (left actions / centre timer / right actions) ─── */
+.lyr-controls.ae{justify-content:space-between;gap:8px;padding:10px 16px 12px}
+.lc-side{display:flex;align-items:center;gap:8px;flex:1}
+.lc-right{justify-content:flex-end}
+.lc-center{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.t-center-timer{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px}
+.t-center-timer .t-timer-flat{font-size:15px}
+.t-center-timer .t-status{font-size:10.5px;color:var(--text-dim);margin-top:2px;min-height:13px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .25s ease}
+.t-center-timer .t-status.on{opacity:1}
+.t-icon.sq{width:34px;height:34px;padding:0;font-size:12px;font-weight:600;flex-shrink:0}
+.t-icon.sq svg{width:17px;height:17px}
+.spd.on{background:var(--accent);color:#fff}
+/* button + upward hover menu */
+.btn-stack{position:relative;display:flex}
+.stack-menu{position:absolute;bottom:100%;left:50%;transform:translateX(-50%) translateY(8px) scale(.96);transform-origin:bottom center;display:flex;flex-direction:column-reverse;gap:5px;padding-bottom:9px;opacity:0;pointer-events:none;transition:opacity .26s cubic-bezier(.22,1,.36,1),transform .34s cubic-bezier(.22,1,.36,1)}
+.btn-stack:hover .stack-menu{opacity:1;transform:translateX(-50%) translateY(0) scale(1);pointer-events:auto}
+.stack-item{background:var(--track);color:var(--text);border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:background .12s,color .12s}
+.stack-item:hover{background:#3d3d3d}
+.stack-item.cur{background:var(--accent);color:#fff}
+.stack-item.sync:hover{background:#208FFF;color:#fff}
+.stack-item.srt:hover{background:#7a3df0;color:#fff}
+/* import square: purple on hover / active */
+#mainActionBtn.ae-import:hover,#mainActionBtn.ae-import.active-imp{background:#7a3df0;color:#fff}
+#btnMaster:hover{background:#3a3a3a;color:#fff}
+#btnRender:hover{background:var(--accent);color:#fff}
+#btnSRTClear:hover{background:rgba(224,102,102,.18);color:#e06666}
+
+/* ─── TOUCH (iPad / iPhone) ─── */
+body.touch{ -webkit-user-select:none; user-select:none; }
+body.touch .t-icon,body.touch .t-btn,body.touch .channel{ -webkit-tap-highlight-color:transparent; }
+.hamburger,.songs-backdrop{display:none}
+.touch-tlc{display:none}
+/* hamburger */
+body.touch .hamburger{display:flex;position:fixed;top:10px;left:10px;z-index:120;width:40px;height:40px;border-radius:11px;background:var(--track);border:none;color:#fff;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+body.touch .hamburger svg{width:20px;height:20px}
+body.touch .songs-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:110;opacity:0;pointer-events:none;transition:opacity .25s}
+body.touch .songs-backdrop.on{opacity:1;pointer-events:auto}
+/* songs panel becomes an off-canvas drawer on touch */
+body.touch .songs{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:84vw;z-index:115;border-radius:0 16px 16px 0;transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);padding-top:54px}
+body.touch .songs.open{transform:translateX(0)}
+body.touch .rsz-h{display:none}
+/* one row of big buttons under the timeline: Undo · Play · Timestamp · Redo */
+body.touch .touch-tlc{display:block;width:100%;box-sizing:border-box;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px))}
+.ttc-row{display:flex;gap:8px;width:100%;box-sizing:border-box}
+.ttc-btn{height:58px;background:var(--track);border:none;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--text);box-sizing:border-box;min-width:0;padding:0}
+.ttc-btn.narrow{flex:1 1 0}
+.ttc-btn.wide{flex:1.9 1 0}
+.ttc-btn svg{width:26px;height:26px}
+.ttc-stamp svg{width:auto;height:26px;max-width:82%}
+.ttc-btn:active{background:#3a3a3a}
+/* bigger timeline + marker nodes for touch */
+body.touch .tl-wrap{height:54px}
+body.touch .tl-track{height:6px}
+body.touch .tl-marker{border-radius:var(--rad-pill)}
+body.touch .tl-marker.sel{background:#fff;filter:none;box-shadow:0 0 0 2px rgba(255,255,255,.5);z-index:5}
+body.touch #tlPlayhead{width:2px!important;margin-left:-1px!important}
+body.touch .tl-fade-x{display:none}
+.tl-node{position:absolute;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.5);z-index:7}
+.tl-node.l{left:-9px}.tl-node.r{right:-9px}
+body.touch .tl-wrap,body.touch .tl-marker,body.touch .tl-node{touch-action:none}
+body.touch .lyr-stage{touch-action:none}
+/* use the dynamic viewport so iOS Safari's bars don't push controls off-screen */
+body.touch .app{height:100vh;height:100dvh}
+/* iPhone / narrow & iPad portrait: vertical, songs hidden (drawer), full lyrics+timeline */
+@media (max-width:820px), (orientation:portrait){
+  body.touch .workspace{flex-direction:column}
+  body.touch .rsz-h{display:none}
+  body.touch .right-col{flex:1;min-height:0}
+  body.touch .app{padding:8px}
+  body.touch .lyr-title{padding-top:14px}
+}
+/* iPad landscape: songs panel visible like desktop, slightly slimmer timeline */
+@media (orientation:landscape) and (min-width:821px){
+  body.touch .songs{position:relative;transform:none;border-radius:var(--rad);width:300px;padding-top:10px}
+  body.touch .songs-backdrop{display:none}
+  body.touch .hamburger{display:none}
+  body.touch .rsz-h{display:flex}
+  body.touch .tl-wrap{height:54px}
+}
+/* iPhone: shrink the control-bar icons a touch so the bar never overflows */
+@media (max-width:430px){
+  body.touch .t-icon.sq{width:30px;height:30px;font-size:11px}
+  body.touch .lyr-controls.ae{padding:8px 8px 10px;gap:4px}
+  body.touch .lc-side,body.touch .lc-center{gap:5px}
+  body.touch .t-center-timer{min-width:78px}
+  body.touch .t-center-timer .t-timer-flat{font-size:13px}
+  body.touch .ttc-btn{height:52px}
+  /* smaller lyrics on iPhone so long lines fit on one line */
+  body.touch .lyr-line{font-size:14px;line-height:1.55;white-space:normal;text-align:center}
+  body.touch .lyr-song{font-size:14px}
+  body.touch .lyr-artist{font-size:11px}
+}
+
+/* ─── v8b: speed-on-timer, genius rows, reload, add-channel, touch buttons ─── */
+/* hovering the timer opens a horizontal speed menu upward */
+.timer-stack{cursor:default}
+.stack-menu-h{flex-direction:row;align-items:flex-end}
+/* play button has no icon: show a faint state instead */
+.ttc-zoom{display:flex;align-items:center;gap:8px;padding:0 2px;margin-bottom:8px;width:100%;box-sizing:border-box}
+.ttc-zoom-lbl,.ttc-zoom-val{font-size:11px;color:var(--text-dim);white-space:nowrap}
+.ttc-zoom-val{min-width:30px;text-align:right;font-variant-numeric:tabular-nums}
+.ttc-zoom input[type=range]{flex:1;height:22px;cursor:pointer;margin:0;-webkit-appearance:none;appearance:none;background:transparent}
+.ttc-zoom input[type=range]::-webkit-slider-runnable-track{height:4px;background:#2a2a2a;border-radius:2px;border:none}
+.ttc-zoom input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:14px;border-radius:999px;background:#555;margin-top:-5px;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ttc-zoom input[type=range]::-moz-range-track{height:4px;background:#2a2a2a;border-radius:2px;border:none}
+.ttc-zoom input[type=range]::-moz-range-thumb{width:30px;height:14px;border-radius:999px;background:#555;border:none;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ttc-btn.dim{opacity:.75}
+.ttc-btn.dim svg{width:20px;height:20px}
+.ttc-btn.dim.narrow{flex:.7 1 0}
+.ttc-btn.sel-mode{background:rgba(32,143,255,.15);color:var(--accent)}
+#ttcPlay::after{display:none}
+#ttcPlay.playing::after{display:none}
+#ttcStamp::after{display:none}
+.channel{position:relative}
+/* "+ Add channel" placeholder */
+.ch-add{border:1.5px dashed rgba(255,255,255,.14);background:transparent;opacity:.7}
+.ch-add:hover{opacity:1;background:#242424}
+.ch-add-ico{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:var(--text-dim);background:rgba(255,255,255,.05)}
+/* Genius loader rows */
+.genius-modal{width:540px}
+#g-rows{scrollbar-width:none;-ms-overflow-style:none}
+#g-rows::-webkit-scrollbar{width:0;height:0;display:none}
+#g-paste{scrollbar-width:none;-ms-overflow-style:none}
+#g-paste::-webkit-scrollbar{width:0;height:0;display:none}
+.g-row{display:flex;align-items:center;gap:7px;padding:4px 6px;border:1px solid var(--ln);border-radius:10px;background:var(--p3);margin-bottom:4px;cursor:grab}
+.g-row.g-over{border-color:var(--bl);background:rgba(32,143,255,.08)}
+.g-av{width:24px;height:24px;flex-shrink:0;pointer-events:none}
+.g-av .ch-av,.g-av .ch-av-img{width:24px;height:24px;font-size:10px}
+.g-name{width:100px;flex-shrink:0;font-size:11px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-link{flex:1;min-width:0;height:26px;background:var(--p2);border:1px solid var(--ln2);border-radius:7px;color:var(--bl);font-size:11px;padding:0 8px;outline:none}
+.g-link:focus{border-color:var(--bl)}
+.g-rm{width:24px;height:24px;flex-shrink:0;border:none;background:transparent;color:var(--tx3);font-size:16px;cursor:pointer;border-radius:6px}
+.g-rm:hover{background:rgba(224,102,102,.15);color:#e06666}
+
+/* ─── MODALS ─── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .15s}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--p2);border:1px solid var(--ln2);border-radius:12px;padding:18px;width:400px;max-width:92vw}
+.modal h3{font-size:13px;font-weight:700;margin-bottom:4px}
+.modal p{font-size:11px;color:var(--tx2);margin-bottom:10px;line-height:1.5}
+.mact{display:flex;gap:5px;margin-top:10px;justify-content:flex-end}
+.mbtn{padding:6px 13px;border-radius:8px;border:1px solid var(--ln2);background:var(--p3);color:var(--tx2);font-size:11px;cursor:pointer;transition:background .1s;display:flex;align-items:center;gap:4px}
+.mbtn:hover{background:var(--p4);color:var(--tx)}
+.mbtn.ok{background:var(--bl);border-color:var(--bl);color:#fff}
+.mbtn.ok:hover{background:var(--bl2)}
+.srtout{width:100%;height:240px;background:var(--p3);border:1px solid var(--ln2);border-radius:8px;color:var(--bl);font-size:11px;padding:8px;resize:none;outline:none;line-height:1.7;font-family:'Consolas',monospace}
+.minput{width:100%;height:28px;background:var(--p3);border:1px solid var(--ln2);border-radius:8px;color:var(--tx);font-size:11px;padding:0 8px;outline:none;transition:border-color .1s}
+.minput:focus{border-color:var(--bl)}
+.lpb-sel{height:24px;padding:0 6px;background:var(--p3);border:1px solid var(--ln2);color:var(--tx2);font-size:11px;border-radius:6px;cursor:pointer;outline:none}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--p3);border:1px solid var(--ln2);border-radius:8px;padding:7px 16px;font-size:12px;color:var(--tx);z-index:400;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.6)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="workspace" id="workspace">
+
+    <!-- SONGS / CHANNELS PANEL -->
+    <section class="songs" id="songsPanel">
+      <div class="songs-list" id="songsList"></div>
+    </section>
+
+    <div class="rsz-h" id="rszH"></div>
+
+    <!-- RIGHT COLUMN: lyrics on top, timeline below -->
+    <div class="right-col" id="rightCol">
+      <section class="lyrics" id="lyricsPanel">
+        <div class="lyr-title">
+          <div class="lyr-song" id="lyrSong">Untitled</div>
+          <div class="lyr-artist" id="lyrArtist"></div>
+        </div>
+        <div class="lyr-stage" id="lyrStage">
+          <div class="lyr-fade top"></div>
+          <div class="lyr-flow" id="lyrFlow"></div>
+          <div class="lyr-fade bot"></div>
+        </div>
+        <div class="lyr-controls">
+          <button class="t-btn t-rate" id="tRate" onclick="toggleRateMenu(event)">1x</button>
+          <button class="t-btn" onclick="openAudio()">Song</button>
+          <div class="t-timer" id="tTimer">00:00:00</div>
+          <button class="t-btn" id="mainActionBtn" onclick="mainAction()">Export</button>
+          <button class="t-btn" onclick="showAutoSync()">Sync</button>
+        </div>
+      </section>
+
+      <div class="rsz-v" id="rszV"></div>
+
+      <!-- TIMELINE -->
+      <div class="timeline-zone" id="timelineZone">
+        <div class="tl-wrap" id="tlWrap">
+          <div class="tl-track" id="tlTrack">
+            <div id="tlMarkers"></div>
+            <div class="tl-fade-x l"></div>
+            <div class="tl-fade-x r"></div>
+          </div>
+          <div class="tl-playhead" id="tlPlayhead" style="left:0;display:none"></div>
+          <div class="tl-tip" id="tlTip"></div>
+        </div>
+        <div class="tl-mini" id="tlMini"><div id="tlMiniMarks"></div><div class="tl-mini-vp" id="tlMiniVp"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL (web only — inside AE the main button imports directly) -->
+<div class="ov" id="eov">
+  <div class="modal" style="width:500px">
+    <h3>Export SRT</h3>
+    <p>Copy or download the subtitles as an .srt file.</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--tx3)">Lines per block:</span>
+      <select class="lpb-sel" id="lpb"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+    </div>
+    <textarea class="srtout" id="srtout" readonly></textarea>
+
+    <div class="mact">
+      <button class="mbtn" onclick="closeExport()">Close</button>
+      <button class="mbtn" onclick="copySRT()">Copy</button>
+      <button class="mbtn" onclick="dlSRT()">Download .srt</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTO-SYNC MODAL -->
+<div class="ov" id="asov">
+  <div class="modal" style="width:440px">
+    <h3 style="display:flex;align-items:center;gap:7px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg>
+      Smart Sync
+    </h3>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;margin-top:10px">
+      <div style="display:flex;gap:7px">
+        <div style="flex:1"><label style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:3px">Title <span style="color:var(--bl)">*</span></label><input class="minput" id="as-title" type="text" placeholder="e.g. Glimpse of Us" onkeydown="if(event.key==='Enter')doAutoSync()"></div>
+        <div style="flex:1"><label style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:3px">Artist <span style="opacity:.5">(optional)</span></label><input class="minput" id="as-artist" type="text" placeholder="e.g. Joji" onkeydown="if(event.key==='Enter')doAutoSync()"></div>
+      </div>
+    </div>
+    <div id="as-results" style="display:none;margin-bottom:7px"></div>
+    <div id="as-status" style="font-size:11px;color:var(--tx3);min-height:14px;margin-bottom:7px"></div>
+    <div class="mact"><button class="mbtn" onclick="closeAutoSync()">Cancel</button><button class="mbtn ok" id="as-searchbtn" onclick="doAutoSync()"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</button></div>
+  </div>
+</div>
+
+<div class="rate-menu" id="rateMenu"></div>
+<div class="rate-menu" id="importMenu"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fin" accept=".mp3,.wav,.mp4,.m4a,.aac,.aif,.aiff,.ogg,.flac,audio/*,video/mp4" onchange="loadAudio(this)">
+<input type="file" id="finMulti" accept=".mp3,.wav,.mp4,.m4a,.aac,.aif,.aiff,.ogg,.flac,audio/*,video/mp4" multiple onchange="loadMultiAudio(this)">
+
+<!-- GENIUS LYRICS LOADER (single song: paste one Genius link → fills this channel's lyrics) -->
+<div class="ov" id="gov">
+  <div class="modal" style="width:460px">
+    <h3 style="display:flex;align-items:center;gap:7px;margin-bottom:10px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="13" y2="17"/></svg> Import Lyrics from Genius</h3>
+    <input id="g-link-single" type="text" placeholder="Paste the Genius song link…" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--bd,#3a3a3a);background:#1e1e1e;color:var(--tx,#eee);font-size:13px;outline:none">
+    <div id="g-status" style="font-size:11px;color:var(--tx3);min-height:14px;margin-top:8px"></div>
+    <div class="mact"><button class="mbtn" onclick="closeGenius()">Close</button><button class="mbtn ok" id="g-loadbtn" onclick="loadGenius()">Load lyrics</button></div>
+  </div>
+</div>
+
+<!-- CHANNEL CONTAINER POPUP (Verso single-channel: opened from the ♪ area) -->
+<div class="ov" id="chPop">
+  <div class="modal">
+    <button class="mbtn" onclick="closeChPop()" style="position:absolute;top:10px;right:10px;width:26px;height:26px;padding:0;border-radius:7px;line-height:1">×</button>
+    <div class="songs-list" id="chPopBody"></div>
+  </div>
+</div>
+
+<!-- CEP bridge library — only meaningful inside an Adobe host; harmless on the web -->
+<script src="./CSInterface.js"></script>
+<script>
+// ─── CEP BRIDGE ───
+// window.__adobe_cep__ exists ONLY inside a CEP host (After Effects). That is our
+// single source of truth for "running inside AE" — so the AE-only UI (the import
+// buttons) stays hidden on the web even if CSInterface.js happens to be served.
+var csInterface = null;
+if (window.__adobe_cep__ && typeof CSInterface !== 'undefined') {
+  try { csInterface = new CSInterface(); } catch(e){ csInterface = null; }
+}
+var IN_AE = !!csInterface;   // single source of truth for "running inside After Effects"
+// Touch device = iPad / iPhone (web on a touch screen). AE/desktop-web use the mouse.
+var IS_TOUCH = (('ontouchstart' in window) || (navigator.maxTouchPoints||0) > 0) && !IN_AE;
+try{
+  document.body.classList.toggle('ae', IN_AE);
+  document.body.classList.toggle('touch', IS_TOUCH);
+  document.body.classList.toggle('web', !IN_AE && !IS_TOUCH);
+}catch(e){}
+
+// ─── AUDIO / TIMELINE STATE ───
+var AEL=new Audio(), dur=0, audioFile=null;
+var zoom=1, scrollPct=0, rafId=null;
+var rates=[0.5,0.75,1,1.25,1.5], rateIdx=2;
+
+// ─── ACTIVE WORKING SET (mirrors active channel) ───
+var lines=[], stamps=[], curLine=0, stampSeq=0;
+var undoStack=[], redoStack=[];
+var selStampSet=new Set();   // holds stamp ids
+
+// ─── CHANNELS ───
+var channels=[], activeId=null, expandedId=null, chSeq=0;
+var ICON_UP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16V8M8 11l4-3 4 3"/></svg>';
+var ICON_CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg>';
+// Verso (single-channel build): no per-channel icons — always a music note.
+var ICON_MAP={};
+// Single-channel mode: 1 channel only, name = song title, music-note avatar.
+var SINGLE_CHANNEL=true;
+var NOTE_AV_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.6A3.5 3.5 0 1 0 14 17V7.2l5 1V4.5L12 3z"/></svg>';
+function chKey(name){ return (name||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function avatarFor(ch){
+  return '<div class="ch-av ch-av-note">'+NOTE_AV_SVG+'</div>';
+}
+
+// ─── INTERACTION STATE ───
+var hDrag=false, hStartX=0, hStartW=0;
+var vDrag=false, vStartY=0, vStartH=0;
+var lyrDrag=false, lyrDragStartY=0, lyrBaseY=0, lyrManualY=null, lyrMoved=false;
+var scrubbing=false;
+var tlPanning=false, tlPanStartX=0, tlPanStartScroll=0;
+var miniDragging=false;
+var mkDrag=null;
+var pendingId=null;
+var tlDirty=true, _lastScroll=-1, _lastZoom=-1;
+var lyrVel=0, lyrEaseId=null;
+var scrollTarget=0, zoomTarget=1, tlEaseId=null;
+
+// ─── BOOT ───
+AEL.addEventListener('play',  schedRAF);
+AEL.addEventListener('pause', function(){ cancelAnimationFrame(rafId); rafId=null; frameUpdate(); });
+AEL.addEventListener('seeked', frameUpdate);
+AEL.addEventListener('ended', function(){ cancelAnimationFrame(rafId); rafId=null; });
+AEL.addEventListener('loadedmetadata', function(){ var a=getActive(); dur=AEL.duration||0; if(a) a.audioDur=dur; tlRefresh(); frameUpdate(); });
+
+window.addEventListener('keydown', onKey);
+window.addEventListener('mousemove', onGlobalMove);
+window.addEventListener('mouseup', onGlobalUp);
+window.addEventListener('resize', function(){ tlRefresh(); updateLyricHighlight(AEL.currentTime||0); });
+window.addEventListener('mousedown', function(e){ if(!e.target.closest('#rateMenu')&&!e.target.closest('#tRate')) closeRateMenu(); if(!e.target.closest('#importMenu')&&!e.target.closest('#mainActionBtn')) closeImportMenu(); });
+
+document.getElementById('rszH').addEventListener('mousedown', function(e){ hDrag=true; hStartX=e.clientX; hStartW=document.getElementById('songsPanel').offsetWidth; this.classList.add('drag'); e.preventDefault(); });
+document.getElementById('rszV').addEventListener('mousedown', function(e){ vDrag=true; vStartY=e.clientY; vStartH=document.getElementById('timelineZone').offsetHeight; this.classList.add('drag'); e.preventDefault(); });
+
+// Timeline: scrub over the whole wrap (wide zone → fewer accidental marker grabs); markers handled separately
+var tlTrack=document.getElementById('tlTrack');
+var tlWrap=document.getElementById('tlWrap');
+tlWrap.addEventListener('mousedown', function(e){
+  if(e.button===1){ e.preventDefault(); if(!dur) return; if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } tlPanning=true; tlPanStartX=e.clientX; tlPanStartScroll=scrollPct; return; }  // middle button = navigate, never moves markers
+  if(e.button!==0) return;
+  if(!dur) return;
+  if(e.target.closest('.tl-marker')) return;
+  if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } scrollTarget=scrollPct;
+  selStampSet.clear(); tlRefresh();
+  scrubbing=true; doScrub(e.clientX); e.preventDefault();
+});
+tlWrap.addEventListener('wheel', function(e){
+  if(!dur) return; e.preventDefault();
+  if(e.altKey){
+    var r=tlTrack.getBoundingClientRect(), mx=(e.clientX-r.left)/r.width, tp=scrollPct+mx/zoom;
+    zoomTarget=Math.max(1,Math.min(40,(tlEaseId?zoomTarget:zoom)+(e.deltaY>0?-1:1)));
+    scrollTarget=Math.max(0,Math.min(1-1/zoomTarget, tp-mx/zoomTarget)); startTlEase();
+  } else { var step=(e.deltaY||e.deltaX)*.0016/zoom; scrollTarget=clampScroll((tlEaseId?scrollTarget:scrollPct)+step); startTlEase(); }
+},{passive:false});
+
+// ─── TOUCH: pan with one finger, pinch-zoom with two (timeline only) ───
+var tlTouchPan=false, tlTouchStartX=0, tlTouchStartScroll=0, tlTouchMoved=false;
+var tlPinch=false, tlPinchD0=1, tlPinchZ0=1, tlPinchAnchor=0;
+tlWrap.addEventListener('touchstart', function(e){
+  if(!dur) return;
+  if(e.touches.length===1){
+    var _mEl=e.target.closest && e.target.closest('.tl-marker');
+    if(_mEl && _mEl.dataset.sid){
+      var _sid=+_mEl.dataset.sid;
+      if(selStampSet.has(_sid)){ selStampSet.clear(); } else { selStampSet.clear(); selStampSet.add(_sid); }
+      syncTouchButtons(); tlRefresh();
+    }
+    if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; }
+    tlTouchPan=true; tlTouchMoved=false; tlTouchStartX=e.touches[0].clientX; tlTouchStartScroll=scrollPct;
+  } else if(e.touches.length>=2){
+    tlTouchPan=false; tlPinch=true;
+    tlPinchD0=Math.abs(e.touches[0].clientX-e.touches[1].clientX)||1; tlPinchZ0=zoom;
+    var r=tlTrack.getBoundingClientRect(), cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    tlPinchAnchor=scrollPct+((cx-r.left)/r.width)/zoom;
+  }
+  e.preventDefault();
+},{passive:false});
+tlWrap.addEventListener('touchmove', function(e){
+  if(!dur) return;
+  if(tlPinch && e.touches.length>=2){
+    var d=Math.abs(e.touches[0].clientX-e.touches[1].clientX)||1;
+    zoom=Math.max(1,Math.min(40, tlPinchZ0*(d/tlPinchD0)));
+    var r=tlTrack.getBoundingClientRect(), cx=(e.touches[0].clientX+e.touches[1].clientX)/2, mx=(cx-r.left)/r.width;
+    scrollPct=clampScroll(tlPinchAnchor-mx/zoom); scrollTarget=scrollPct; zoomTarget=zoom; tlRefresh(); syncZoomSlider();
+  } else if(tlTouchPan && e.touches.length===1){
+    if(Math.abs(e.touches[0].clientX-tlTouchStartX)>2) tlTouchMoved=true;
+    if(zoom>1.01){
+      // zoomed: pan the view smoothly
+      var panR=tlTrack.getBoundingClientRect();
+      if(panR.width){ scrollPct=clampScroll(tlTouchStartScroll-(e.touches[0].clientX-tlTouchStartX)/panR.width/zoom); scrollTarget=scrollPct; tlRefresh(); }
+    } else {
+      doScrub(e.touches[0].clientX);
+    }
+  }
+  e.preventDefault();
+},{passive:false});
+tlWrap.addEventListener('touchend', function(e){
+  if(tlTouchPan && !tlTouchMoved && !tlPinch && e.changedTouches.length){
+    var _ct=e.changedTouches[0];
+    var _onMarker=_ct.target && _ct.target.closest && _ct.target.closest('.tl-marker');
+    if(!_onMarker){ selStampSet.clear(); syncTouchButtons(); }
+    doScrub(_ct.clientX); tlRefresh();
+  }
+  if(e.touches.length===0){ tlTouchPan=false; tlPinch=false; }
+},{passive:false});
+// Marker drag + lyrics drag via touch (reuse the mouse pipeline through fake events).
+var _mkDragRafId=null, _mkDragLastX=0;
+var _lyrTouchVelY=0, _lyrTouchLastY=0, _lyrTouchLastT=0;
+window.addEventListener('touchmove', function(e){
+  if(!e.touches.length) return;
+  if(mkDrag){
+    _mkDragLastX=e.touches[0].clientX;
+    e.preventDefault();
+    if(!_mkDragRafId){ _mkDragRafId=requestAnimationFrame(function(){ _mkDragRafId=null; if(mkDrag) onGlobalMove({clientX:_mkDragLastX}); }); }
+    return;
+  }
+  if(lyrDrag){
+    var cy=e.touches[0].clientY, now=Date.now(), dt=now-_lyrTouchLastT;
+    if(dt>0 && dt<100) _lyrTouchVelY=(cy-_lyrTouchLastY)/dt*16;
+    _lyrTouchLastY=cy; _lyrTouchLastT=now;
+    onGlobalMove({clientY:cy}); e.preventDefault(); return;
+  }
+},{passive:false});
+window.addEventListener('touchend', function(){
+  if(mkDrag){ if(_mkDragRafId){ cancelAnimationFrame(_mkDragRafId); _mkDragRafId=null; onGlobalMove({clientX:_mkDragLastX}); } onGlobalUp(); }
+  if(lyrDrag){ lyrVel=_lyrTouchVelY; onGlobalUp(); if(Math.abs(lyrVel)>0.5) startLyrEase(); }
+});
+
+// Minimap (overview shown when zoomed): click/drag to navigate
+var tlMini=document.getElementById('tlMini');
+tlMini.addEventListener('mousedown', function(e){ if(e.button!==0||!dur) return; miniDragging=true; miniSeek(e.clientX); e.preventDefault(); });
+tlMini.addEventListener('touchstart', function(e){ if(!dur||!e.touches.length) return; miniDragging=true; miniSeek(e.touches[0].clientX); e.preventDefault(); },{passive:false});
+tlMini.addEventListener('touchmove',  function(e){ if(!miniDragging||!e.touches.length) return; miniSeek(e.touches[0].clientX); e.preventDefault(); },{passive:false});
+tlMini.addEventListener('touchend',   function(){ miniDragging=false; },{passive:false});
+
+// Lyrics: smooth drag-to-view + smooth wheel scroll
+var lyrStage=document.getElementById('lyrStage');
+lyrStage.addEventListener('mousedown', function(e){ if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0; lyrDrag=true; lyrMoved=false; lyrDragStartY=e.clientY; var fl=document.getElementById('lyrFlow'); lyrBaseY=getTY(fl); fl.classList.add('nodrift'); lyrStage.classList.add('grabbing'); });
+lyrStage.addEventListener('wheel', function(e){ e.preventDefault(); document.getElementById('lyrFlow').classList.add('nodrift'); lyrVel += -e.deltaY*0.12; if(lyrVel>18)lyrVel=18; if(lyrVel<-18)lyrVel=-18; startLyrEase(); },{passive:false});
+lyrStage.addEventListener('touchstart', function(e){ if(e.touches.length!==1) return; if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0; _lyrTouchVelY=0; lyrDrag=true; lyrMoved=false; lyrDragStartY=e.touches[0].clientY; _lyrTouchLastY=e.touches[0].clientY; _lyrTouchLastT=Date.now(); var fl=document.getElementById('lyrFlow'); lyrBaseY=getTY(fl); fl.classList.add('nodrift'); },{passive:true});
+lyrStage.addEventListener('touchend', function(){ if(IS_TOUCH && selStampSet.size && !lyrMoved){ selStampSet.clear(); syncTouchButtons(); tlRefresh(); } },{passive:true});
+
+['eov','asov','gov','chPop'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('click', function(e){ if(e.target===e.currentTarget) e.target.classList.remove('open'); }); });
+// ─── CHANNELS (fixed list; each maps to its Lyrics + TH comp by exact name) ───
+// The list is always shown (never depends on reading the project). Only the
+// actions (Import / Thumbnail / audio) reach into AE, targeting these comps by name.
+// Verso (single channel): one versatile channel. No fixed names — targets the
+// comp containing "Lyrics", the comp containing "TH" and the footage containing
+// "Song" by suffix. The channel name shows the song title once loaded.
+var CH_DATA=[
+  {name:'Verso', lyr:'Lyrics', th:'TH', song:'Song'}
+];
+function _leadNumJS(s){ var m=(s||'').match(/^\s*(\d+)/); return m?parseInt(m[1],10):null; }
+
+// ─── control-bar icons ───
+var NOTE_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.6A3.5 3.5 0 1 0 14 17V7.2l5 1V4.5L12 3z"/></svg>';            // filled music note
+var ARROWDN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v14M6 12l6 6 6-6"/></svg>';   // import / export = down arrow
+var PLAY_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';                                                  // render = filled play
+var TRASH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+var IMG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5-5L5 21"/></svg>';  // global thumbnails = outlined image
+var LYRICS3_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="13" y2="17"/></svg>';  // Genius lyrics loader
+var REFRESH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>';
+var MK_LEFT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="16" y2="12"/><polyline points="9 7 4 12 9 17"/><line x1="20" y1="6" x2="20" y2="18"/></svg>';
+var MK_RIGHT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="4" y2="18"/><line x1="8" y1="12" x2="19" y2="12"/><polyline points="15 7 20 12 15 17"/></svg>';
+var MK_SHRINK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="4" y2="18"/><line x1="16" y1="12" x2="5" y2="12"/><polyline points="11 7 6 12 11 17"/></svg>';
+var MK_MOVE_LEFT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>';
+var MK_MOVE_RIGHT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>';
+
+// Builds the control bar. AE-only buttons (Render, global-thumbnail) appear only in AE.
+//   left   = Clear · Master(menu) · [Thumbnails-all (AE)]
+//   centre = timer + status  (hover the timer → horizontal speed menu opens upward)
+//   right  = Lyrics-loader · Import/Export(menu) · [Render (AE)]
+function buildActionBar(){
+  var bar=document.querySelector('.lyr-controls'); if(!bar) return;
+  bar.classList.add('ae');
+  // Verso single-channel bar: ♪ load/refresh THIS song · timer · Sync · Import · Render(AE).
+  // No multi-channel features (load multiple, thumbnails-all, refresh-all, Genius, SRT batch).
+  var left=
+    '<div class="lc-side lc-left">'+
+      '<button class="t-icon sq" id="btnMaster" onclick="loadSingleSong(event)" title="'+(IN_AE?'Load / refresh the song from the project':'Load audio')+'">'+NOTE_SVG+'</button>'+
+      '<button class="t-icon sq" id="btnChPop" onclick="openChPop(event)" title="Song container — artist, song, lyrics, thumbnail">'+CARD_SVG+'</button>'+
+    '</div>';
+  var center=
+    '<div class="lc-center">'+
+      '<div class="btn-stack timer-stack" id="timerStack"><div class="stack-menu stack-menu-h" id="rateMenuH"></div>'+
+        '<div class="t-center-timer"><div class="t-timer-flat" id="tTimer">00:00:00</div><div class="t-status" id="tStatus"></div></div>'+
+      '</div>'+
+    '</div>';
+  var right=
+    '<div class="lc-side lc-right">'+
+      '<button class="t-icon sq" id="btnLyricsLoad" onclick="openGenius()" title="Import lyrics from Genius">'+LYRICS3_SVG+'</button>'+
+      '<div class="btn-stack" id="importStack"><div class="stack-menu" id="importMenuV">'+
+          '<button class="stack-item sync" onclick="showAutoSync()">Sync</button>'+
+        '</div>'+
+        '<button class="t-icon sq ae-import" id="mainActionBtn" onclick="importClick(event)" title="'+(IN_AE?'Import to Comp':'Export SRT')+'">'+ARROWDN_SVG+'</button></div>'+
+      (IN_AE?'<button class="t-icon sq" id="btnRender" onclick="renderAction(event)" title="Render">'+PLAY_SVG+'</button>':'')+
+    '</div>';
+  bar.innerHTML=left+center+right;
+  buildRateMenuH();
+}
+// Verso: load/refresh the single channel's song (AE pulls the "Song" footage; web picks a file).
+function loadSingleSong(ev){
+  if(ev) ev.stopPropagation();
+  if(!csInterface){ openAudio(); return; }
+  aeLoadSong(getActive(), true, true);
+}
+// Verso single-channel: the song container (artist/song/lyrics/thumbnail) as a popup.
+var CARD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/><line x1="7" y1="16.5" x2="11" y2="16.5"/></svg>';
+function openChPop(ev){ if(ev) ev.stopPropagation(); renderChannels(); document.getElementById('chPop').classList.add('open'); }
+function closeChPop(){ document.getElementById('chPop').classList.remove('open'); }
+
+// ─── icons for the touch-only below-timeline controls ───
+var HAMB_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+var UNDO_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 5 5v0"/></svg>';
+var REDO_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l5 5-5 5"/><path d="M20 12H9a5 5 0 0 0-5 5v0"/></svg>';
+var STAMP_SVG='<svg viewBox="0 0 64 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="10" y1="12" x2="54" y2="12"/><line x1="32" y1="6" x2="32" y2="18"/></svg>';
+var TPLAY_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+var TPAUSE_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+
+// Build the bar on every platform; touch adds the below-timeline controls + drawer.
+try{ buildActionBar(); }catch(e){}
+if(IS_TOUCH){ try{ buildTouchTimelineControls(); }catch(e){} try{ buildHamburger(); }catch(e){} }
+if(IN_AE){ ensureHost(function(ok){ if(ok) aeLoadSong(getActive()); }); }
+// One row of big touch buttons below the timeline: Undo · Play · Timestamp · Redo.
+// All the same height; the middle two are wider for easier tapping.
+function buildTouchTimelineControls(){
+  var col=document.getElementById('rightCol'); if(!col) return;
+  if(document.getElementById('touchTLC')) return;
+  var box=document.createElement('div'); box.className='touch-tlc'; box.id='touchTLC';
+  box.innerHTML=
+    '<div class="ttc-zoom">'+
+      '<span class="ttc-zoom-lbl">Zoom</span>'+
+      '<input type="range" id="tlZoomSlider" min="1" max="20" step="0.25" value="1">'+
+      '<span class="ttc-zoom-val" id="tlZoomVal">1×</span>'+
+    '</div>'+
+    '<div class="ttc-row">'+
+      '<button class="ttc-btn dim narrow" id="ttcUndo" title="Undo">'+UNDO_SVG+'</button>'+
+      '<button class="ttc-btn wide" id="ttcPlay" title="Play / Pause"></button>'+
+      '<button class="ttc-btn wide ttc-stamp" id="ttcStamp" title="Add timestamp"></button>'+
+      '<button class="ttc-btn dim narrow" id="ttcRedo" title="Redo">'+REDO_SVG+'</button>'+
+    '</div>'+
+    '<div class="ttc-row" id="ttcMoveRow" style="display:none;margin-top:6px">'+
+      '<button class="ttc-btn wide sel-mode" id="ttcMoveL" title="Move marker left">'+MK_MOVE_LEFT_SVG+'</button>'+
+      '<button class="ttc-btn wide sel-mode" id="ttcMoveR" title="Move marker right">'+MK_MOVE_RIGHT_SVG+'</button>'+
+    '</div>';
+  col.appendChild(box);
+  document.getElementById('ttcUndo').onclick=function(){ undoAction(); };
+  document.getElementById('ttcPlay').onclick=function(){ togglePlay(); touchSyncPlayIcon(); };
+  document.getElementById('ttcStamp').onclick=function(){ doStamp(); };
+  var _zs=document.getElementById('tlZoomSlider');
+  if(_zs) _zs.addEventListener('input', function(){ zoom=zoomTarget=Math.max(1,Math.min(20,parseFloat(this.value)||1)); tlRefresh(); syncZoomSlider(); });
+  document.getElementById('ttcRedo').onclick=function(){ redoAction(); };
+  AEL.addEventListener('play', touchSyncPlayIcon);
+  AEL.addEventListener('pause', touchSyncPlayIcon);
+}
+// Smooth hold engine: rAF loop with accelerating velocity, replaces step-based timers
+var _holdId=null, _holdActive=false;
+function _holdStart(fn){
+  _holdStop(); pushUndo(); _holdActive=true;
+  var t0=performance.now(), prev=t0;
+  fn(0.1);
+  function loop(now){
+    if(!_holdActive) return;
+    var dt=Math.min((now-prev)*0.001,0.05); prev=now;
+    var vel=Math.min(5, 0.5+(now-t0)*0.003);
+    fn(vel*dt);
+    _holdId=requestAnimationFrame(loop);
+  }
+  _holdId=requestAnimationFrame(loop);
+}
+function _holdStop(){ _holdActive=false; if(_holdId){ cancelAnimationFrame(_holdId); _holdId=null; } saveWorkingSet(); }
+function adjustMarkerEdge(side, shrink, step){
+  var selArr=Array.from(selStampSet); if(!selArr.length) return;
+  var s=getStampById(selArr[0]); if(!s) return;
+  var i=stamps.indexOf(s);
+  if(side==='l'){
+    var newT=Math.max(0,s.time-step); if(newT===s.time) return;
+    s.len=(s.len!=null?s.len:markerLen(s,i))+(s.time-newT); s.time=newT;
+  } else {
+    var curLen=s.len!=null?s.len:markerLen(s,i);
+    var newLen=shrink?Math.max(0.1,curLen-step):curLen+step;
+    if(!shrink&&dur&&s.time+newLen>dur) newLen=dur-s.time;
+    if(shrink?newLen>=curLen:newLen<=curLen) return;
+    s.len=newLen;
+  }
+  resolveCollisions(i,0.002); tlRefresh();
+}
+function adjustMarkerPosition(dir, step){
+  var selArr=Array.from(selStampSet); if(!selArr.length) return;
+  var s=getStampById(selArr[0]); if(!s) return;
+  var i=stamps.indexOf(s);
+  var len=s.len!=null?s.len:markerLen(s,i);
+  if(dir==='l'){ s.time=Math.max(0,s.time-step); }
+  else { var maxT=dur?Math.max(0,dur-len):s.time+step; s.time=Math.min(maxT,s.time+step); }
+  tlRefresh();
+}
+function syncTouchButtons(){
+  if(!IS_TOUCH) return;
+  var play=document.getElementById('ttcPlay'), stamp=document.getElementById('ttcStamp');
+  if(!play||!stamp) return;
+  var moveRow=document.getElementById('ttcMoveRow');
+  var moveL=document.getElementById('ttcMoveL'), moveR=document.getElementById('ttcMoveR');
+  var mkSel=selStampSet.size===1;
+  if(mkSel){
+    play.innerHTML=MK_SHRINK_SVG; play.title='Shorten right edge';
+    stamp.innerHTML=MK_RIGHT_SVG; stamp.title='Extend right edge';
+    play.classList.add('sel-mode'); stamp.classList.add('sel-mode');
+    play.onclick=null; stamp.onclick=null;
+    play.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerEdge('r',true,s); }); };
+    play.ontouchend=play.ontouchcancel=function(){ _holdStop(); };
+    stamp.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerEdge('r',false,s); }); };
+    stamp.ontouchend=stamp.ontouchcancel=function(){ _holdStop(); };
+    if(moveRow) moveRow.style.display='flex';
+    if(moveL){ moveL.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerPosition('l',s); }); }; moveL.ontouchend=moveL.ontouchcancel=function(){ _holdStop(); }; }
+    if(moveR){ moveR.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerPosition('r',s); }); }; moveR.ontouchend=moveR.ontouchcancel=function(){ _holdStop(); }; }
+  } else {
+    _holdStop();
+    play.innerHTML=''; play.title='Play / Pause';
+    stamp.innerHTML=''; stamp.title='Add timestamp';
+    play.classList.remove('sel-mode'); stamp.classList.remove('sel-mode');
+    play.ontouchstart=play.ontouchend=play.ontouchcancel=null;
+    stamp.ontouchstart=stamp.ontouchend=stamp.ontouchcancel=null;
+    play.onclick=function(){ togglePlay(); touchSyncPlayIcon(); };
+    stamp.onclick=function(){ doStamp(); };
+    if(moveRow) moveRow.style.display='none';
+    touchSyncPlayIcon();
+  }
+}
+// Play button has no icon; toggle a subtle "playing" class instead.
+function touchSyncPlayIcon(){ var b=document.getElementById('ttcPlay'); if(b) b.classList.toggle('playing', !AEL.paused); }
+function syncZoomSlider(){ var sl=document.getElementById('tlZoomSlider'), vl=document.getElementById('tlZoomVal'); if(sl) sl.value=Math.min(20,zoom).toFixed(2); if(vl) vl.textContent=zoom.toFixed(1)+'×'; }
+// Hamburger → slide-in songs drawer (mobile / iPad portrait).
+function buildHamburger(){
+  var app=document.querySelector('.app'); if(!app || document.getElementById('hamb')) return;
+  var hb=document.createElement('button'); hb.id='hamb'; hb.className='hamburger'; hb.innerHTML=HAMB_SVG; hb.title='Song container';
+  hb.onclick=function(e){ e.stopPropagation(); openChPop(e); };   // Verso: opens the song container popup
+  app.appendChild(hb);
+  var bd=document.createElement('div'); bd.id='songsBackdrop'; bd.className='songs-backdrop'; bd.onclick=function(){ toggleSongsDrawer(false); };
+  app.appendChild(bd);
+}
+function toggleSongsDrawer(force){
+  var sp=document.getElementById('songsPanel'), bd=document.getElementById('songsBackdrop');
+  if(!sp) return;
+  var open=(force===undefined)?!sp.classList.contains('open'):force;
+  sp.classList.toggle('open', open); if(bd) bd.classList.toggle('on', open);
+}
+// ─── HOST LOADER (ensures host.jsx functions exist before any AE action) ───
+var _hostReady=false, _hostSrc=null;
+function _extBase(){
+  try{
+    var href=window.location.href;                 // e.g. file:///C:/.../extensions/v6/index.html
+    var p=href.replace(/[#?].*$/,'').replace(/[^\/]*$/,''); // strip file name + query/hash
+    p=p.replace(/^file:\/\/\//i,'').replace(/^file:\/\//i,'');
+    return decodeURI(p);
+  }catch(e){ return ''; }
+}
+function probeHost(cb){ if(!csInterface){ cb(false); return; } csInterface.evalScript('(typeof importLyricsToComp==="function")?"1":"0"', function(r){ cb(r==='1'); }); }
+function loadHostViaXHR(done){
+  if(_hostSrc){ csInterface.evalScript(_hostSrc, function(){ done(); }); return; }
+  try{
+    var xhr=new XMLHttpRequest(); xhr.open('GET','jsx/host.jsx?ts='+Date.now(),true);
+    xhr.onreadystatechange=function(){ if(xhr.readyState!==4) return;
+      if(xhr.responseText && xhr.responseText.indexOf('function')!==-1){ _hostSrc=xhr.responseText; csInterface.evalScript(_hostSrc, function(){ done(); }); }
+      else done();
+    };
+    xhr.onerror=function(){ done(); }; xhr.send();
+  }catch(e){ done(); }
+}
+function loadHostViaPath(done){
+  var ext=''; try{ ext=csInterface.getSystemPath(SystemPath.EXTENSION); }catch(e){}
+  if(!ext) ext=_extBase();
+  if(!ext){ done(); return; }
+  var hp=(ext.replace(/[\/\\]+$/,'')+'/jsx/host.jsx').replace(/\\/g,'/');
+  csInterface.evalScript('(function(){try{$.evalFile(new File("'+hp+'"));return "1";}catch(e){return "0";}})()', function(){ done(); });
+}
+// Run cb(true) once the CURRENT host.jsx is loaded. The ExtendScript engine persists
+// across panel reloads and may hold a stale version, so on the first call this session
+// we ALWAYS re-evaluate the fresh source (XHR) before trusting it — never skip on probe.
+function ensureHost(cb){
+  if(!csInterface){ cb(false); return; }
+  if(_hostReady){ cb(true); return; }
+  loadHostViaXHR(function(){
+    probeHost(function(ok){
+      if(ok){ _hostReady=true; cb(true); return; }
+      loadHostViaPath(function(){
+        probeHost(function(ok2){ _hostReady=ok2; cb(ok2); });
+      });
+    });
+  });
+}
+
+// ─── SEED CHANNELS (fixed list, used on web AND inside AE) ───
+(function seed(){
+  CH_DATA.forEach(function(c){
+    channels.push({ id:++chSeq, name:c.name, lyr:c.lyr, th:c.th, songName:c.song, num:_leadNumJS(c.lyr),
+      artist:'', song:'', lyricsText:'', lines:[], stamps:[], curLine:0, loaded:false,
+      audioFile:null, audioURL:null, audioName:'', audioDur:0 });
+  });
+  activeId=channels[0].id; expandedId=channels[0].id;
+  loadActiveIntoWorkingSet();
+  renderChannels(); renderLyricsFlow(); syncTitle(); tlRefresh();
+  if(IN_AE) aeLoadSong(getActive());   // load first channel's Song audio from the project
+})();
+
+// ─── CHANNEL HELPERS ───
+function getChannel(id){ for(var i=0;i<channels.length;i++) if(channels[i].id===id) return channels[i]; return null; }
+function getActive(){ return getChannel(activeId); }
+function chTimed(ch){ return ch.id===activeId ? stamps.length>0 : (ch.stamps&&ch.stamps.length>0); }
+function chComplete(ch){ return !!(ch.artist&&ch.artist.trim() && ch.song&&ch.song.trim() && ch.loaded); }
+function saveWorkingSet(){ var ch=getChannel(activeId); if(!ch) return; ch.lines=lines.slice(); ch.stamps=JSON.parse(JSON.stringify(stamps)); ch.curLine=curLine; if(!(ch.lyricsText&&ch.lyricsText.length)) ch.lyricsText=lines.join('\n'); ch.loaded=lines.length>0; }
+function loadActiveIntoWorkingSet(){ pendingId=null; var ch=getActive(); if(!ch){ lines=[];stamps=[];curLine=0; return; } lines=ch.lines.slice(); stamps=JSON.parse(JSON.stringify(ch.stamps)); curLine=ch.curLine||0; undoStack=[]; redoStack=[]; selStampSet.clear(); }
+function avatar(name){ var h=0; for(var i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); var hue=Math.abs(h)%360; return '<div class="ch-av" style="background:linear-gradient(135deg,hsl('+hue+',72%,56%),hsl('+((hue+45)%360)+',72%,44%))">'+esc((name.charAt(0)||'?').toUpperCase())+'</div>'; }
+
+// Verso single-channel: the displayed channel name IS the song title.
+function chDisplayName(ch){
+  return (ch.song && ch.song.trim()) ? ch.song.trim() : 'Untitled';
+}
+// ─── RENDER CHANNELS ───
+function renderChannels(){
+  // Verso: the channel container lives inside the popup (#chPopBody).
+  var list=document.getElementById('chPopBody')||document.getElementById('songsList'); if(!list) return; list.innerHTML='';
+  channels.forEach(function(ch){
+    var row=document.createElement('div');
+    // single channel: always expanded inside the popup.
+    row.className='channel expanded'+(ch.loaded?' loaded':'');
+    row.dataset.id=ch.id;
+    var info=((ch.artist||'')+(ch.artist&&ch.song?' - ':'')+(ch.song||'')).trim();
+    var head=document.createElement('div'); head.className='ch-head';
+    head.innerHTML=avatarFor(ch)+
+      '<div class="ch-meta"><div class="ch-name">'+esc(chDisplayName(ch))+'</div><div class="ch-sub">'+esc(info||'Load Contents')+'</div></div>';
+    row.appendChild(head);
+
+    var ed=document.createElement('div'); ed.className='ch-editor';
+    var ins=document.createElement('div'); ins.className='ch-inputs';
+    var inA=document.createElement('input'); inA.className='ch-in'+((ch.artist&&ch.artist.trim())?' filled':''); inA.placeholder='Artist'; inA.value=ch.artist||'';
+    inA.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editArtist(ch.id,this.value); }; inA.onclick=function(e){ e.stopPropagation(); };
+    var inS=document.createElement('input'); inS.className='ch-in'+((ch.song&&ch.song.trim())?' filled':''); inS.placeholder='Song'; inS.value=ch.song||'';
+    inS.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editSong(ch.id,this.value); }; inS.onclick=function(e){ e.stopPropagation(); };
+    ins.appendChild(inA); ins.appendChild(inS); ed.appendChild(ins);
+
+    var ta=document.createElement('textarea'); ta.className='ch-lyr'+((ch.lyricsText&&ch.lyricsText.trim())?' filled':''); ta.placeholder='Lyrics — one line per row…'; ta.value=ch.lyricsText||'';
+    ta.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editLyrics(ch.id,this.value); }; ta.onclick=function(e){ e.stopPropagation(); };
+    ed.appendChild(ta);
+
+    var clrIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+    var thumbIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="M21 15l-5-5L5 18"/></svg>';
+    if(IN_AE){
+      // preview of the channel's real TH thumbnail (filled after pressing Thumbnail)
+      var timg=document.createElement('img'); timg.className='ch-thumb'; timg.style.display='none'; timg.onclick=function(e){ e.stopPropagation(); };
+      ed.appendChild(timg); ch._thumbImg=timg;
+      // row with Clear (left) and Thumbnail (right)
+      var clrRow=document.createElement('div'); clrRow.style.cssText='display:flex;align-items:center;justify-content:space-between';
+      var clr=document.createElement('button'); clr.className='ch-clear'; clr.style.alignSelf='auto'; clr.title='Clear the channel (inputs, lyrics, timestamps & SRT layers)';
+      clr.innerHTML=clrIcon+'Clear';
+      clr.onclick=function(e){ e.stopPropagation(); clearChannelFull(ch.id); };
+      var thb=document.createElement('button'); thb.className='ch-clear ch-thumb-btn'; thb.style.alignSelf='auto'; thb.title='Update the thumbnail (Artist/Song layers of the … TH comp)';
+      thb.innerHTML=thumbIcon+'Thumbnail';
+      thb.onclick=function(e){ e.stopPropagation(); thumbnailAction(ch.id); };
+      clrRow.appendChild(thb); clrRow.appendChild(clr);   // Thumbnail left, Clear right
+      ed.appendChild(clrRow);
+    } else {
+      var clrW=document.createElement('button'); clrW.className='ch-clear'; clrW.title='Clear timestamps';
+      clrW.innerHTML=clrIcon+'Clear timestamps';
+      clrW.onclick=function(e){ e.stopPropagation(); clearActive(); };
+      ed.appendChild(clrW);
+    }
+
+    row.appendChild(ed);
+    list.appendChild(row);
+  });
+  // Verso single-channel: no "+ Add channel" placeholder (only one channel).
+}
+// Re-read the channel's loaded song and refresh its Artist/Song title.
+function channelReload(id){
+  var ch=getChannel(id); if(!ch) return;
+  if(IN_AE && (ch.songName||ch.num!=null)){
+    aeLoadSong(ch, true, true); toast('Refreshing title…');   // re-read the song + overwrite the title
+  } else if(ch.audioName){
+    var meta=parseAudioMeta(ch.audioName);
+    if(meta.artist) ch.artist=meta.artist; if(meta.song) ch.song=meta.song;
+    if(ch.id===activeId) syncTitle(); renderChannels(); toast('Title refreshed');
+  } else { toast('No audio loaded to read'); }
+}
+function updTimed(){ var ch=getActive(); if(ch) ch.loaded=lines.length>0; var row=document.querySelector('.channel[data-id="'+activeId+'"]'); if(row){ row.classList.toggle('loaded', lines.length>0); row.classList.toggle('dim', (ch&&!chComplete(ch)) && activeId!==expandedId); } }
+
+// ─── CHANNEL ACTIONS ───
+function selectChannel(id){
+  if(id===expandedId){ expandedId=null; setExpanded(-1); return; }   // collapse the open one (animated)
+  if(activeId!==null && activeId!==id) saveWorkingSet();
+  activeId=id; expandedId=id;
+  loadActiveIntoWorkingSet();
+  loadChannelAudio();   // swap to this channel's own audio (previous channel keeps its own)
+  if(IN_AE){ aeLoadSong(getActive(), true); loadThumbPreview(getActive()); }   // pull Song audio + TH preview
+  setExpanded(id); refreshChannelStates(); renderLyricsFlow(); syncTitle(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  if(IS_TOUCH) toggleSongsDrawer(false);   // tapping a channel closes the drawer
+}
+function setExpanded(id){
+  document.querySelectorAll('.channel').forEach(function(r){
+    var rid=+r.dataset.id, ch=getChannel(rid); if(!ch) return;
+    r.classList.toggle('expanded', rid===id);
+    r.classList.toggle('dim', !chComplete(ch) && rid!==id);
+    var info=((ch.artist||'')+(ch.artist&&ch.song?' - ':'')+(ch.song||'')).trim();
+    var sub=r.querySelector('.ch-sub'); if(sub) sub.textContent=(rid===id)?(info||'Load Contents'):info;
+  });
+}
+function refreshChannelStates(){
+  document.querySelectorAll('.channel').forEach(function(r){ var rid=+r.dataset.id, ch=getChannel(rid); if(!ch) return; r.classList.toggle('loaded',!!ch.loaded); r.classList.toggle('dim', !chComplete(ch) && rid!==expandedId); });
+}
+function addChannel(){
+  saveWorkingSet();
+  var ch={ id:++chSeq, name:'New Channel '+chSeq, artist:'', song:'', lyricsText:'', lines:[], stamps:[], curLine:0, loaded:false, audioFile:null, audioURL:null, audioName:'', audioDur:0 };
+  channels.push(ch); activeId=ch.id; expandedId=ch.id;
+  loadActiveIntoWorkingSet(); loadChannelAudio();
+  renderChannels(); renderLyricsFlow(); syncTitle(); tlRefresh(); toast('Channel added');
+}
+function editArtist(id,v){ var ch=getChannel(id); if(!ch) return; ch.artist=v; if(id===activeId) syncTitle(); updateSub(id); updDim(id); }
+function editSong(id,v){ var ch=getChannel(id); if(!ch) return; ch.song=v; if(id===activeId) syncTitle(); updateSub(id); updDim(id); refreshChanName(id); }
+// Verso single-channel: keep the channel head name in sync with the song title.
+function refreshChanName(id){ var ch=getChannel(id); if(!ch) return; var n=document.querySelector('.channel[data-id="'+id+'"] .ch-name'); if(n) n.textContent=chDisplayName(ch); }
+function updDim(id){ var ch=getChannel(id), row=document.querySelector('.channel[data-id="'+id+'"]'); if(ch&&row) row.classList.toggle('dim', !chComplete(ch) && id!==expandedId); }
+function editLyrics(id,v){
+  var ch=getChannel(id); if(!ch) return;
+  ch.lyricsText=v; ch.lines=deriveLines(v); ch.loaded=ch.lines.length>0;
+  var row=document.querySelector('.channel[data-id="'+id+'"]'); if(row){ row.classList.toggle('loaded',ch.loaded); row.classList.toggle('dim', !chComplete(ch) && id!==expandedId); }
+  if(id===activeId){ lines=ch.lines.slice(); pendingId=null; if(curLine>lines.length) curLine=lines.length; renderLyricsFlow(); updateLyricHighlight(AEL.currentTime||0); }
+}
+function updateSub(id){ var ch=getChannel(id), row=document.querySelector('.channel[data-id="'+id+'"]'); if(!ch||!row) return; var s=row.querySelector('.ch-sub'); if(!s) return; var info=((ch.artist||'')+(ch.artist&&ch.song?' - ':'')+(ch.song||'')).trim(); s.textContent=(id===expandedId)?(info||'Load Contents'):info; }
+function syncTitle(){ var ch=getActive(); document.getElementById('lyrSong').textContent=(ch&&ch.song)?ch.song:'Untitled'; document.getElementById('lyrArtist').textContent=(ch&&ch.artist)?ch.artist:''; }
+
+// ─── LYRICS PANEL ───
+function renderLyricsFlow(){
+  var flow=document.getElementById('lyrFlow'), ch=getActive();
+  if(!ch||!ch.lines.length){ flow.innerHTML=''; flow.style.transform='translateY(0)'; if(!document.getElementById('lyrEmpty')){ var e=document.createElement('div'); e.className='lyr-empty'; e.id='lyrEmpty'; e.textContent='No lyrics yet — open this channel and paste the lyrics.'; document.getElementById('lyrStage').appendChild(e); } document.getElementById('lyrEmpty').style.display='flex'; return; }
+  var em=document.getElementById('lyrEmpty'); if(em) em.style.display='none';
+  flow.innerHTML='';
+  ch.lines.forEach(function(ln,i){ var sec=isSection(ln); var d=document.createElement('div'); d.className='lyr-line'+(sec?' section':''); d.dataset.i=i; var sp=document.createElement('span'); sp.className='lk'; sp.textContent=ln; d.appendChild(sp); if(!sec) d.onclick=function(){ if(lyrMoved){ lyrMoved=false; return; } seekToLine(i); }; flow.appendChild(d); });
+  flow.classList.add('nodrift'); flow.style.transform='translateY(0)'; lyrManualY=null;   // always start from the first line
+}
+function updateLyricHighlight(t){
+  var ch=getActive(); if(!ch||!ch.lines.length) return;
+  // Exactly one active line: the one whose stamp window contains the current time. None in gaps/before timing.
+  var activeLi=-1;
+  for(var k=0;k<stamps.length;k++){
+    var st=stamps[k].time, ln=(stamps[k].len!=null)?stamps[k].len:((k+1<stamps.length)?(stamps[k+1].time-st):(dur?dur-st:3)), en=st+Math.max(0.05,ln);
+    if(t>=st && t<en){ activeLi=stamps[k].lineIdx; break; }
+  }
+  var flow=document.getElementById('lyrFlow'), nodes=flow.children, centerNode=null;
+  for(var n=0;n<nodes.length;n++){
+    var el=nodes[n]; if(el.classList.contains('section')) continue;
+    var li=+el.dataset.i, si=-1;
+    for(var j=0;j<stamps.length;j++){ if(stamps[j].lineIdx===li){ si=j; break; } }
+    if(li===activeLi){ paintLine(el,'active'); centerNode=el; }
+    else if(si>=0){ var s2=stamps[si].time, l2=(stamps[si].len!=null)?stamps[si].len:((si+1<stamps.length)?(stamps[si+1].time-s2):(dur?dur-s2:3)), e2=s2+Math.max(0.05,l2); paintLine(el,(t>=e2)?'past':'future'); }
+    else paintLine(el,'future');
+  }
+  if(lyrManualY!==null && AEL.paused) return; // user is browsing
+  flow.classList.remove('nodrift');
+  if(centerNode){ var stage=document.getElementById('lyrStage'); flow.style.transform='translateY('+(-(centerNode.offsetTop - stage.clientHeight/2 + centerNode.offsetHeight/2))+'px)'; }
+}
+// Line colouring: active line = accent blue, already-sung = muted blue, not-yet-done = dark
+function paintLine(el, state){
+  var lk=el.firstChild; if(!lk) return;
+  lk.style.color = state==='active' ? '#208FFF' : state==='past' ? 'rgba(32,143,255,.5)' : 'rgba(255,255,255,.22)';
+}
+function seekToLine(i){
+  if(!dur){ toast('Load audio first'); return; }
+  var s=null; for(var k=0;k<stamps.length;k++){ if(stamps[k].lineIdx===i){ s=stamps[k]; break; } }
+  if(!s){ toast('No timestamp on this line yet'); return; }
+  AEL.currentTime=s.time; var vp=1/zoom, gp=s.time/dur; scrollPct=Math.max(0,Math.min(1-vp,gp-vp/2)); lyrManualY=null; frameUpdate();
+}
+function getTY(el){ var m=/translateY\((-?[\d.]+)px\)/.exec(el.style.transform||''); return m?parseFloat(m[1]):0; }
+function clampLyr(y){ var stage=document.getElementById('lyrStage'), fl=document.getElementById('lyrFlow'); var min=-(fl.offsetHeight - stage.clientHeight*0.4), max=stage.clientHeight*0.4; return Math.max(min,Math.min(max,y)); }
+function startLyrEase(){ if(lyrEaseId) return; var fl=document.getElementById('lyrFlow'); (function step(){ var cur=clampLyr(getTY(fl)+lyrVel); fl.style.transform='translateY('+cur+'px)'; lyrManualY=cur; lyrVel*=0.8; if(Math.abs(lyrVel)>0.15){ lyrEaseId=requestAnimationFrame(step); } else { lyrVel=0; lyrEaseId=null; } })(); }
+function isSection(line){ var s=(line||'').trim(); if(!s) return false; if(/^\[.*\]$/.test(s)) return true; if(/^\(.*\)$/.test(s)&&/(verse|chorus|bridge|outro|intro|hook|refrain|pre-?chorus|post-?chorus|interlude|breakdown|instrumental|solo)/i.test(s)) return true; if(/^(intro|verse|chorus|pre-?chorus|post-?chorus|bridge|outro|hook|refrain|interlude|breakdown|instrumental|solo)(\s*\d+)?\s*:?$/i.test(s)) return true; return false; }
+function nextStampable(from){ for(var i=Math.max(0,from);i<lines.length;i++) if(!isSection(lines[i])) return i; return lines.length; }
+// Strip Genius artifacts ("You might also like" promo, Embed counts, etc.) — they are not part of the lyrics
+function isJunkLine(s){ return /^you might also like$/i.test(s) || /^\d+\s*embed$/i.test(s) || /^embed$/i.test(s) || /^see .+ live/i.test(s) || /get tickets as low as/i.test(s) || /^\d+\s*contributors?/i.test(s) || /^translations?$/i.test(s); }
+function deriveLines(text){
+  var raw=(text||'').split('\n');
+  var out=[], skip=false;
+  // Skip everything before the first section marker ([Verse], [Chorus], etc.) to strip
+  // contributor names and other metadata that Genius places before the actual lyrics.
+  var firstSection=-1;
+  for(var j=0;j<raw.length;j++){ if(isSection(raw[j].trim())){ firstSection=j; break; } }
+  var start=firstSection>=0?firstSection:0;
+  for(var i=start;i<raw.length;i++){
+    var s=raw[i].trim();
+    var idx=s.toLowerCase().indexOf('you might also like');
+    if(idx>=0){ var before=s.slice(0,idx).trim(); if(before && !isJunkLine(before)) out.push(before); skip=true; continue; }
+    if(skip){ if(isSection(s)){ skip=false; } else continue; }
+    if(!s || isJunkLine(s)) continue;
+    out.push(s);
+  }
+  return out;
+}
+
+// ─── TIMELINE ─── (markers rebuilt only when dirty/scroll/zoom changes; playhead positioned every frame = smooth)
+function defaultLen(i){ if(i+1<stamps.length) return Math.max(0.15, stamps[i+1].time-stamps[i].time-0.02); return Math.min(2, Math.max(0.5, dur?dur-stamps[i].time:2)); }
+function markerLen(s,i){ return (s.len!=null)? s.len : defaultLen(i); }
+function resolveCollisions(idx, spp){
+  if(idx<0) return; var GAP=Math.max(0.02, 4*(spp||0));
+  var body=function(i){ return stamps[i].len!=null ? stamps[i].len : 0; };   // default-length markers behave as points for collision
+  for(var j=idx+1;j<stamps.length;j++){ var need=stamps[j-1].time+body(j-1)+GAP; if(stamps[j].time < need){ stamps[j].time=Math.min(dur,need); } else break; }   // push touching markers right, stop at first gap
+  for(var k=idx-1;k>=0;k--){ var max=stamps[k+1].time-GAP-body(k); if(stamps[k].time > max){ stamps[k].time=Math.max(0,max); } else break; }                       // push touching markers left, stop at first gap
+}
+function getStampById(id){ for(var i=0;i<stamps.length;i++) if(stamps[i].id===id) return stamps[i]; return null; }
+
+function renderMarkers(){
+  var W=tlTrack.clientWidth, mk=document.getElementById('tlMarkers'); mk.innerHTML='';
+  _lastScroll=scrollPct; _lastZoom=zoom;
+  if(!dur) return;
+  var vp=1/zoom;
+  stamps.forEach(function(s,i){
+    var gp=s.time/dur, len=markerLen(s,i), ge=Math.min(1,(s.time+len)/dur);
+    if(ge<scrollPct||gp>scrollPct+vp) return;
+    var x=(gp-scrollPct)/vp*W, w=Math.max(10,(ge-gp)/vp*W);
+    var el=document.createElement('div'); el.className='tl-marker'+(selStampSet.has(s.id)?' sel':''); el.style.left=x+'px'; el.style.width=w+'px'; el.dataset.sid=s.id; el.title='#'+(i+1)+'  '+fmtClock(s.time);
+    el.addEventListener('mousemove', function(ev){ if(mkDrag||scrubbing) return; var r=el.getBoundingClientRect(), ox=ev.clientX-r.left; el.style.cursor=(ox<7||ox>r.width-7)?'ew-resize':'grab'; });
+    el.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDrag(ev, s.id, el); });
+    mk.appendChild(el);
+  });
+}
+function positionPlayhead(t){
+  var W=tlTrack.clientWidth, vp=1/zoom, ph=document.getElementById('tlPlayhead');
+  setTimer(t);
+  if(!dur){ ph.style.display='none'; return; }
+  var gp=t/dur, lx=(gp-scrollPct)/vp*W;
+  if(lx<0||lx>W){ ph.style.display='none'; return; }
+  ph.style.display='block'; ph.style.left=lx+'px';
+}
+function setTimer(t){ var el=document.getElementById('tTimer'); if(el) el.textContent=fmtTimer(t); }
+function updTrackThickness(){
+  if(IS_TOUCH){
+    if(!tlTrack) return;
+    var h=zoom>1 ? Math.min(24,6+(zoom-1)*2.5) : 6;
+    tlTrack.style.height=h.toFixed(1)+'px';
+    return;
+  }
+  var base=6, mx=22; var th=Math.min(mx, base+Math.max(0,zoom-1)*2.4); if(tlTrack) tlTrack.style.height=th.toFixed(1)+'px';
+}
+function renderTimeline(t){
+  if(t===undefined) t=AEL.currentTime||0;
+  updTrackThickness();
+  tlWrap.classList.toggle('zoomed', zoom>1.001);
+  var pw=Math.min(7, 2+(zoom-1)*0.45), ph=document.getElementById('tlPlayhead'); ph.style.width=pw.toFixed(1)+'px'; ph.style.marginLeft=(-pw/2)+'px';   // thin/short normally, grows on zoom
+  if(tlDirty || scrollPct!==_lastScroll || zoom!==_lastZoom){ renderMarkers(); tlDirty=false; }
+  renderMini();
+  positionPlayhead(t);
+}
+function renderMini(){
+  var mini=document.getElementById('tlMini'); if(!mini) return;
+  if(zoom<=1.001 || !dur){ mini.style.display='none'; return; }
+  mini.style.display='block';
+  var W=mini.clientWidth, marks=document.getElementById('tlMiniMarks'); marks.innerHTML='';
+  stamps.forEach(function(s,i){ var d=document.createElement('div'); d.className='tl-mini-mk'; d.style.left=((s.time/dur)*W)+'px'; d.style.width=Math.max(2,(markerLen(s,i)/dur)*W)+'px'; marks.appendChild(d); });
+  var vp=document.getElementById('tlMiniVp'); vp.style.left=(scrollPct*W)+'px'; vp.style.width=((1/zoom)*W)+'px';
+}
+function miniSeek(cx){ var mini=document.getElementById('tlMini'), r=mini.getBoundingClientRect(); if(!r.width) return; var pct=(cx-r.left)/r.width; scrollPct=clampScroll(pct-(1/zoom)/2); scrollTarget=scrollPct; tlRefresh(); }
+function tlRefresh(){ tlDirty=true; renderTimeline(); }
+function clampScroll(s){ return Math.max(0,Math.min(1-1/zoom,s)); }
+function startTlEase(){ if(tlEaseId) return; (function step(){ var ds=scrollTarget-scrollPct, dz=zoomTarget-zoom; if(Math.abs(ds)<0.0006 && Math.abs(dz)<0.004){ zoom=zoomTarget; scrollPct=clampScroll(scrollTarget); tlRefresh(); tlEaseId=null; return; } zoom+=dz*0.22; scrollPct=clampScroll(scrollPct+ds*0.22); tlRefresh(); tlEaseId=requestAnimationFrame(step); })(); }
+
+function startMarkerDrag(ev, sid, el){
+  var s=getStampById(sid); if(!s) return;
+  var r=el.getBoundingClientRect(), ox=ev.clientX-r.left, mode=(ox<7)?'l':(ox>r.width-7)?'r':'move';
+  var i=stamps.indexOf(s);
+  mkDrag={ sid:sid, mode:mode, startX:ev.clientX, t0:s.time, len0:markerLen(s,i), W:tlTrack.clientWidth, moved:false, pushed:false, ctrl:ev.ctrlKey||ev.metaKey };
+}
+// Touch start on a marker: a node grabs that edge (resize); the body moves it.
+function startMarkerTouch(ev, sid, el){
+  var s=getStampById(sid); if(!s) return;
+  var t=ev.touches[0];
+  var i=stamps.indexOf(s);
+  if(!selStampSet.has(sid)){ selStampSet.clear(); selStampSet.add(sid); syncTouchButtons(); }
+  mkDrag={ sid:sid, mode:'move', startX:t.clientX, t0:s.time, len0:markerLen(s,i), W:tlTrack.clientWidth, moved:false, pushed:false, ctrl:false, touch:true };
+  tlRefresh();
+}
+function doScrub(clientX){
+  var r=tlTrack.getBoundingClientRect(); if(!r.width) return;
+  var pct=Math.max(0,Math.min(1,(clientX-r.left)/r.width)), t=Math.max(0,Math.min(dur,(scrollPct+pct/zoom)*dur));
+  document.getElementById('tlPlayhead').style.left=(pct*r.width)+'px';
+  setTimer(t);
+  AEL.currentTime=t; lyrManualY=null; updateLyricHighlight(t);
+}
+function showTip(timeSec, clientX){ var wrap=document.getElementById('tlWrap'), tip=document.getElementById('tlTip'), r=wrap.getBoundingClientRect(); tip.style.left=(clientX-r.left)+'px'; tip.style.display='block'; tip.textContent=fmtTip(timeSec); }
+function hideTip(){ document.getElementById('tlTip').style.display='none'; }
+function clearActive(){ if(!stamps.length){ toast('No timestamps'); return; } pushUndo(); stamps=[]; curLine=nextStampable(0); pendingId=null; selStampSet.clear(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Timestamps cleared'); }
+
+// ─── RAF / FRAME ───
+function schedRAF(){ if(rafId) return; rafId=requestAnimationFrame(function loop(){ frameUpdate(); if(!AEL.paused) rafId=requestAnimationFrame(loop); else rafId=null; }); }
+function frameUpdate(){
+  var t=AEL.currentTime||0;
+  if(!AEL.paused){
+    if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } scrollTarget=scrollPct;
+    if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0;
+    var vp=1/zoom, gp=dur?t/dur:0, mg=vp*0.08; if(gp>scrollPct+vp-mg) scrollPct=Math.min(1-vp,gp-vp+mg); else if(gp<scrollPct+mg&&zoom>1) scrollPct=Math.max(0,gp-mg); lyrManualY=null;
+  }
+  renderTimeline(t); updateLyricHighlight(t);
+}
+
+// ─── AUDIO ───
+function openAudio(){ document.getElementById('fin').click(); }
+function loadAudio(inp){
+  var f=inp.files[0]; if(!f) return; var ch=getActive(); if(!ch){ toast('Open a channel first'); return; }
+  if(ch.audioURL){ try{ URL.revokeObjectURL(ch.audioURL); }catch(e){} }
+  ch.audioFile=f; ch.audioURL=URL.createObjectURL(f); ch.audioName=f.name; ch.audioDur=0;   // audio stored per channel
+  audioFile=f; AEL.src=ch.audioURL; AEL.load();
+  applyAudioMeta(f.name); toast('Loaded: '+f.name);
+}
+function loadChannelAudio(){
+  var ch=getActive(); AEL.pause();
+  if(ch && ch.audioURL){ if(AEL.getAttribute('src')!==ch.audioURL){ AEL.src=ch.audioURL; AEL.load(); } dur=ch.audioDur||0; audioFile=ch.audioFile||null; }
+  else { try{ AEL.removeAttribute('src'); AEL.load(); }catch(e){} dur=0; audioFile=null; }
+  try{ if(AEL.src) AEL.currentTime=0; }catch(e){}
+  scrollPct=0; scrollTarget=0;
+}
+function parseAudioMeta(filename){ var n=(filename||'').replace(/\.[^.]+$/,'').replace(/_/g,' ').trim(); var artist='', song=n; var parts=n.split(/\s+[-–—]\s+/); if(parts.length>=2){ artist=parts[0].trim(); song=parts.slice(1).join(' - ').trim(); } return {artist:artist, song:song}; }   // keeps "ft./feat." inside the song title
+function applyAudioMeta(filename){ var m=parseAudioMeta(filename), ch=getActive(); if(!ch) return; if(m.artist) ch.artist=m.artist; if(m.song) ch.song=m.song; syncTitle(); renderChannels(); }
+function togglePlay(){
+  var ch=getActive();
+  if(!ch||!ch.audioURL){
+    if(IN_AE && ch){ aeLoadSong(ch, true); toast('Loading channel audio…'); }   // try to pull it from the project
+    else toast('This channel has no audio — load one first');
+    return;
+  }
+  if(AEL.paused) AEL.play(); else AEL.pause();
+}
+function toggleRateMenu(ev){
+  if(ev) ev.stopPropagation();
+  var m=document.getElementById('rateMenu'); if(m.classList.contains('open')){ m.classList.remove('open'); return; }
+  m.innerHTML='';
+  rates.forEach(function(r,i){ var it=document.createElement('div'); it.className='rate-item'+(i===rateIdx?' cur':''); it.textContent=r+'x'; it.onclick=function(e){ e.stopPropagation(); setRate(i); }; m.appendChild(it); });
+  var btn=document.getElementById('tRate'), br=btn.getBoundingClientRect();
+  m.style.left='auto'; m.style.right=(window.innerWidth-br.left+8)+'px'; m.style.top=(br.top+br.height/2)+'px'; m.style.transform='translateY(-50%)';   // anchor right edge → grows leftward
+  m.classList.add('open');
+}
+function closeRateMenu(){ var m=document.getElementById('rateMenu'); if(m) m.classList.remove('open'); }
+function setRate(i){ rateIdx=i; AEL.playbackRate=rates[rateIdx]; var b=document.getElementById('tRate'); if(b) b.textContent=rates[rateIdx]+'x'; closeRateMenu(); buildRateMenuH(); }
+// Horizontal speed menu that opens upward when hovering the timer.
+function buildRateMenuH(){
+  var m=document.getElementById('rateMenuH'); if(!m) return;
+  m.innerHTML='';
+  rates.forEach(function(r,i){ var it=document.createElement('button'); it.className='stack-item'+(i===rateIdx?' cur':''); it.textContent=r+'x'; it.onclick=function(e){ e.stopPropagation(); setRate(i); }; m.appendChild(it); });
+}
+// Import/Export button — click acts (with active flash); Sync/SRT-All float above on hover.
+function importClick(ev){
+  if(ev) ev.stopPropagation();
+  var b=document.getElementById('mainActionBtn'); if(b){ b.classList.add('active-imp'); setTimeout(function(){ b.classList.remove('active-imp'); },650); }
+  if(csInterface) importToChannel(); else doExport();
+}
+// Clear button — AE: delete all SRT layers; web/touch: clear every channel's timestamps.
+function clearAction(){
+  if(IN_AE){ masterClearAll(); return; }
+  pushUndo();
+  for(var i=0;i<channels.length;i++){ channels[i].stamps=[]; channels[i].curLine=0; }
+  stamps=[]; curLine=nextStampable(0); selStampSet.clear();
+  saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); renderChannels();
+  toast('All timestamps cleared');
+}
+// web/touch: load several audio files (sorted by time) into the channels in order.
+function masterMulti(){
+  var inp=document.getElementById('finMulti'); if(inp) inp.click();
+}
+function loadMultiAudio(inp){
+  var files=Array.prototype.slice.call(inp.files||[]); inp.value='';
+  if(!files.length) return;
+  files.sort(function(a,b){ return (a.lastModified||0)-(b.lastModified||0); });
+  var n=Math.min(files.length, channels.length);
+  for(var i=0;i<n;i++){
+    var ch=channels[i], f=files[i];
+    if(ch.audioURL){ try{ URL.revokeObjectURL(ch.audioURL); }catch(e){} }
+    ch.audioFile=f; ch.audioURL=URL.createObjectURL(f); ch.audioName=f.name; ch.audioDur=0;
+    var meta=parseAudioMeta(f.name);                       // fill Artist / Song from the file name
+    if(meta.artist) ch.artist=meta.artist;
+    if(meta.song)   ch.song=meta.song;
+  }
+  // reload the active channel's audio if it got one
+  var a=getActive(); if(a&&a.audioURL){ audioFile=a.audioFile; AEL.src=a.audioURL; AEL.load(); }
+  renderChannels(); syncTitle(); toast('✓ '+n+' songs loaded into channels');
+}
+// Build an SRT string for an arbitrary channel (active one uses the live working set).
+function buildSRTFor(ch, lpb){
+  lpb=lpb||1;
+  var st=(ch.id===activeId)?stamps:(ch.stamps||[]);
+  var ln=(ch.id===activeId)?lines:(ch.lines||[]);
+  var d =(ch.id===activeId)?dur:(ch.audioDur||0);
+  if(!st.length) return '';
+  function mlen(s,i){ if(s.len!=null) return s.len; if(i+1<st.length) return Math.max(0.15, st[i+1].time-st[i].time-0.02); return Math.min(2, Math.max(0.5, d?d-st[i].time:2)); }
+  var blocks=[];
+  for(var i=0;i<st.length;i+=lpb){ var blk=st.slice(i,i+lpb), s0=blk[0].time, li=i+blk.length-1, last=st[li], en=last.time+mlen(last,li); if(d) en=Math.min(en,d); blocks.push({st:s0,en:Math.max(s0+.3,en),txt:blk.map(function(s){ return ln[s.lineIdx]; }).join('\n')}); }
+  return blocks.map(function(b,i){ return (i+1)+'\n'+toSRT(b.st)+' --> '+toSRT(b.en)+'\n'+b.txt; }).join('\n\n');
+}
+// Download a string as a real .srt file (octet-stream → iOS won't append .txt).
+function dlText(text, name){
+  var fn=String(name||'subtitles').replace(/[^\w\-]+/g,'_')+'.srt';
+  var blob=new Blob([text],{type:'application/octet-stream'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1500);
+}
+// web/touch "All": export every channel that has timestamps, one .srt each.
+function exportAll(){
+  saveWorkingSet();
+  var lpb=1, lpbEl=document.getElementById('lpb'); if(lpbEl) lpb=parseInt(lpbEl.value)||1;
+  var n=0;
+  channels.forEach(function(c){
+    var srt=buildSRTFor(c, lpb); if(!srt.trim()) return;
+    dlText(srt, c.song||c.name); n++;
+  });
+  toast(n?('✓ Exported '+n+' SRT files'):'No finished channels to export');
+}
+// AE: update ALL thumbnails at once (Artist/Song of every "… TH" comp).
+function thumbnailAll(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  saveWorkingSet();
+  var list=channels.filter(function(c){ return !!c.th; })
+    .map(function(c){ return {th:c.th, artist:c.artist||'', song:c.song||''}; });
+  if(!list.length){ toast('No channels with TH comps'); return; }
+  toast('Updating all thumbnails…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('updateAllThumbnails('+JSON.stringify(JSON.stringify(list))+')', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){}
+      if(r&&r.ok){ toast('✓ '+r.updated+'/'+r.total+' thumbnails updated'); }
+      else { toast('TH: '+((r&&r.msg)||raw||'error')); }
+    });
+  });
+}
+// SRT batch — load .srt files and apply them to the Lyrics comps (selected or all). AE-only.
+function srtBatchAction(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  toast('Loading SRT…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('importSRTBatch()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('SRT: '+(raw||'no response')); return; }
+      if(!r.ok){ toast('SRT: '+(r.msg||'error')); return; }
+      toast('✓ SRT applied to '+r.applied+'/'+r.total+' comps · '+r.layers+' layers');
+    });
+  });
+}
+// Master Clear — delete every "SRT" text layer across ALL comps (no confirm). AE-only.
+function masterClearAll(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  toast('Clearing SRT layers…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('clearAllLyricLayers()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){}
+      if(r&&r.ok){ toast('✓ '+r.removed+' SRT layers removed in '+r.comps+' comps'); }
+      else { toast('Clear all: '+((r&&r.msg)||raw||'error')); }
+    });
+  });
+}
+
+// ─── STAMP ───
+function doStamp(){
+  var ach=getActive(); if(!ach||!ach.audioURL){ toast('Load audio for this channel first'); return; }
+  if(!lines.length){ toast('Add lyrics first'); return; }
+  // When timestamping starts, collapse the expanded channel container for more room.
+  if(expandedId!==null){ expandedId=null; setExpanded(-1); }
+  // Each ENTER stamps the current line and moves to the next (v2 behaviour). Marker length is adjusted manually by resizing.
+  curLine=nextStampable(curLine);
+  if(curLine>=lines.length){
+    // No more lines: one last ENTER closes the last marker at the current time.
+    if(stamps.length){
+      var last=stamps[stamps.length-1], end=AEL.currentTime;
+      if(end>last.time+0.05){ pushUndo(); last.len=end-last.time; saveWorkingSet(); tlRefresh(); toast('last marker closed at '+fmtClock(end)); return; }
+    }
+    toast('All lines stamped'); return;
+  }
+  pushUndo();
+  stamps.push({id:++stampSeq,lineIdx:curLine,time:AEL.currentTime}); stamps.sort(function(a,b){ return a.time-b.time; });
+  curLine=nextStampable(curLine+1);
+  saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  toast('timestamp at '+fmtClock(AEL.currentTime));
+}
+
+// ─── UNDO / REDO ───
+function pushUndo(){ undoStack.push({stamps:JSON.parse(JSON.stringify(stamps)),curLine:curLine}); if(undoStack.length>80) undoStack.shift(); redoStack=[]; }
+function undoAction(){ if(!undoStack.length){ toast('Nothing to undo'); return; } redoStack.push({stamps:JSON.parse(JSON.stringify(stamps)),curLine:curLine}); var s=undoStack.pop(); stamps=s.stamps; curLine=s.curLine; saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Undo'); }
+function redoAction(){ if(!redoStack.length){ toast('Nothing to redo'); return; } undoStack.push({stamps:JSON.parse(JSON.stringify(stamps)),curLine:curLine}); var s=redoStack.pop(); stamps=s.stamps; curLine=s.curLine; saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Redo'); }
+
+// ─── KEYBOARD ───
+function onKey(e){
+  var tg=document.activeElement.tagName; if(tg==='TEXTAREA'||tg==='INPUT'||tg==='SELECT') return;
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){ e.preventDefault(); if(e.shiftKey) redoAction(); else undoAction(); return; }
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  if(e.code==='Enter'){ e.preventDefault(); doStamp(); }
+  if((e.code==='Delete'||e.code==='Backspace') && selStampSet.size){ e.preventDefault(); pushUndo(); stamps=stamps.filter(function(s){ return !selStampSet.has(s.id); }); selStampSet.clear(); saveWorkingSet(); updTimed(); tlRefresh(); toast('Marker(s) deleted'); }
+}
+
+// ─── GLOBAL MOUSE ───
+function onGlobalMove(e){
+  if(hDrag){ var dx=e.clientX-hStartX, w=Math.max(220,Math.min(hStartW+dx, document.getElementById('workspace').offsetWidth*0.6)); document.getElementById('songsPanel').style.width=w+'px'; tlRefresh(); return; }
+  if(vDrag){ var dy=vStartY-e.clientY, h=Math.max(80,Math.min(vStartH+dy, window.innerHeight*0.5)); document.getElementById('timelineZone').style.height=h+'px'; tlRefresh(); return; }
+  if(tlPanning){ var pr=tlTrack.getBoundingClientRect(); if(pr.width){ var pdx=e.clientX-tlPanStartX; scrollPct=clampScroll(tlPanStartScroll - pdx/pr.width/zoom); scrollTarget=scrollPct; tlRefresh(); } return; }
+  if(miniDragging){ miniSeek(e.clientX); return; }
+  if(scrubbing){ doScrub(e.clientX); return; }
+  if(mkDrag){
+    var ddx=e.clientX-mkDrag.startX; if(Math.abs(ddx)>2) mkDrag.moved=true;
+    if(mkDrag.moved&&!mkDrag.pushed){ pushUndo(); mkDrag.pushed=true; }
+    var s=getStampById(mkDrag.sid); if(!s||!mkDrag.W) return;
+    var secPerPx=(dur/zoom)/mkDrag.W, di=stamps.indexOf(s), GAP=Math.max(0.02,4*secPerPx);
+    if(mkDrag.mode==='move'){
+      var desired=Math.max(0,Math.min(dur,mkDrag.t0+ddx*secPerPx));
+      if(mkDrag.touch){
+        s.time=desired; showTip(s.time,e.clientX);
+      } else {
+        var bodyS=(s.len!=null?s.len:0);
+        var prev=stamps[di-1], next=stamps[di+1];
+        var lo=prev?(prev.time+(prev.len!=null?prev.len:0)+GAP):0, hi=next?(next.time-GAP-bodyS):dur; if(hi<lo) hi=lo;
+        s.time=Math.max(lo,Math.min(hi,desired)); showTip(s.time,e.clientX);
+      }
+    }
+    else if(mkDrag.mode==='r'){ s.len=Math.max(0.1,mkDrag.len0+ddx*secPerPx); showTip(s.time+s.len,e.clientX); resolveCollisions(di,secPerPx); }   // EXPAND right edge → push touching neighbours
+    else { var nt=Math.max(0,Math.min(dur,mkDrag.t0+ddx*secPerPx)); s.len=Math.max(0.1,mkDrag.len0-(nt-mkDrag.t0)); s.time=nt; showTip(s.time,e.clientX); resolveCollisions(di,secPerPx); }  // expand left edge → push left
+    tlRefresh(); return;
+  }
+  if(lyrDrag){ var dy2=e.clientY-lyrDragStartY; if(Math.abs(dy2)>3) lyrMoved=true; var fl=document.getElementById('lyrFlow'); fl.style.transform='translateY('+(lyrBaseY+dy2)+'px)'; lyrManualY=lyrBaseY+dy2; return; }
+}
+function onGlobalUp(){
+  if(hDrag){ hDrag=false; document.getElementById('rszH').classList.remove('drag'); }
+  if(vDrag){ vDrag=false; document.getElementById('rszV').classList.remove('drag'); }
+  if(scrubbing){ scrubbing=false; }
+  if(tlPanning){ tlPanning=false; }
+  if(miniDragging){ miniDragging=false; }
+  if(mkDrag){
+    if(!mkDrag.moved){ if(mkDrag.ctrl){ if(selStampSet.has(mkDrag.sid)) selStampSet.delete(mkDrag.sid); else selStampSet.add(mkDrag.sid); } else { selStampSet.clear(); selStampSet.add(mkDrag.sid); } }
+    else { stamps.sort(function(a,b){ return a.time-b.time; }); saveWorkingSet(); updTimed(); }
+    hideTip(); mkDrag=null; tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+    if(IS_TOUCH) syncTouchButtons();
+  }
+  if(lyrDrag){ lyrDrag=false; document.getElementById('lyrStage').classList.remove('grabbing'); }
+}
+
+// ─── EXPORT / IMPORT ───
+// Builds the SRT string from the current stamps. lpb = lines per block.
+function buildSRT(lpb){
+  lpb=lpb||1; var blocks=[];
+  for(var i=0;i<stamps.length;i+=lpb){ var blk=stamps.slice(i,i+lpb), st=blk[0].time, li=i+blk.length-1, last=stamps[li], en=last.time+markerLen(last,li); if(dur) en=Math.min(en,dur); blocks.push({st:st,en:Math.max(st+.3,en),txt:blk.map(function(s){ return lines[s.lineIdx]; }).join('\n')}); }
+  return blocks.map(function(b,i){ return (i+1)+'\n'+toSRT(b.st)+' --> '+toSRT(b.en)+'\n'+b.txt; }).join('\n\n');
+}
+// Main control button: inside AE it imports straight into the comp; on the web it opens the export modal.
+function mainAction(){ if(csInterface) importStyleController(); else doExport(); }
+function doExport(){
+  if(!stamps.length){ toast('No timestamps yet'); return; }
+  var lpb=parseInt(document.getElementById('lpb').value)||1;
+  document.getElementById('srtout').value=buildSRT(lpb);
+  document.getElementById('eov').classList.add('open');
+}
+function closeExport(){ document.getElementById('eov').classList.remove('open'); }
+function copySRT(){ navigator.clipboard.writeText(document.getElementById('srtout').value).then(function(){ toast('Copied!'); }); }
+function dlSRT(){ dlText(document.getElementById('srtout').value, (getActive()&&getActive().song)?getActive().song:'subtitles'); }
+// Channels whose import auto-creates the AE comp (named like the channel) when no comp is selected.
+function chAutoCreatesComp(name){ return (name||'').trim().toLowerCase()==='nightclub nostalgia'; }
+
+// Import lyrics into After Effects using the "Style Controler" layer:
+//   - Target comp = the comp selected/active in the AE Project panel.
+//   - If none is selected and the channel auto-creates (Nightclub Nostalgia),
+//     a comp named like the channel is found or created.
+//   - Each line is a duplicate of the "Style Controler" layer (inherited style +
+//     box text), centered, with an opacity fade in/out expression.
+function importStyleController(){
+  if(!csInterface){ toast('Not running inside After Effects'); return; }
+  if(!stamps.length){ toast('No timestamps yet'); return; }
+  var lpbEl=document.getElementById('lpb'), lpb=lpbEl?(parseInt(lpbEl.value)||1):1;
+  var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to import'); return; }
+  var ch=getActive(), chName=(ch&&ch.name)?ch.name.trim():'';
+  var opt={
+    compName:chName,
+    autoCreate:chAutoCreatesComp(chName),
+    styleLayerName:'Style Controler',
+    fadeIn:0.3, fadeOut:0.3,
+    center:true, extend:true,
+    // Verso single-channel: target the comp containing "Lyrics" automatically.
+    lyricsBySuffix:true,
+    compWidth:1920, compHeight:1080, compFps:30, compDuration:60
+  };
+  toast('Importing to comp…');
+  csInterface.evalScript('importViaStyleController('+JSON.stringify(srt)+','+JSON.stringify(JSON.stringify(opt))+')', function(result){
+    if(!result||result==='undefined'){ toast('No response from AE — check Script Debug Console'); return; }
+    if(result.indexOf('ok:')===0){ toast('✓ '+result.slice(3)); }
+    else { var msg=result.indexOf('err:')===0?result.slice(4):result; toast('AE error: '+msg); }
+  });
+}
+
+// Pull the channel's Song audio from the project into the timeline.
+// Self-contained ExtendScript (does NOT depend on host.jsx being loaded): it finds the
+// "… Song" footage by exact name (else by leading number among audio footage) and returns
+// the on-disk path of whatever file is currently loaded there.
+// verbose=true → toast the reason if it can't be found (used on channel click / play).
+// Self-contained ExtendScript that finds the channel's "… Song" footage (by name, else
+// by leading number) and returns "OK:<current file path>" or "ERR:…". No host needed.
+function _songReadJsx(ch){
+  var nm=(ch.songName||'').toLowerCase(), num=(ch.num==null?-999:ch.num);
+  return '(function(){try{'+
+    'var want='+JSON.stringify(nm)+';var found=null,list=[];'+
+    'for(var i=1;i<=app.project.numItems;i++){var it=app.project.item(i);'+
+      'if(it instanceof FootageItem){'+
+        'if(it.hasAudio)list.push(it.name);'+
+        'var n=it.name.replace(/^\\s+|\\s+$/g,"").toLowerCase();'+
+        'if(n===want){found=it;break;}'+
+      '}}'+
+    'if(!found){for(var j=1;j<=app.project.numItems;j++){var it2=app.project.item(j);'+
+      'if(it2 instanceof FootageItem && it2.name.toLowerCase().indexOf("song")!==-1){'+
+        'var m=it2.name.match(/^\\s*(\\d+)/);'+
+        'if(m && parseInt(m[1],10)==='+num+'){found=it2;break;}'+
+      '}}}'+
+    // Verso single-channel: si no hubo match por nombre/numero, usar la PRIMERA
+    // footage que tenga "song" en su nombre (solo hay una cancion en el proyecto).
+    'if(!found){for(var s=1;s<=app.project.numItems;s++){var it3=app.project.item(s);'+
+      'if(it3 instanceof FootageItem && it3.name.toLowerCase().indexOf("song")!==-1){found=it3;break;}'+
+    '}}'+
+    'if(!found)return "ERR:Audio not found. Available: "+(list.join(" | ")||"(none)");'+
+    'var f=null;try{f=found.file;}catch(e){}if(!f){try{f=found.mainSource.file;}catch(e){}}'+
+    'if(!f)return "ERR:\\""+found.name+"\\" has no file on disk (load it with Master)";'+
+    'return "OK:"+f.fsName;'+
+  '}catch(e){return "ERR:"+e.toString();}})()';
+}
+// Apply a channel's loaded-song title (from the file name). overwrite=true replaces it.
+function _applySongTitle(ch, path, overwrite){
+  var cp=path.replace(/\\/g,'/'); ch.audioURL='file://'+(cp[0]==='/'?cp:'/'+cp); ch.audioName=ch.songName||'';
+  var base=path.split(/[\\\/]/).pop(), meta=parseAudioMeta(base), changed=false;
+  if(meta.artist && (overwrite || !(ch.artist&&ch.artist.trim()))){ ch.artist=meta.artist; changed=true; }
+  if(meta.song   && (overwrite || !(ch.song&&ch.song.trim()))){     ch.song=meta.song;     changed=true; }
+  // Verso single-channel: the channel/container name IS the song title.
+  if(typeof SINGLE_CHANNEL!=='undefined' && SINGLE_CHANNEL && ch.song && ch.song.trim()){
+    ch.name=ch.song.trim();
+    var rowN=document.querySelector('.channel[data-id="'+ch.id+'"] .ch-name');
+    if(rowN) rowN.textContent=ch.name;
+  }
+  if(changed){
+    var row=document.querySelector('.channel[data-id="'+ch.id+'"]');
+    if(row){ var ins=row.querySelectorAll('.ch-in');
+      if(ins[0]){ ins[0].value=ch.artist||''; ins[0].classList.toggle('filled',!!(ch.artist&&ch.artist.trim())); }
+      if(ins[1]){ ins[1].value=ch.song||'';   ins[1].classList.toggle('filled',!!(ch.song&&ch.song.trim())); }
+    }
+    updateSub(ch.id); updDim(ch.id); if(ch.id===activeId) syncTitle();
+  }
+  return changed;
+}
+function aeLoadSong(ch, verbose, overwrite){
+  if(!csInterface||!ch) return;
+  if(ch.audioURL && !overwrite){ if(ch.id===activeId && AEL.getAttribute('src')!==ch.audioURL){ AEL.src=ch.audioURL; AEL.load(); } return; }
+  if(overwrite) ch.audioURL=null;
+  csInterface.evalScript(_songReadJsx(ch), function(raw){
+    if(!raw){ if(verbose) toast('Audio: no response from AE',6000); return; }
+    if(raw.indexOf('OK:')===0){ _applySongTitle(ch, raw.slice(3), overwrite); if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); } }
+    else if(verbose){ toast('Audio: '+(raw.indexOf('ERR:')===0?raw.slice(4):raw),7000); }
+  });
+}
+// Refresh titles button in control bar — spins icon while working.
+function masterRefreshClick(){
+  var btn=document.getElementById('btnLyrRefresh'); if(btn) btn.classList.add('spinning');
+  refreshAllTitles(function(){ if(btn) btn.classList.remove('spinning'); });
+}
+// MASTER refresh: re-read EVERY channel's song and overwrite its title. Verbose summary.
+function refreshAllTitles(doneCb){
+  if(!IN_AE){
+    var c=0; channels.forEach(function(ch){ if(ch.audioName){ var m=parseAudioMeta(ch.audioName); if(m.artist) ch.artist=m.artist; if(m.song){ ch.song=m.song; c++; } } });
+    loadChannelAudio(); renderChannels(); syncTitle(); toast('Titles refreshed: '+c);
+    if(doneCb) doneCb(); return;
+  }
+  toast('Refreshing titles…');
+  var total=channels.length, done=0, changed=0, lastErr='';
+  channels.forEach(function(ch){
+    if(ch.songName==null && ch.num==null){ done++; if(done>=total) finish(); return; }
+    csInterface.evalScript(_songReadJsx(ch), function(raw){
+      done++;
+      if(raw && raw.indexOf('OK:')===0){ if(_applySongTitle(ch, raw.slice(3), true)) changed++; }
+      else if(raw && raw.indexOf('ERR:')===0){ lastErr=raw.slice(4); }
+      if(done>=total) finish();
+    });
+  });
+  function finish(){ renderChannels(); syncTitle(); toast('✓ Titles updated: '+changed+'/'+total+(changed===0&&lastErr?(' · '+lastErr):''), 6000); if(doneCb) doneCb(); }
+}
+
+// ─── MASTER / RENDER (from Range Manager) ───
+// On web/touch the ♪ button just loads an audio file; Master is AE-only.
+function masterAction(ev){
+  if(ev) ev.stopPropagation();
+  if(!csInterface){ openAudio(); return; }
+  toast('Master…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('masterRun()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('Master: '+(raw||'no response')); return; }
+      if(!r.ok){ toast('Master: '+(r.msg||r.step||'error')); return; }
+      toast('✓ Audio '+r.replaced+'/'+r.total+' · Lyrics '+r.lyricsCleaned+'/'+r.lyricsTotal+' · Ranges '+r.rangeUpdated+'/'+r.rangeTotal);
+      // Clear all SRT layers (separate call so it never risks breaking the song replacement).
+      csInterface.evalScript('clearAllLyricLayers()', function(){});
+      // Apply new song paths returned directly by masterRun (no second evalScript round-trip needed).
+      if(r.songs && r.songs.length){
+        var applied=0;
+        r.songs.forEach(function(s){
+          if(!s.path) return;
+          var sname=(s.name||'').toLowerCase().replace(/\s+/g,'');
+          for(var ci=0;ci<channels.length;ci++){
+            var ch=channels[ci];
+            if(!ch.songName) continue;
+            if(ch.songName.toLowerCase().replace(/\s+/g,'')===sname){ _applySongTitle(ch,s.path,true); applied++; break; }
+          }
+        });
+        if(applied>0){ renderChannels(); syncTitle(); loadChannelAudio(); }
+        else { aeRefreshAfterMaster(); } // name match failed — fall back to re-reading from AE
+      } else {
+        aeRefreshAfterMaster(); // fallback if songs array not in response
+      }
+    });
+  });
+}
+// After Master replaces the songs, re-pull each channel's new audio and overwrite the
+// Artist/Song titles in the song containers from the new file names.
+function aeRefreshAfterMaster(){ refreshAllTitles(function(){ loadChannelAudio(); }); }
+function renderAction(ev){
+  if(ev) ev.stopPropagation();
+  if(!csInterface){ toast('Render is only available inside After Effects'); return; }
+  toast('Render…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('renderRun()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('Render: '+(raw||'no response')); return; }
+      if(!r.ok){ toast('Render: '+r.msg); return; }
+      var m='✓ '+r.added+' to Render Queue (TH '+r.thCount+' · Main '+r.mainCount+')';
+      if(r.tmplWarning) m+=' ⚠ '+r.tmplWarning;
+      toast(m);
+    });
+  });
+}
+
+// ─── AE: THUMBNAIL (update the channel's "… TH" comp Artist/Song text + preview) ───
+function thumbnailAction(id){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  var ch=id!=null?getChannel(id):getActive(); if(!ch||!ch.th){ toast('Channel has no TH comp'); return; }
+  toast('Updating thumbnail…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('updateThumbnailComp('+JSON.stringify(ch.th)+','+JSON.stringify(ch.artist||'')+','+JSON.stringify(ch.song||'')+')', function(r){
+      if(r&&r.indexOf('ok:')===0){ toast('✓ Thumbnail: '+r.slice(3)); loadThumbPreview(ch); }
+      else { toast('TH: '+(r&&r.indexOf('err:')===0?r.slice(4):(r||'no response'))); }
+    });
+  });
+}
+// Render a PNG preview of the channel's TH comp and show it under the lyrics box.
+function loadThumbPreview(ch){
+  if(!csInterface||!ch||!ch.th) return;
+  ensureHost(function(ok){
+    if(!ok) return;
+    csInterface.evalScript('getThumbnailPreviewComp('+JSON.stringify(ch.th)+')', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){}
+      if(!r||!r.ok||!r.path) return;
+      var img=ch._thumbImg; if(!img) return;
+      img.src='file:///'+String(r.path).replace(/\\/g,'/');   // unique filename per render → no cache-bust needed
+      img.style.display='block';
+    });
+  });
+}
+
+// ─── AE: IMPORT MENU (opens left like the speed menu) ───
+function toggleImportMenu(ev){
+  if(ev) ev.stopPropagation();
+  if(!csInterface){ doExport(); return; }   // safety: on web behave as Export
+  var m=document.getElementById('importMenu'), btn=document.getElementById('mainActionBtn');
+  if(m.classList.contains('open')){ closeImportMenu(); return; }
+  m.innerHTML='';
+  var items=[{label:'Import to Comp',fn:importToChannel},{label:'Sync',fn:showAutoSync}];
+  items.forEach(function(it){ var d=document.createElement('div'); d.className='rate-item'; d.textContent=it.label; d.onclick=function(e){ e.stopPropagation(); closeImportMenu(); it.fn(); }; m.appendChild(d); });
+  var br=btn.getBoundingClientRect();
+  m.style.left='auto'; m.style.right=(window.innerWidth-br.left+8)+'px'; m.style.top=(br.top+br.height/2)+'px'; m.style.transform='translateY(-50%)';
+  m.classList.add('open'); btn.classList.add('menu-open');
+}
+function closeImportMenu(){ var m=document.getElementById('importMenu'); if(m) m.classList.remove('open'); var b=document.getElementById('mainActionBtn'); if(b) b.classList.remove('menu-open'); }
+
+// Import lyrics into the channel's "… Lyrics" comp (targeted by exact comp name).
+function importToChannel(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  if(!stamps.length){ toast('No timestamps yet'); return; }
+  var ch=getActive(); if(!ch||!ch.lyr){ toast('Channel has no Lyrics comp'); return; }
+  var lpbEl=document.getElementById('lpb'), lpb=lpbEl?(parseInt(lpbEl.value)||1):1;
+  var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to import'); return; }
+  var opt={ styleLayerName:'Style Controler', fadeIn:0.3, fadeOut:0.3 };
+  toast('Importing to '+ch.lyr+'…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('importLyricsToComp('+JSON.stringify(ch.lyr)+','+JSON.stringify(srt)+','+JSON.stringify(JSON.stringify(opt))+')', function(result){
+      if(!result||result==='undefined'){ toast('No response from AE'); return; }
+      if(result.indexOf('ok:')===0){ toast('✓ '+result.slice(3)); }
+      else { toast('AE: '+(result.indexOf('err:')===0?result.slice(4):result)); }
+    });
+  });
+}
+
+// Clear: wipe the channel (inputs, lyrics, timestamps) and delete its "SRT" layers (AE).
+function clearChannelFull(id){
+  var ch=id!=null?getChannel(id):getActive(); if(!ch) return;
+  if(ch.id!==activeId) selectChannel(ch.id);
+  pushUndo();
+  stamps=[]; lines=[]; curLine=0; pendingId=null; selStampSet.clear();
+  ch.artist=''; ch.song=''; ch.lyricsText=''; ch.lines=[]; ch.stamps=[]; ch.curLine=0; ch.loaded=false;
+  saveWorkingSet(); renderChannels(); renderLyricsFlow(); syncTitle(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  if(csInterface && ch.lyr){
+    ensureHost(function(ok){
+      if(!ok){ toast('Channel cleared (no AE connection to remove layers)'); return; }
+      csInterface.evalScript('clearLyricLayers('+JSON.stringify(ch.lyr)+')', function(raw){
+        if(raw&&raw.indexOf('ok:')===0){ var n=raw.slice(3); toast('Channel cleared'+(n&&n!=='0'?' · '+n+' SRT layers removed':'')); }
+        else { toast('Channel cleared (layers: '+(raw||'?')+')'); }
+      });
+    });
+  } else { toast('Channel cleared'); }
+}
+
+// ─── AUTO-SYNC (LRCLIB) ───
+function showAutoSync(){
+  var ch=getActive(); if(ch){ if(ch.artist) document.getElementById('as-artist').value=ch.artist; if(ch.song) document.getElementById('as-title').value=ch.song; }
+  document.getElementById('as-status').textContent=''; document.getElementById('as-results').style.display='none'; document.getElementById('as-results').innerHTML='';
+  document.getElementById('asov').classList.add('open'); setTimeout(function(){ document.getElementById('as-title').focus(); },80);
+}
+function closeAutoSync(){ document.getElementById('asov').classList.remove('open'); }
+function doAutoSync(){
+  var artist=document.getElementById('as-artist').value.trim(), title=document.getElementById('as-title').value.trim();
+  var _alEl=document.getElementById('as-album'), album=_alEl?_alEl.value.trim():'';
+  if(!title){ setASStatus('Please enter at least the song title.','#c44'); return; }
+  var btn=document.getElementById('as-searchbtn'); btn.disabled=true; btn.textContent='Searching…';
+  setASStatus('Contacting LRCLIB…','var(--bl)'); document.getElementById('as-results').style.display='none';
+  if(artist){
+    var params='artist_name='+encodeURIComponent(artist)+'&track_name='+encodeURIComponent(title); if(album) params+='&album_name='+encodeURIComponent(album);
+    xhrGet('https://lrclib.net/api/get?'+params, function(err,data){
+      if(err){ setASStatus('No exact match — searching…','var(--bl)'); doASSearch(artist,title); return; }
+      btn.disabled=false; resetSearchBtn(btn);
+      if(!data.syncedLyrics){ setASStatus(data.plainLyrics?'Only plain lyrics — searching for synced…':'No lyrics on exact match — searching…','var(--bl)'); doASSearch(artist,title); return; }
+      var parsed=parseLRC(data.syncedLyrics); if(!parsed.length){ setASStatus('Could not parse — searching…','var(--bl)'); doASSearch(artist,title); return; }
+      showASPreview(parsed,data);
+    });
+  } else { doASSearch('',title); }
+}
+function doASSearch(a,t){
+  var q=((a?a+' ':'')+t).trim();
+  xhrGet('https://lrclib.net/api/search?q='+encodeURIComponent(q), function(err,arr){
+    var btn=document.getElementById('as-searchbtn'); btn.disabled=false; resetSearchBtn(btn);
+    if(err||!arr||!arr.length){ setASStatus('No results found for "'+q+'".','#c44'); return; }
+    var sy=arr.filter(function(x){ return !!x.syncedLyrics; });
+    showSearchResults((sy.length?sy:arr).slice(0,8));
+  });
+}
+function xhrGet(url,cb){ var xhr=new XMLHttpRequest(); xhr.open('GET',url,true); xhr.setRequestHeader('Accept','application/json'); xhr.onload=function(){ if(xhr.status===404){ cb('NOT_FOUND',null); return; } if(xhr.status<200||xhr.status>=300){ cb('HTTP '+xhr.status,null); return; } try{ cb(null,JSON.parse(xhr.responseText)); }catch(e){ cb('Parse error',null); } }; xhr.onerror=function(){ cb('Network error — check internet connection',null); }; xhr.send(); }
+function resetSearchBtn(btn){ btn.innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search'; }
+function showSearchResults(results){
+  setASStatus('Select the correct track:','var(--bl)'); var div=document.getElementById('as-results'); div.style.display='block'; div.innerHTML='';
+  results.forEach(function(r){ var row=document.createElement('div'); row.style.cssText='padding:7px 9px;border-radius:8px;border:1px solid var(--ln);background:var(--p3);margin-bottom:4px;cursor:pointer;transition:border-color .1s'; row.onmouseenter=function(){ this.style.borderColor='var(--bl)'; }; row.onmouseleave=function(){ this.style.borderColor=''; }; var hs=!!r.syncedLyrics; row.innerHTML='<div style="font-size:12px;color:var(--tx);font-weight:600">'+esc(r.trackName)+'</div><div style="font-size:11px;color:var(--tx2);margin-top:1px">'+esc(r.artistName||'')+(r.albumName?' · '+esc(r.albumName):'')+'</div><div style="font-size:10px;color:'+(hs?'var(--bl)':'#888')+';margin-top:2px">'+(hs?'✓ Synced':'Plain only')+'</div>'; (function(data){ row.onclick=function(){ if(data.syncedLyrics){ var p=parseLRC(data.syncedLyrics); if(p.length) showASPreview(p,data); else setASStatus('Could not parse.','#c44'); } else if(data.plainLyrics){ applyPlainLRC(data.plainLyrics); setTimeout(closeAutoSync,1200); } }; })(r); div.appendChild(row); });
+}
+function showASPreview(parsed,data){
+  var div=document.getElementById('as-results'); div.style.display='block'; div.innerHTML='';
+  var info=document.createElement('div'); info.style.cssText='padding:7px 9px;border-radius:8px;border:1px solid rgba(32,143,255,.25);background:rgba(32,143,255,.07);margin-bottom:7px;font-size:11px;color:var(--tx2)'; info.innerHTML='<span style="color:var(--bl);font-weight:700">✓</span> '+esc(data.artistName)+' — '+esc(data.trackName)+(data.albumName?' ('+esc(data.albumName)+')':'')+'<br><span style="color:var(--tx3)">'+parsed.length+' synced lines</span>'; div.appendChild(info);
+  var prev=document.createElement('div'); prev.style.cssText='background:var(--p3);border-radius:6px;padding:6px 9px;margin-bottom:7px;font-size:10px;font-family:Consolas,monospace;color:var(--tx2);max-height:80px;overflow:hidden;line-height:1.7'; prev.textContent=parsed.slice(0,5).map(function(l){ return '['+fmtLRC(l.time)+'] '+l.text; }).join('\n')+(parsed.length>5?'\n…':''); div.appendChild(prev);
+  var ab=document.createElement('button'); ab.className='mbtn ok'; ab.style.cssText='width:100%;justify-content:center;padding:7px'; ab.textContent='Apply '+parsed.length+' timestamps'; ab.onclick=function(){ applyLRCStamps(parsed); }; div.appendChild(ab); setASStatus('','');
+}
+function applyLRCStamps(parsed){
+  if(!lines.length) lines=parsed.map(function(l){ return l.text; });
+  pushUndo(); stamps=[];
+  parsed.forEach(function(lrc){ var li=-1; for(var k=0;k<lines.length;k++){ if(lines[k].trim().toLowerCase()===lrc.text.trim().toLowerCase()){ li=k; break; } } if(li===-1) return; stamps.push({id:++stampSeq,lineIdx:li,time:lrc.time}); });
+  if(!stamps.length) parsed.forEach(function(lrc,i){ if(i<lines.length) stamps.push({id:++stampSeq,lineIdx:i,time:lrc.time}); });
+  stamps.sort(function(a,b){ return a.time-b.time; });
+  curLine=nextStampable(0); pendingId=null;
+  var a1=getActive(); if(a1) a1.lyricsText=lines.join('\n');
+  saveWorkingSet(); renderChannels(); renderLyricsFlow(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); closeAutoSync(); toast('✓ '+stamps.length+' timestamps applied');
+}
+function applyPlainLRC(plain){ lines=deriveLines(plain); stamps=[]; curLine=nextStampable(0); pendingId=null; var a2=getActive(); if(a2) a2.lyricsText=lines.join('\n'); saveWorkingSet(); renderChannels(); renderLyricsFlow(); tlRefresh(); closeAutoSync(); toast('Plain lyrics loaded'); }
+function parseLRC(lrc){ var result=[],re=/\[(\d{1,2}):(\d{2})\.(\d{2,3})\](.*)/; lrc.split('\n').forEach(function(line){ var m=re.exec(line); if(!m) return; var min=parseInt(m[1]),sec=parseInt(m[2]),ms=m[3].length===2?parseInt(m[3])*10:parseInt(m[3]),t=min*60+sec+ms/1000,txt=m[4].trim(); if(txt) result.push({time:t,text:txt}); }); return result; }
+function fmtLRC(s){ var m=Math.floor(s/60),sec=(s%60).toFixed(2); return p2(m)+':'+sec; }
+function setASStatus(msg,color){ var el=document.getElementById('as-status'); el.textContent=msg; el.style.color=color||'var(--tx3)'; }
+
+// ─── GENIUS LYRICS LOADER (single song) ───
+// Verso single-channel: paste ONE Genius link → fetches and fills this channel's lyrics.
+function openGenius(){
+  var inp=document.getElementById('g-link-single');
+  var ch=getActive();
+  if(inp) inp.value=(ch&&ch.geniusUrl)||'';
+  gStatus('');
+  document.getElementById('gov').classList.add('open');
+  if(inp){ try{ inp.focus(); }catch(e){} }
+}
+function closeGenius(){ document.getElementById('gov').classList.remove('open'); }
+function gStatus(msg,color){ var el=document.getElementById('g-status'); if(el){ el.textContent=msg; el.style.color=color||'var(--tx3)'; } }
+function loadGenius(){
+  var btn=document.getElementById('g-loadbtn');
+  var url=(document.getElementById('g-link-single').value||'').trim();
+  if(!url){ gStatus('Paste a Genius link first','#c66'); return; }
+  var ch=getActive(); if(!ch){ gStatus('No channel','#c66'); return; }
+  ch.geniusUrl=url;
+  btn.disabled=true; gStatus('Fetching…','var(--bl)');
+  fetchGeniusLyrics(url, function(err,lyr){
+    btn.disabled=false;
+    if(err||!lyr){ gStatus('Error: '+(err||'no lyrics found'),'#c66'); toast('Genius: '+(err||'no lyrics')); return; }
+    ch.lyricsText=lyr; ch.lines=deriveLines(lyr); ch.loaded=ch.lines.length>0;
+    if(ch.id===activeId){ lines=ch.lines.slice(); pendingId=null; renderLyricsFlow(); }
+    renderChannels(); syncTitle();
+    var ta=document.querySelector('.channel[data-id="'+ch.id+'"] .ch-lyr'); if(ta){ ta.value=ch.lyricsText; ta.classList.add('filled'); }
+    gStatus('✓ Loaded','var(--bl)'); toast('✓ Genius lyrics loaded'); closeGenius();
+  });
+}
+// AE can fetch genius.com directly (no web security). On web/touch the browser blocks
+// cross-origin reads, so we go through CORS proxies that return the page.
+function fetchGeniusLyrics(url, cb){
+  if(!/^https?:\/\//i.test(url)){ cb('invalid url', null); return; }
+  function tryFetch(fetchUrl, onFail, parseJson){
+    try{
+      var xhr=new XMLHttpRequest(); xhr.open('GET', fetchUrl, true);
+      xhr.onreadystatechange=function(){ if(xhr.readyState!==4) return;
+        if(xhr.status && (xhr.status<200||xhr.status>=300)){ onFail('HTTP '+xhr.status); return; }
+        var txt=xhr.responseText||'';
+        if(!txt){ onFail('empty response'); return; }
+        if(parseJson){ try{ var j=JSON.parse(txt); txt=j.contents||j.html||''; }catch(e){ onFail('json parse error'); return; } if(!txt){ onFail('empty proxy'); return; } }
+        var lyr=parseGeniusHTML(txt); if(lyr) cb(null, lyr); else onFail('no lyrics in page');
+      };
+      xhr.onerror=function(){ onFail('network error'); };
+      xhr.ontimeout=function(){ onFail('timeout'); };
+      xhr.timeout=15000;
+      xhr.send();
+    }catch(e){ onFail(e.message); }
+  }
+  var enc=encodeURIComponent(url);
+  // corsproxy.io expects the target URL directly after '?' — no 'url=' parameter name.
+  var p1='https://corsproxy.io/?'+enc;
+  var p2='https://api.allorigins.win/raw?url='+enc;
+  var p2j='https://api.allorigins.win/get?url='+enc;  // returns JSON {contents:"..."}
+  var p3='https://api.codetabs.com/v1/proxy?quest='+enc;
+  if(IN_AE){
+    tryFetch(url, function(){ tryFetch(p1, function(){ tryFetch(p2, function(e){ cb(e,null); }); }); });
+  } else {
+    tryFetch(p1, function(){ tryFetch(p2, function(){ tryFetch(p2j, function(){ tryFetch(p3, function(e){ cb(e,null); }); }, true); }); });
+  }
+}
+// Parse Genius HTML reliably via the DOM (handles nested spans/links + <br>).
+function _geniusNodeText(el){
+  var clone=el.cloneNode(true);
+  var brs=clone.querySelectorAll('br');
+  for(var i=0;i<brs.length;i++){ brs[i].parentNode.replaceChild(document.createTextNode('\n'), brs[i]); }
+  return clone.textContent||'';
+}
+function _cleanGeniusText(t){
+  return t.replace(/\[[^\]\n]{0,60}\]/g,function(m){return '\n'+m+'\n';})
+          .replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').replace(/^\s+|\s+$/g,'');
+}
+function parseGeniusHTML(html){
+  if(!html) return null;
+  try{
+    var doc=new DOMParser().parseFromString(html, 'text/html');
+
+    // 1. Modern Genius: data-lyrics-container
+    var nodes=doc.querySelectorAll('[data-lyrics-container="true"]');
+    if(!nodes.length) nodes=doc.querySelectorAll('[class*="Lyrics__Container"]');
+    if(!nodes.length) nodes=doc.querySelectorAll('.lyrics');
+    if(nodes && nodes.length){
+      var parts=[]; for(var i=0;i<nodes.length;i++) parts.push(_geniusNodeText(nodes[i]));
+      var t=_cleanGeniusText(parts.join('\n')); if(t) return t;
+    }
+
+    // 2. JSON-LD schema (schema.org MusicRecording)
+    var ldEl=doc.querySelector('script[type="application/ld+json"]');
+    if(ldEl){ try{ var ld=JSON.parse(ldEl.textContent||'{}'); if(ld.lyrics&&ld.lyrics.text){ var lt=_cleanGeniusText(ld.lyrics.text); if(lt) return lt; } }catch(e){} }
+
+    // 3. Inertia / SSR JSON embedded in <div id="app" data-page="...">
+    var appEl=doc.querySelector('#app[data-page]');
+    if(appEl){ try{
+      var pg=JSON.parse(appEl.getAttribute('data-page')||'{}');
+      var lyrObj=pg&&pg.props&&pg.props.song&&pg.props.song.lyrics_state;
+      if(lyrObj&&lyrObj.body&&lyrObj.body.plain){ var pt=_cleanGeniusText(lyrObj.body.plain); if(pt) return pt; }
+    }catch(e){} }
+
+    // 4. Regex fallback: lyrics_body in JSON script
+    var sm=html.match(/"lyrics_body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if(sm){ try{ var rb=JSON.parse('"'+sm[1]+'"'); var ct=_cleanGeniusText(rb); if(ct) return ct; }catch(e){} }
+
+    return null;
+  }catch(e){ return null; }
+}
+
+// ─── UTILS ───
+function fmtClock(s){ s=Math.max(0,s||0); var m=Math.floor(s/60),sec=Math.floor(s%60); return p2(m)+':'+p2(sec); }
+function fmtTimer(s){ s=Math.max(0,s||0); var m=Math.floor(s/60),sec=Math.floor(s%60),cs=Math.floor((s%1)*100); return p2(m)+':'+p2(sec)+':'+p2(cs); }
+function fmtTip(s){ s=Math.max(0,s||0); var m=Math.floor(s/60),sec=Math.floor(s%60),cs=Math.floor((s%1)*100); return p2(m)+':'+p2(sec)+'.'+p2(cs); }
+function toSRT(s){ var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60),ms=Math.floor((s%1)*1000); return p2(h)+':'+p2(m)+':'+p2(sec)+','+p3(ms); }
+function p2(n){ return String(Math.floor(n)).padStart(2,'0'); }
+function p3(n){ return String(n).padStart(3,'0'); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Inside AE the update legends appear in the small status line under the timer.
+// On the web they use the floating toast.
+function toast(msg,ms){
+  var st=(IN_AE||IS_TOUCH)?document.getElementById('tStatus'):null;
+  if(st){ st.textContent=msg; st.classList.add('on'); clearTimeout(st._t); st._t=setTimeout(function(){ st.classList.remove('on'); }, ms||4000); return; }
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },ms||2200);
+}
+</script>
+</body>
+</html>

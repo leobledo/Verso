@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' file: https://lrclib.net https:; media-src blob: file: *; img-src 'self' file: data:;">
+<title>Verso</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* ── design tokens ── */
+  --bg:#0E0E0E;
+  --container:#171717;
+  --panel:#0E0E0E;                     /* lyrics + timeline panels (darker than side panels) */
+  --track:#161616;
+  --accent:#5762FA;
+  --accent35:rgba(87,98,250,.35);
+  --accent25:rgba(87,98,250,.25);
+  --accent50:rgba(87,98,250,.5);
+  --btnbox:#161616;                    /* sub-container behind the button pills */
+  --inact:rgba(255,255,255,.5);        /* inactive button icon + text */
+  --title:rgba(255,255,255,.7);
+  --text:#e9e9e9;
+  --text-dim:rgba(255,255,255,.45);
+  --rad:16px;
+  --rad-pill:999px;
+  /* ── legacy tokens (modals/menus) ── */
+  --p1:#171717;--p2:#1f1f1f;--p3:#212121;--p4:#3a3a3a;--p5:#444;
+  --ln:rgba(255,255,255,.07);--ln2:rgba(255,255,255,.12);
+  --tx:#e9e9e9;--tx2:#9a9a9a;--tx3:#6a6a6a;
+  --bl:#5762FA;--bl2:#7f88ff;--bl-dim:rgba(87,98,250,.15);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
+
+/* ─── APP SHELL ─── */
+.app{height:100vh;display:flex;flex-direction:column;background:var(--bg);padding:14px}
+.workspace{flex:1;display:flex;min-height:0;min-width:0}
+.right-col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}   /* lyrics on top, timeline below */
+
+/* ─── RESIZERS ─── */
+.rsz-h{width:14px;flex-shrink:0;cursor:col-resize;display:flex;align-items:center;justify-content:center}
+.rsz-h::after{content:'';width:2px;height:36px;border-radius:2px;background:transparent;transition:background .15s}
+.rsz-h:hover::after,.rsz-h.drag::after{background:var(--accent)}
+.rsz-v{height:14px;flex-shrink:0;cursor:row-resize;display:flex;align-items:center;justify-content:center;margin:0 2px}
+.rsz-v::after{content:'';height:2px;width:36px;border-radius:2px;background:transparent;transition:background .15s}
+.rsz-v:hover::after,.rsz-v.drag::after{background:var(--accent)}
+
+/* ─── SONGS PANEL ─── */
+.songs{width:330px;flex-shrink:0;background:var(--container);border-radius:var(--rad);display:flex;flex-direction:column;overflow:hidden;position:relative}
+/* refresh button (AE only) — re-read the project comps into the channel list */
+.songs-refresh{position:absolute;top:8px;right:10px;z-index:8;width:28px;height:28px;border-radius:8px;background:var(--track);border:none;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,color .12s}
+.songs-refresh:hover{background:#3a3a3a;color:#fff}
+#btnMasterClear:hover{background:rgba(224,102,102,.18);color:#e06666}
+.songs-refresh svg{width:15px;height:15px}
+.songs-refresh.spinning svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.songs-list{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none;-ms-overflow-style:none}
+.songs-list::-webkit-scrollbar{width:0;height:0;display:none}
+
+.channel{background:#242424;border-radius:14px;padding:9px 11px;cursor:pointer;border:1.5px solid transparent;transition:background .25s ease,border-color .2s ease,opacity .3s ease}
+.channel:hover{background:#2c2c2c}
+.channel.dim{opacity:.4}                 /* incomplete (missing artist/song/lyrics) → dimmed */
+.channel.dim:hover{opacity:.72}
+.ch-head{display:flex;align-items:center;gap:10px}
+.ch-av{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.ch-meta{flex:1;min-width:0}
+.ch-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.ch-status{width:24px;height:24px;border-radius:50%;display:none;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent);background:rgba(255,46,99,.16)}  /* blue check, only when lyrics loaded */
+.channel.loaded .ch-status{display:flex}
+.ch-status svg{width:13px;height:13px}
+
+.ch-editor{display:flex;flex-direction:column;gap:8px;max-height:0;opacity:0;margin-top:0;overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1),opacity .35s ease,margin-top .45s cubic-bezier(.16,1,.3,1)}
+.channel.expanded .ch-editor{max-height:900px;opacity:1;margin-top:10px}
+.ch-clear{align-self:flex-end;background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:7px;transition:.12s}
+.ch-clear:hover{color:#e06666;background:rgba(224,102,102,.1)}
+.ch-clear svg{width:11px;height:11px}
+.ch-inputs{display:flex;gap:8px}
+.ch-in,.ch-lyr{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;outline:none;transition:border-color .15s,background .15s}
+.ch-in::placeholder,.ch-lyr::placeholder{color:rgba(255,255,255,.42)}
+.ch-in:focus,.ch-lyr:focus{border-color:var(--accent);background:rgba(255,255,255,.07)}
+.ch-in{flex:1;min-width:0;height:30px;border-radius:9px;font-size:12px;padding:0 10px}
+.ch-lyr{width:100%;max-width:100%;min-height:150px;border-radius:10px;font-size:12px;padding:9px 11px;resize:vertical;line-height:1.6;font-family:inherit;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+.ch-lyr::-webkit-scrollbar{width:0;height:0;display:none}
+
+/* ─── LYRICS PANEL ─── */
+.lyrics{flex:1;min-width:200px;background:var(--panel);border-radius:var(--rad);position:relative;overflow:hidden;display:flex;flex-direction:column;margin-left:0}
+.lyr-title{position:absolute;top:0;left:0;right:0;text-align:center;padding:20px 24px 14px;z-index:4;pointer-events:none}
+.lyr-song{font-size:16px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyr-artist{font-size:13px;color:var(--text-dim);margin-top:2px}
+.t-icon.spinning svg{animation:spin .8s linear infinite}
+.lyr-stage{flex:1;position:relative;overflow:hidden;cursor:grab}
+.lyr-stage.grabbing{cursor:grabbing}
+.lyr-flow{position:absolute;left:0;right:0;top:0;text-align:center;padding:46% 30px;transition:transform .55s cubic-bezier(.22,.61,.36,1);will-change:transform}
+.lyr-flow.nodrift{transition:none}
+.lyr-line{font-size:17.5px;font-weight:500;line-height:1.6;cursor:pointer;text-align:center}
+.lyr-line:hover .lk{filter:brightness(1.3)}
+.lk{display:inline-block;color:rgba(255,255,255,.26);transition:color .3s ease}
+/* [Verse] / [Chorus] / [Bridge]… : siempre VISIBLES como referencia, pero INACTIVAS —
+   no se clican, no se seleccionan, no se marcan y nunca entran al SRT. */
+.lyr-line.section{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;cursor:default;user-select:none;pointer-events:none;margin-top:.85em;margin-bottom:.15em}   /* breathing room between section blocks */
+.lyr-flow .lyr-line.section:first-child{margin-top:0}
+.lyr-line.section .lk{color:rgba(255,255,255,.42)}
+.lyr-line.section:hover .lk{filter:none}
+.lyr-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;text-align:center;padding:0 30px;line-height:1.7}
+.lyr-fade{position:absolute;left:0;right:0;z-index:3;pointer-events:none}
+.lyr-fade.top{top:0;height:120px;background:linear-gradient(var(--panel) 52%,rgba(14,14,14,0))}
+.lyr-fade.bot{bottom:0;height:70px;background:linear-gradient(rgba(14,14,14,0),var(--panel) 72%)}
+
+/* ─── TIMELINE ZONE ─── */
+.timeline-zone{flex-shrink:0;background:var(--panel);border-radius:var(--rad);padding:10px 14px;display:flex;flex-direction:column;gap:8px;overflow:hidden}   /* own container like the other panels; clips the playhead */
+.tl-wrap{position:relative;height:22px;width:100%;flex:1;cursor:pointer}        /* scrub band — left-drag = playhead; middle-drag or wheel = navigate */
+.tl-track{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:6px;background:var(--track);border-radius:var(--rad-pill);overflow:hidden}
+#tlMarkers{position:absolute;inset:0;pointer-events:none}
+.tl-fade-x{position:absolute;top:0;bottom:0;width:26px;pointer-events:none;z-index:3;display:none}   /* only shown when zoomed in */
+.tl-wrap.zoomed .tl-fade-x{display:block}
+.tl-fade-x.l{left:0;background:linear-gradient(to right,var(--track),rgba(48,48,48,0))}
+.tl-fade-x.r{right:0;background:linear-gradient(to left,var(--track),rgba(48,48,48,0))}
+.tl-marker{position:absolute;top:0;height:100%;background:var(--accent);border-radius:var(--rad-pill);pointer-events:auto;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tl-marker.sel{filter:brightness(1.15);box-shadow:0 0 0 2px rgba(255,255,255,.28);z-index:5}
+/* resize handles that appear inside a SELECTED marker, near each end */
+.tl-handle{position:absolute;top:50%;transform:translateY(-50%);width:2.5px;height:100%;background:#fff;border-radius:2px;cursor:ew-resize;z-index:9;box-shadow:0 0 3px rgba(0,0,0,.7)}
+.tl-handle.l{left:3px}.tl-handle.r{right:3px}
+/* Playhead: just a tall white line; constant length at any zoom, only its WIDTH thins on zoom, with a track-coloured ring so it never blends into the markers */
+.tl-playhead{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#fff;z-index:20;pointer-events:none;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 0 5px rgba(255,255,255,.45)}
+.tl-tip{position:absolute;bottom:calc(100% + 6px);transform:translateX(-50%);background:#fff;color:#111;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;padding:3px 7px;border-radius:6px;white-space:nowrap;pointer-events:none;display:none;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+/* full-timeline overview, shown only when zoomed */
+.tl-mini{position:relative;height:20px;background:#151515;border-radius:8px;overflow:hidden;cursor:pointer;display:none}
+#tlMiniMarks{position:absolute;inset:0;pointer-events:none}
+.tl-mini-mk{position:absolute;top:50%;transform:translateY(-50%);height:8px;min-width:2px;background:rgba(255,46,99,.5);border-radius:4px}
+.tl-mini-vp{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.4);border-radius:6px;pointer-events:none}
+
+.tl-times{display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.t-timer{font-variant-numeric:tabular-nums;color:#fff;font-weight:700;font-size:13px;background:var(--track);padding:8px 12px;border-radius:11px;min-width:84px;text-align:center;user-select:none}
+.lyr-controls{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px 12px;position:relative;z-index:5}
+.t-time{font-variant-numeric:tabular-nums;color:#fff;font-size:13px;background:var(--track);padding:7px 13px;border-radius:11px;min-width:60px;text-align:center;user-select:none}
+.t-btn{background:var(--track);border:none;color:var(--text);padding:8px 18px;border-radius:11px;cursor:pointer;font-size:13px;transition:background .12s}
+.t-btn:hover{background:#3a3a3a}
+.t-rate{min-width:42px;position:relative}
+.t-icon{width:36px;height:36px;background:var(--track);border:none;color:var(--text-dim);border-radius:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s}
+.t-icon:hover{background:#3a3a3a;color:var(--text)}
+.t-icon svg{width:15px;height:15px}
+/* Speed menu — expands horizontally to the LEFT, same easing as the song-panel containers */
+.rate-menu{position:fixed;display:flex;flex-direction:row;align-items:center;gap:4px;background:var(--track);border-radius:11px;padding:4px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.6);max-width:0;opacity:0;overflow:hidden;pointer-events:none;white-space:nowrap;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .25s ease,padding .3s cubic-bezier(.4,0,.2,1)}
+.rate-menu.open{max-width:440px;opacity:1;pointer-events:auto}
+.rate-item{padding:7px 14px;border-radius:8px;font-size:13px;color:var(--text);cursor:pointer;text-align:center;white-space:nowrap;transition:background .1s}
+.rate-item:hover{background:#3d3d3d}
+.rate-item.cur{background:var(--accent);color:#fff}
+
+/* ─── AE CONTROL BAR (inside After Effects only) ─── */
+.lyr-controls.ae{justify-content:space-between}
+.lc-left,.lc-right{display:flex;align-items:center;gap:8px}
+.t-timer-flat{font-variant-numeric:tabular-nums;color:#fff;font-weight:500;font-size:14px;user-select:none;letter-spacing:.02em;cursor:pointer;transition:color .15s}
+.t-timer-flat.rate15{color:var(--accent)}
+/* channel avatar as channel icon image */
+.ch-av-img{background-size:cover;background-position:center;background-repeat:no-repeat}
+.ch-av-note{background:var(--track)}
+.ch-av-note svg{width:20px;height:20px;color:#a8a8a8}
+/* Verso single-channel: no left songs panel — the channel container is a popup */
+#songsPanel,#rszH{display:none !important}
+#chPop .modal{width:340px;max-width:92vw;padding:14px;position:relative}
+#chPop .songs-list{padding:0;gap:0;overflow:visible}
+#chPop .channel{cursor:default;border:none;background:transparent;padding:0}
+#chPop .channel .ch-editor{max-height:none;opacity:1;margin-top:12px;overflow:visible}
+/* close (×) button — top-right of the container popup */
+.chpop-x{position:absolute;top:12px;right:12px;z-index:10;width:28px;height:28px;display:flex;align-items:center;justify-content:center;padding:0;border:none;border-radius:8px;background:var(--track);color:var(--text-dim);font-size:19px;line-height:1;cursor:pointer;transition:background .12s,color .12s}
+.chpop-x:hover{background:var(--p5,#444);color:#fff}
+/* keep the channel head clear of the × button */
+#chPop .ch-head{padding-right:34px}
+/* TH thumbnail preview + Thumbnail button */
+.ch-thumb{width:100%;border-radius:9px;margin-top:2px;display:block;border:1px solid rgba(255,255,255,.1)}
+.ch-thumb-btn:hover{color:var(--accent);background:rgba(255,46,99,.12)}
+
+/* ─── AE/TOUCH v8: 3-zone control bar (left actions / centre timer / right actions) ─── */
+.lyr-controls.ae{justify-content:space-between;gap:8px;padding:10px 16px 12px}
+.lc-side{display:flex;align-items:center;gap:8px;flex:1}
+.lc-right{justify-content:flex-end}
+.lc-center{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.t-center-timer{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px}
+.t-center-timer .t-timer-flat{font-size:15px}
+/* status legend ABOVE the timer, faint */
+.t-center-timer .t-status{font-size:11.5px;color:var(--text-dim);margin-bottom:2px;min-height:14px;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .25s ease}
+.t-center-timer .t-status.base{color:var(--text-dim);opacity:.55}
+.t-center-timer .t-status.on{opacity:.5}
+/* Verso 2: speed selectors flanking the timer (no containers, semi-opaque) */
+.rate-wrap{display:flex;align-items:center;justify-content:center}
+/* speed selectors: always visible, small, flanking the timer */
+.rate-side{display:flex;align-items:center;gap:10px}
+.rate-slow{justify-content:flex-end;padding-right:12px}
+.rate-fast{padding-left:12px}
+.rate-n{font-size:10px;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;white-space:nowrap;transition:color .12s}
+.rate-n:hover{color:rgba(255,255,255,.8)}
+.rate-n.cur{color:var(--accent)}
+.t-icon.sq{width:34px;height:34px;padding:0;font-size:12px;font-weight:600;flex-shrink:0}
+.t-icon.sq svg{width:17px;height:17px}
+.spd.on{background:var(--accent);color:#fff}
+/* button + upward hover menu */
+.btn-stack{position:relative;display:flex}
+.stack-menu{position:absolute;bottom:100%;left:50%;transform:translateX(-50%) translateY(8px) scale(.96);transform-origin:bottom center;display:flex;flex-direction:column-reverse;gap:5px;padding-bottom:9px;opacity:0;pointer-events:none;transition:opacity .26s cubic-bezier(.22,1,.36,1),transform .34s cubic-bezier(.22,1,.36,1)}
+.btn-stack:hover .stack-menu{opacity:1;transform:translateX(-50%) translateY(0) scale(1);pointer-events:auto}
+.stack-item{background:var(--track);color:var(--text);border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.45);transition:background .12s,color .12s}
+.stack-item:hover{background:#3d3d3d}
+.stack-item.cur{background:var(--accent);color:#fff}
+.stack-item.sync:hover{background:#FF2E63;color:#fff}
+.stack-item.srt:hover{background:#7a3df0;color:#fff}
+/* Verso 2: hover-expanding labelled buttons */
+.t-exp{display:inline-flex;align-items:center;height:34px;background:var(--track);border:none;color:var(--text-dim);border-radius:11px;cursor:pointer;overflow:hidden;flex-shrink:0;padding:0;transition:color .12s,background .12s}
+.t-exp .t-ico{flex:0 0 34px;width:34px;height:34px;display:flex;align-items:center;justify-content:center}
+.t-exp .t-ico svg{width:17px;height:17px}
+.t-exp .t-label{max-width:0;opacity:0;white-space:nowrap;font-size:12px;font-weight:600;overflow:hidden;padding:0;transition:max-width .2s cubic-bezier(.22,1,.36,1),opacity .15s,padding .2s}
+.t-exp:hover{color:#fff;background:#3a3a3a}
+.t-exp:hover .t-label{max-width:120px;opacity:1;padding-right:12px}
+.t-exp.exp-l:hover .t-label{padding-right:0;padding-left:12px}
+/* keep the button expanded while hovering ANYWHERE in its stack (so the menu stays reachable/open) */
+.btn-stack:hover .t-exp{color:#fff;background:#3a3a3a}
+.btn-stack:hover .t-exp .t-label{max-width:120px;opacity:1;padding-right:12px}
+.btn-stack:hover .t-exp.exp-l .t-label{padding-right:0;padding-left:12px}
+.t-exp.ae-import:hover{background:#7a3df0;color:#fff}
+.t-exp.btn-render:hover{background:#2e9e5b;color:#fff}
+/* line-toggle items (above the Genius button) */
+.line-tog{display:flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px}
+.line-tog svg{width:15px;height:15px}
+.line-tog.cur{background:var(--accent);color:#fff}
+/* Genius loader: inline link input that expands on hover/focus (lens icon loads it) */
+.genius-inp{max-width:0;width:var(--gw,120px);min-width:0;opacity:0;border:none;background:transparent;color:#fff;font-size:12px;outline:none;padding:0;transition:max-width .25s cubic-bezier(.22,1,.36,1),opacity .2s,padding .25s}
+.genius-inp::placeholder{color:rgba(255,255,255,.4)}
+.btn-stack:hover .genius-exp .genius-inp,.genius-exp:focus-within .genius-inp{max-width:var(--gw,120px);opacity:1;padding-left:12px}
+.genius-exp:focus-within{background:#3a3a3a;color:#fff}
+
+/* ─── TIMELINE CONTROL BAR — 4 separate pill containers ─── */
+.tl-row{display:flex;align-items:center;gap:10px}
+/* 2nd container: the markers track, as its own pill */
+.tl-mid{flex:1;min-width:0;background:var(--btnbox);border-radius:999px;padding:2px 12px;display:flex;align-items:center}
+/* 1st/3rd/4th containers: slim pill groups (overflow clipped so nothing pokes out) */
+.tl-ctl{position:relative;display:flex;align-items:center;gap:1px;background:var(--btnbox);border-radius:999px;padding:2px;flex-shrink:0;overflow:visible}
+.tl-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+/* no focus ring on the pill buttons (keeps the indigo indicator as the only state) */
+.tl-btn:focus,.tl-icobtn:focus,.mode-pill:focus,.dp-act:focus,.tl-imp-opt:focus,.tl-imp-head:focus{outline:none}
+/* sliding hover indicator — an indigo pill that glides between buttons */
+.slide-ind{position:absolute;top:2px;bottom:2px;left:0;width:0;background:var(--accent25);border:1px solid var(--accent50);border-radius:999px;opacity:0;pointer-events:none;z-index:0;transition:left .26s cubic-bezier(.22,1,.36,1),width .26s cubic-bezier(.22,1,.36,1),opacity .16s}
+.slide-ind.show{opacity:1}
+.slide-ind.danger{background:rgba(224,102,102,.16);border-color:rgba(224,102,102,.5)}
+.slide-ind.gfound{background:rgba(255,230,0,.16);border-color:rgba(255,230,0,.5)}   /* hover over "Lyrics Found" → yellow, not indigo */
+.tl-ctl>.tl-btn,.tl-ctl>.tl-imp,.mode-toggle>.mode-pill{position:relative;z-index:1}
+/* pill button — transparent; the sliding indicator provides the indigo highlight */
+.tl-btn{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border:none;border-radius:999px;background:transparent;color:var(--inact);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .15s}
+.tl-btn .tl-ico{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex:0 0 14px}
+.tl-btn .tl-ico svg{width:14px;height:14px}
+.tl-btn:hover,.tl-btn.on,.tl-btn.active-imp{color:var(--accent)}
+.tl-btn:hover .tl-ico,.tl-btn.on .tl-ico,.tl-btn.active-imp .tl-ico{color:var(--accent)}
+.tl-btn .tl-lbl{overflow:hidden;max-width:120px;transition:max-width .24s cubic-bezier(.22,1,.36,1),opacity .18s,padding .24s cubic-bezier(.22,1,.36,1)}
+/* Import: expands inline; on hover Render shrinks to its icon (slides right) to free space */
+.tl-imp{position:relative;display:inline-flex;align-items:center;border-radius:999px}
+/* menu expands smoothly (max-width) so Render collapses in sync — no abrupt clipping */
+.tl-imp-menu{display:inline-flex;align-items:center;max-width:0;overflow:hidden;opacity:0;transition:max-width .24s cubic-bezier(.22,1,.36,1),opacity .18s}
+.tl-imp:hover .tl-imp-menu{max-width:70px;opacity:1}
+.tl-imp-opt{flex:0 0 auto;height:20px;padding:0 10px;border:none;border-radius:999px;background:transparent;color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+.tl-imp-opt:hover{background:var(--accent25);color:var(--accent)}
+.tl-ctl.imp-open #btnRender .tl-lbl{max-width:0;opacity:0;padding:0}
+/* Congela SOLO las transiciones de layout (no la del indicador) para poder medir el
+   estado final al instante: el menu de Import al expandirse/colapsarse desplaza a Render,
+   y medir a mitad de la animacion dejaba el indicador trabado o mal dimensionado. */
+.tl-ctl.no-anim .tl-btn,.tl-ctl.no-anim .tl-lbl,.tl-ctl.no-anim .tl-imp,
+.tl-ctl.no-anim .tl-imp-menu,.tl-ctl.no-anim .tl-imp-opt{transition:none!important}
+/* lines-per-timestamp icon group */
+.tl-lines{display:flex;align-items:center;gap:1px;background:var(--btnbox);border-radius:999px;padding:2px;flex-shrink:0}
+.tl-icobtn{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--inact);cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.tl-icobtn svg{width:15px;height:15px}
+.tl-icobtn:hover{background:var(--accent25);border-color:var(--accent50);color:var(--accent)}
+.tl-icobtn.cur{background:var(--accent25);border-color:var(--accent);color:var(--accent)}
+
+/* ─── VIDEO / SHORT MODE TOGGLE (4th container) — sliding knob, returns to selected ─── */
+.mode-toggle{position:relative;display:inline-flex;gap:1px;align-items:center;background:var(--btnbox);border-radius:999px;padding:2px;user-select:none;flex-shrink:0}
+.mode-pill{font-size:11px;font-weight:700;line-height:1;padding:0 11px;height:22px;display:inline-flex;align-items:center;border-radius:999px;cursor:pointer;background:transparent;color:var(--inact);transition:color .18s}
+.mode-pill:hover,.mode-pill.on{color:var(--accent)}
+
+/* ─── DETAILS PANEL — floating card ON TOP of the lyrics panel (inset, no shadow) ─── */
+.lyr-content{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.lyrics.details-open .lyr-content{transform:translateX(var(--dp-shift,120px))}
+.details-panel{position:absolute;top:12px;left:12px;bottom:12px;width:224px;z-index:8;padding:13px;
+  background:#121212;border:1px solid rgba(255,255,255,.06);border-radius:14px;
+  opacity:0;transform:scale(.97);transform-origin:left center;pointer-events:none;
+  transition:opacity .2s ease,transform .22s cubic-bezier(.22,1,.36,1);
+  display:flex;flex-direction:column}
+.lyrics.details-open .details-panel{opacity:1;transform:none;pointer-events:auto}
+.dp-body{display:flex;flex-direction:column;gap:8px;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none}
+.dp-body::-webkit-scrollbar{display:none}
+.dp-inputs{display:flex;gap:7px}
+/* inputs: no border, just a subtly lighter container so they stand out from the panel */
+.dp-in{flex:1;min-width:0;height:30px;padding:0 11px;border-radius:9px;border:none;background:#1c1c1c;color:var(--text);font-size:11px;font-weight:600;outline:none}
+.dp-in::placeholder{color:rgba(255,255,255,.35)}
+.dp-lyr{flex:1 1 auto;min-height:110px;max-height:70vh;resize:vertical;padding:10px 11px;border-radius:11px;border:none;background:#1c1c1c;color:var(--text);font-size:12px;line-height:1.6;outline:none;font-family:inherit;scrollbar-width:none;-ms-overflow-style:none}
+.dp-lyr::-webkit-scrollbar{display:none}
+.dp-lyr::placeholder{color:rgba(255,255,255,.35)}
+.dp-thumb{width:100%;border-radius:9px}
+/* refresh button next to the Song input */
+.dp-refresh{flex:0 0 30px;width:30px;height:30px;border:none;border-radius:9px;background:#1c1c1c;color:var(--inact);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.dp-refresh svg{width:14px;height:14px}
+.dp-refresh:hover{background:var(--accent25);color:var(--accent)}
+/* unified actions pill: Lyrics · Thumbnail · Clear, with a sliding indigo indicator */
+.dp-actions{position:relative;display:flex;background:#1c1c1c;border-radius:999px;padding:2px}
+.dp-actions>.dp-act{position:relative;z-index:1;flex:1}
+.dp-act{display:flex;align-items:center;justify-content:center;gap:6px;height:28px;border:none;border-radius:999px;background:transparent;color:var(--inact);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .15s}
+.dp-act svg{width:14px;height:14px}
+.dp-act:hover,.dp-act:hover svg{color:var(--accent)}
+.dp-act.danger:hover,.dp-act.danger:hover svg{color:#e06666}
+.dp-act.loading{opacity:.55;pointer-events:none}
+/* Genius input that extends from the Lyrics button to cover the whole pill */
+.dp-genius-over{position:absolute;inset:0;display:flex;align-items:center;gap:4px;padding:0 3px 0 12px;background:#1c1c1c;border-radius:999px;z-index:4;
+  opacity:0;transform:scaleX(.55);transform-origin:left center;pointer-events:none;transition:opacity .18s ease,transform .24s cubic-bezier(.22,1,.36,1)}
+.dp-actions.genius-mode .dp-genius-over{opacity:1;transform:none;pointer-events:auto}
+.dp-genius-inp{flex:1;min-width:0;height:100%;background:transparent;border:none;outline:none;color:var(--text);font-size:11px}
+.dp-genius-inp::placeholder{color:rgba(255,255,255,.4)}
+.dp-genius-go{width:26px;height:26px;flex:0 0 26px;display:flex;align-items:center;justify-content:center;border:none;border-radius:999px;background:transparent;color:var(--accent);cursor:pointer;transition:background .12s}
+.dp-genius-go svg{width:14px;height:14px}
+.dp-genius-go:hover{background:var(--accent25)}
+
+/* SHORT MODE is visually identical to Video — it differs only by the toggle and by
+   which project items the actions target (those whose name contains "Short"). */
+
+/* ─── TOUCH (iPad / iPhone) ─── */
+body.touch{ -webkit-user-select:none; user-select:none; }
+body.touch .t-icon,body.touch .t-btn,body.touch .channel{ -webkit-tap-highlight-color:transparent; }
+.hamburger,.songs-backdrop{display:none}
+.touch-tlc{display:none}
+/* hamburger */
+body.touch .hamburger{display:flex;position:fixed;top:10px;left:10px;z-index:120;width:40px;height:40px;border-radius:11px;background:var(--track);border:none;color:#fff;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+body.touch .hamburger svg{width:20px;height:20px}
+body.touch .songs-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:110;opacity:0;pointer-events:none;transition:opacity .25s}
+body.touch .songs-backdrop.on{opacity:1;pointer-events:auto}
+/* songs panel becomes an off-canvas drawer on touch */
+body.touch .songs{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:84vw;z-index:115;border-radius:0 16px 16px 0;transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);padding-top:54px}
+body.touch .songs.open{transform:translateX(0)}
+body.touch .rsz-h{display:none}
+/* one row of big buttons under the timeline: Undo · Play · Timestamp · Redo */
+body.touch .touch-tlc{display:block;width:100%;box-sizing:border-box;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px))}
+.ttc-row{display:flex;gap:8px;width:100%;box-sizing:border-box}
+.ttc-btn{height:58px;background:var(--track);border:none;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--text);box-sizing:border-box;min-width:0;padding:0}
+.ttc-btn.narrow{flex:1 1 0}
+.ttc-btn.wide{flex:1.9 1 0}
+.ttc-btn svg{width:26px;height:26px}
+.ttc-stamp svg{width:auto;height:26px;max-width:82%}
+.ttc-btn:active{background:#3a3a3a}
+/* bigger timeline + marker nodes for touch */
+body.touch .tl-wrap{height:54px}
+body.touch .tl-track{height:6px}
+body.touch .tl-marker{border-radius:var(--rad-pill)}
+body.touch .tl-marker.sel{background:#fff;filter:none;box-shadow:0 0 0 2px rgba(255,255,255,.5);z-index:5}
+body.touch #tlPlayhead{width:2px!important;margin-left:-1px!important}
+body.touch .tl-fade-x{display:none}
+.tl-node{position:absolute;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.5);z-index:7}
+.tl-node.l{left:-9px}.tl-node.r{right:-9px}
+body.touch .tl-wrap,body.touch .tl-marker,body.touch .tl-node{touch-action:none}
+body.touch .lyr-stage{touch-action:none}
+/* use the dynamic viewport so iOS Safari's bars don't push controls off-screen */
+body.touch .app{height:100vh;height:100dvh}
+/* iPhone / narrow & iPad portrait: vertical, songs hidden (drawer), full lyrics+timeline */
+@media (max-width:820px), (orientation:portrait){
+  body.touch .workspace{flex-direction:column}
+  body.touch .rsz-h{display:none}
+  body.touch .right-col{flex:1;min-height:0}
+  body.touch .app{padding:8px}
+  body.touch .lyr-title{padding-top:14px}
+}
+/* iPad landscape: songs panel visible like desktop, slightly slimmer timeline */
+@media (orientation:landscape) and (min-width:821px){
+  body.touch .songs{position:relative;transform:none;border-radius:var(--rad);width:300px;padding-top:10px}
+  body.touch .songs-backdrop{display:none}
+  body.touch .hamburger{display:none}
+  body.touch .rsz-h{display:flex}
+  body.touch .tl-wrap{height:54px}
+}
+/* iPhone: shrink the control-bar icons a touch so the bar never overflows */
+@media (max-width:430px){
+  body.touch .t-icon.sq{width:30px;height:30px;font-size:11px}
+  body.touch .lyr-controls.ae{padding:8px 8px 10px;gap:4px}
+  body.touch .lc-side,body.touch .lc-center{gap:5px}
+  body.touch .t-center-timer{min-width:78px}
+  body.touch .t-center-timer .t-timer-flat{font-size:13px}
+  body.touch .ttc-btn{height:52px}
+  /* smaller lyrics on iPhone so long lines fit on one line */
+  body.touch .lyr-line{font-size:14px;line-height:1.55;white-space:normal;text-align:center}
+  body.touch .lyr-song{font-size:14px}
+  body.touch .lyr-artist{font-size:11px}
+}
+
+/* ─── v8b: speed-on-timer, genius rows, reload, add-channel, touch buttons ─── */
+/* hovering the timer opens a horizontal speed menu upward */
+.timer-stack{cursor:default}
+.stack-menu-h{flex-direction:row;align-items:flex-end}
+/* play button has no icon: show a faint state instead */
+.ttc-zoom{display:flex;align-items:center;gap:8px;padding:0 2px;margin-bottom:8px;width:100%;box-sizing:border-box}
+.ttc-zoom-lbl,.ttc-zoom-val{font-size:11px;color:var(--text-dim);white-space:nowrap}
+.ttc-zoom-val{min-width:30px;text-align:right;font-variant-numeric:tabular-nums}
+.ttc-zoom input[type=range]{flex:1;height:22px;cursor:pointer;margin:0;-webkit-appearance:none;appearance:none;background:transparent}
+.ttc-zoom input[type=range]::-webkit-slider-runnable-track{height:4px;background:#2a2a2a;border-radius:2px;border:none}
+.ttc-zoom input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:14px;border-radius:999px;background:#555;margin-top:-5px;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ttc-zoom input[type=range]::-moz-range-track{height:4px;background:#2a2a2a;border-radius:2px;border:none}
+.ttc-zoom input[type=range]::-moz-range-thumb{width:30px;height:14px;border-radius:999px;background:#555;border:none;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.ttc-btn.dim{opacity:.75}
+.ttc-btn.dim svg{width:20px;height:20px}
+.ttc-btn.dim.narrow{flex:.7 1 0}
+.ttc-btn.sel-mode{background:rgba(255,46,99,.15);color:var(--accent)}
+#ttcPlay::after{display:none}
+#ttcPlay.playing::after{display:none}
+#ttcStamp::after{display:none}
+.channel{position:relative}
+/* "+ Add channel" placeholder */
+.ch-add{border:1.5px dashed rgba(255,255,255,.14);background:transparent;opacity:.7}
+.ch-add:hover{opacity:1;background:#242424}
+.ch-add-ico{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:var(--text-dim);background:rgba(255,255,255,.05)}
+/* Genius loader rows */
+.genius-modal{width:540px}
+#g-rows{scrollbar-width:none;-ms-overflow-style:none}
+#g-rows::-webkit-scrollbar{width:0;height:0;display:none}
+#g-paste{scrollbar-width:none;-ms-overflow-style:none}
+#g-paste::-webkit-scrollbar{width:0;height:0;display:none}
+.g-row{display:flex;align-items:center;gap:7px;padding:4px 6px;border:1px solid var(--ln);border-radius:10px;background:var(--p3);margin-bottom:4px;cursor:grab}
+.g-row.g-over{border-color:var(--bl);background:rgba(255,46,99,.08)}
+.g-av{width:24px;height:24px;flex-shrink:0;pointer-events:none}
+.g-av .ch-av,.g-av .ch-av-img{width:24px;height:24px;font-size:10px}
+.g-name{width:100px;flex-shrink:0;font-size:11px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-link{flex:1;min-width:0;height:26px;background:var(--p2);border:1px solid var(--ln2);border-radius:7px;color:var(--bl);font-size:11px;padding:0 8px;outline:none}
+.g-link:focus{border-color:var(--bl)}
+.g-rm{width:24px;height:24px;flex-shrink:0;border:none;background:transparent;color:var(--tx3);font-size:16px;cursor:pointer;border-radius:6px}
+.g-rm:hover{background:rgba(224,102,102,.15);color:#e06666}
+
+/* ─── MODALS ─── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .15s}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--p2);border:1px solid var(--ln2);border-radius:12px;padding:18px;width:400px;max-width:92vw}
+.modal h3{font-size:13px;font-weight:700;margin-bottom:4px}
+.modal p{font-size:11px;color:var(--tx2);margin-bottom:10px;line-height:1.5}
+.mact{display:flex;gap:5px;margin-top:10px;justify-content:flex-end}
+.mbtn{padding:6px 13px;border-radius:8px;border:1px solid var(--ln2);background:var(--p3);color:var(--tx2);font-size:11px;cursor:pointer;transition:background .1s;display:flex;align-items:center;gap:4px}
+.mbtn:hover{background:var(--p4);color:var(--tx)}
+.mbtn.ok{background:var(--bl);border-color:var(--bl);color:#fff}
+.mbtn.ok:hover{background:var(--bl2)}
+.srtout{width:100%;height:240px;background:var(--p3);border:1px solid var(--ln2);border-radius:8px;color:var(--bl);font-size:11px;padding:8px;resize:none;outline:none;line-height:1.7;font-family:'Consolas',monospace}
+.minput{width:100%;height:28px;background:var(--p3);border:1px solid var(--ln2);border-radius:8px;color:var(--tx);font-size:11px;padding:0 8px;outline:none;transition:border-color .1s}
+.minput:focus{border-color:var(--bl)}
+.lpb-sel{height:24px;padding:0 6px;background:var(--p3);border:1px solid var(--ln2);color:var(--tx2);font-size:11px;border-radius:6px;cursor:pointer;outline:none}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--p3);border:1px solid var(--ln2);border-radius:8px;padding:7px 16px;font-size:12px;color:var(--tx);z-index:400;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.6)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="workspace" id="workspace">
+
+    <!-- SONGS / CHANNELS PANEL -->
+    <section class="songs" id="songsPanel">
+      <div class="songs-list" id="songsList"></div>
+    </section>
+
+    <div class="rsz-h" id="rszH"></div>
+
+    <!-- RIGHT COLUMN: lyrics on top, timeline below -->
+    <div class="right-col" id="rightCol">
+      <section class="lyrics" id="lyricsPanel">
+        <!-- Details panel: slides in from the left; pushes the content right to re-centre it -->
+        <div class="details-panel" id="detailsPanel"></div>
+        <div class="lyr-content" id="lyrContent">
+          <div class="lyr-title">
+            <div class="lyr-song" id="lyrSong">Untitled</div>
+            <div class="lyr-artist" id="lyrArtist"></div>
+          </div>
+          <div class="lyr-stage" id="lyrStage">
+            <div class="lyr-fade top"></div>
+            <div class="lyr-flow" id="lyrFlow"></div>
+            <div class="lyr-fade bot"></div>
+          </div>
+          <!-- centre block only: legends (status) above, timer below (built by buildActionBar) -->
+          <div class="lyr-controls"></div>
+        </div>
+      </section>
+
+      <div class="rsz-v" id="rszV" style="pointer-events:none"></div>
+
+      <!-- TIMELINE + integrated control pills -->
+      <div class="timeline-zone" id="timelineZone">
+        <div class="tl-row">
+          <div class="tl-ctl tl-left" id="tlLeft"></div>
+          <div class="tl-mid">
+            <div class="tl-wrap" id="tlWrap">
+              <div class="tl-track" id="tlTrack">
+                <div id="tlMarkers"></div>
+                <div class="tl-fade-x l"></div>
+                <div class="tl-fade-x r"></div>
+              </div>
+              <div class="tl-playhead" id="tlPlayhead" style="left:0;display:none"></div>
+              <div class="tl-tip" id="tlTip"></div>
+            </div>
+          </div>
+          <div class="tl-right" id="tlRight"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL (web only — inside AE the main button imports directly) -->
+<div class="ov" id="eov">
+  <div class="modal" style="width:500px">
+    <h3>Export SRT</h3>
+    <p>Copy or download the subtitles as an .srt file.</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;color:var(--tx3)">Lines per block:</span>
+      <select class="lpb-sel" id="lpb"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+    </div>
+    <textarea class="srtout" id="srtout" readonly></textarea>
+
+    <div class="mact">
+      <button class="mbtn" onclick="closeExport()">Close</button>
+      <button class="mbtn" onclick="copySRT()">Copy</button>
+      <button class="mbtn" onclick="dlSRT()">Download .srt</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTO-SYNC MODAL -->
+<div class="ov" id="asov">
+  <div class="modal" style="width:440px">
+    <h3 style="display:flex;align-items:center;gap:7px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg>
+      Smart Sync
+    </h3>
+    <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px;margin-top:10px">
+      <div style="display:flex;gap:7px">
+        <div style="flex:1"><label style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:3px">Title <span style="color:var(--bl)">*</span></label><input class="minput" id="as-title" type="text" placeholder="e.g. Glimpse of Us" onkeydown="if(event.key==='Enter')doAutoSync()"></div>
+        <div style="flex:1"><label style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:3px">Artist <span style="opacity:.5">(optional)</span></label><input class="minput" id="as-artist" type="text" placeholder="e.g. Joji" onkeydown="if(event.key==='Enter')doAutoSync()"></div>
+      </div>
+    </div>
+    <div id="as-results" style="display:none;margin-bottom:7px"></div>
+    <div id="as-status" style="font-size:11px;color:var(--tx3);min-height:14px;margin-bottom:7px"></div>
+    <div class="mact"><button class="mbtn" onclick="closeAutoSync()">Cancel</button><button class="mbtn ok" id="as-searchbtn" onclick="doAutoSync()"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search</button></div>
+  </div>
+</div>
+
+<div class="rate-menu" id="rateMenu"></div>
+<div class="rate-menu" id="importMenu"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fin" accept=".mp3,.wav,.mp4,.m4a,.aac,.aif,.aiff,.ogg,.flac,audio/*,video/mp4" onchange="loadAudio(this)">
+<input type="file" id="finMulti" accept=".mp3,.wav,.mp4,.m4a,.aac,.aif,.aiff,.ogg,.flac,audio/*,video/mp4" multiple onchange="loadMultiAudio(this)">
+
+<!-- GENIUS LYRICS LOADER (single song: paste one Genius link → fills this channel's lyrics) -->
+<div class="ov" id="gov">
+  <div class="modal" style="width:460px">
+    <h3 style="display:flex;align-items:center;gap:7px;margin-bottom:10px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="13" y2="17"/></svg> Import Lyrics from Genius</h3>
+    <input id="g-link-single" type="text" placeholder="Paste the Genius song link…" style="width:100%;box-sizing:border-box;padding:9px 11px;border-radius:8px;border:1px solid var(--bd,#3a3a3a);background:#1e1e1e;color:var(--tx,#eee);font-size:13px;outline:none">
+    <div id="g-status" style="font-size:11px;color:var(--tx3);min-height:14px;margin-top:8px"></div>
+    <div class="mact"><button class="mbtn" onclick="closeGenius()">Close</button><button class="mbtn ok" id="g-loadbtn" onclick="loadGenius()">Load lyrics</button></div>
+  </div>
+</div>
+
+<!-- CHANNEL CONTAINER POPUP (Verso single-channel: opened from the ♪ area) -->
+<div class="ov" id="chPop">
+  <div class="modal">
+    <button class="chpop-x" onclick="closeChPop()" title="Close">×</button>
+    <div class="songs-list" id="chPopBody"></div>
+  </div>
+</div>
+
+<!-- CEP bridge library — only meaningful inside an Adobe host; harmless on the web -->
+<script src="./CSInterface.js"></script>
+<script>
+// ─── CEP BRIDGE ───
+// window.__adobe_cep__ exists ONLY inside a CEP host (After Effects). That is our
+// single source of truth for "running inside AE" — so the AE-only UI (the import
+// buttons) stays hidden on the web even if CSInterface.js happens to be served.
+var csInterface = null;
+if (window.__adobe_cep__ && typeof CSInterface !== 'undefined') {
+  try { csInterface = new CSInterface(); } catch(e){ csInterface = null; }
+}
+var IN_AE = !!csInterface;   // single source of truth for "running inside After Effects"
+// Touch device = iPad / iPhone (web on a touch screen). AE/desktop-web use the mouse.
+var IS_TOUCH = (('ontouchstart' in window) || (navigator.maxTouchPoints||0) > 0) && !IN_AE;
+try{
+  document.body.classList.toggle('ae', IN_AE);
+  document.body.classList.toggle('touch', IS_TOUCH);
+  document.body.classList.toggle('web', !IN_AE && !IS_TOUCH);
+}catch(e){}
+
+// ─── VIDEO / SHORT MODE ───
+// Two interfaces in one. Default = Video (targets "Song" / "Lyrics" / "TH").
+// Short = purple accents + narrow vertical lyrics stage; every action targets the
+// project items whose name contains "Short" (Short Song / Short Lyrics / Short).
+var SHORT_MODE=false;
+// Per-interface details (Artist / Song). Video uses ch.artist/ch.song; Short uses
+// ch.shortArtist/ch.shortSong. These accessors pick the right bucket for the mode.
+function chArtist(ch){ return (ch ? (SHORT_MODE ? ch.shortArtist : ch.artist) : '') || ''; }
+function chSong(ch){   return (ch ? (SHORT_MODE ? ch.shortSong   : ch.song)   : '') || ''; }
+function setChArtist(ch,v){ if(!ch) return; if(SHORT_MODE) ch.shortArtist=v; else ch.artist=v; }
+function setChSong(ch,v){   if(!ch) return; if(SHORT_MODE) ch.shortSong=v;   else ch.song=v; }
+function setMode(short){
+  short=!!short;
+  if(short===SHORT_MODE){ return; }
+  SHORT_MODE=short;
+  try{ document.body.classList.toggle('short-mode', SHORT_MODE); }catch(e){}
+  // reflect the active pill (Video = 1st, Short = 2nd) and glide the knob to it
+  try{
+    var pills=document.querySelectorAll('.mode-pill');
+    if(pills[0]) pills[0].classList.toggle('on', !SHORT_MODE);
+    if(pills[1]) pills[1].classList.toggle('on', SHORT_MODE);
+    var mt=document.getElementById('modeToggle'); if(mt&&mt._slideRest) mt._slideRest();
+  }catch(e){}
+  // refresh everything that shows this mode's data / accent colour.
+  try{ syncTitle(); renderChannels(); }catch(e){}
+  try{ renderLyricsFlow(); updateLyricHighlight(AEL.currentTime||0); tlRefresh(); }catch(e){}
+  // Pull this mode's song filename (Video vs Short) and auto-fill Artist/Song live.
+  try{ if(IN_AE){ ensureHost(function(ok){ if(ok) aeLoadSong(getActive(), false, true); }); } }catch(e){}
+  try{ toast(SHORT_MODE?'Short mode':'Video mode'); }catch(e){}
+}
+
+// ─── AUDIO / TIMELINE STATE ───
+var AEL=new Audio(), dur=0, audioFile=null;
+var _lastSongPath=null;   // last on-disk song path seen — used by the auto-sync poller
+var zoom=1, scrollPct=0, rafId=null;
+var rates=[0.5,0.75,1,1.25,1.5,1.75,2.1,3], rateIdx=2;
+
+// ─── ACTIVE WORKING SET (mirrors active channel) ───
+var lines=[], stamps=[], curLine=0, stampSeq=0;
+var undoStack=[], redoStack=[];
+var selStampSet=new Set();   // holds stamp ids
+
+// ─── CHANNELS ───
+var channels=[], activeId=null, expandedId=null, chSeq=0;
+var ICON_UP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16V8M8 11l4-3 4 3"/></svg>';
+var ICON_CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l2.5 2.5 5-5.5"/></svg>';
+// Verso (single-channel build): no per-channel icons — always a music note.
+var ICON_MAP={};
+// Single-channel mode: 1 channel only, name = song title, music-note avatar.
+var SINGLE_CHANNEL=true;
+var NOTE_AV_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.6A3.5 3.5 0 1 0 14 17V7.2l5 1V4.5L12 3z"/></svg>';
+function chKey(name){ return (name||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function avatarFor(ch){
+  return '<div class="ch-av ch-av-note">'+NOTE_AV_SVG+'</div>';
+}
+
+// ─── INTERACTION STATE ───
+var hDrag=false, hStartX=0, hStartW=0;
+var vDrag=false, vStartY=0, vStartH=0;
+var lyrDrag=false, lyrDragStartY=0, lyrBaseY=0, lyrManualY=null, lyrMoved=false;
+var lyrBrowseUntil=0;   // while > now, manual lyric scroll is respected (suppress auto-follow)
+var scrubbing=false;
+var tlPanning=false, tlPanStartX=0, tlPanStartScroll=0;
+var miniDragging=false;
+var mkDrag=null;
+var pendingId=null;
+var tlDirty=true, _lastScroll=-1, _lastZoom=-1;
+var lyrVel=0, lyrEaseId=null;
+var scrollTarget=0, zoomTarget=1, tlEaseId=null;
+
+// ─── BOOT ───
+AEL.addEventListener('play',  schedRAF);
+AEL.addEventListener('pause', function(){ cancelAnimationFrame(rafId); rafId=null; frameUpdate(); });
+AEL.addEventListener('seeked', frameUpdate);
+AEL.addEventListener('ended', function(){ cancelAnimationFrame(rafId); rafId=null; });
+AEL.addEventListener('loadedmetadata', function(){ var a=getActive(); dur=AEL.duration||0; if(a) a.audioDur=dur; tlRefresh(); frameUpdate(); });
+
+window.addEventListener('keydown', onKey);
+window.addEventListener('mousemove', onGlobalMove);
+window.addEventListener('mouseup', onGlobalUp);
+window.addEventListener('resize', function(){ tlRefresh(); updateLyricHighlight(AEL.currentTime||0); });
+window.addEventListener('mousedown', function(e){ if(!e.target.closest('#rateMenu')&&!e.target.closest('#tRate')) closeRateMenu(); if(!e.target.closest('#importMenu')&&!e.target.closest('#mainActionBtn')) closeImportMenu(); });
+
+document.getElementById('rszH').addEventListener('mousedown', function(e){ hDrag=true; hStartX=e.clientX; hStartW=document.getElementById('songsPanel').offsetWidth; this.classList.add('drag'); e.preventDefault(); });
+document.getElementById('rszV').addEventListener('mousedown', function(e){ vDrag=true; vStartY=e.clientY; vStartH=document.getElementById('timelineZone').offsetHeight; this.classList.add('drag'); e.preventDefault(); });
+
+// Timeline: scrub over the whole wrap (wide zone → fewer accidental marker grabs); markers handled separately
+var tlTrack=document.getElementById('tlTrack');
+var tlWrap=document.getElementById('tlWrap');
+tlWrap.addEventListener('mousedown', function(e){
+  if(e.button===1){ e.preventDefault(); if(!dur) return; if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } tlPanning=true; tlPanStartX=e.clientX; tlPanStartScroll=scrollPct; return; }  // middle button = navigate, never moves markers
+  if(e.button!==0) return;
+  if(!dur) return;
+  if(e.target.closest('.tl-marker')) return;
+  if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } scrollTarget=scrollPct;
+  selStampSet.clear(); tlRefresh();
+  scrubbing=true; doScrub(e.clientX); e.preventDefault();
+});
+tlWrap.addEventListener('wheel', function(e){
+  if(!dur) return; e.preventDefault();
+  if(e.altKey){
+    var r=tlTrack.getBoundingClientRect(), mx=(e.clientX-r.left)/r.width, tp=scrollPct+mx/zoom;
+    zoomTarget=Math.max(1,Math.min(40,(tlEaseId?zoomTarget:zoom)+(e.deltaY>0?-1:1)));
+    scrollTarget=Math.max(0,Math.min(1-1/zoomTarget, tp-mx/zoomTarget)); startTlEase();
+  } else { var step=(e.deltaY||e.deltaX)*.0016/zoom; scrollTarget=clampScroll((tlEaseId?scrollTarget:scrollPct)+step); startTlEase(); }
+},{passive:false});
+
+// ─── TOUCH: pan with one finger, pinch-zoom with two (timeline only) ───
+var tlTouchPan=false, tlTouchStartX=0, tlTouchStartScroll=0, tlTouchMoved=false;
+var tlPinch=false, tlPinchD0=1, tlPinchZ0=1, tlPinchAnchor=0;
+tlWrap.addEventListener('touchstart', function(e){
+  if(!dur) return;
+  if(e.touches.length===1){
+    var _mEl=e.target.closest && e.target.closest('.tl-marker');
+    if(_mEl && _mEl.dataset.sid){
+      var _sid=+_mEl.dataset.sid;
+      if(selStampSet.has(_sid)){ selStampSet.clear(); } else { selStampSet.clear(); selStampSet.add(_sid); }
+      syncTouchButtons(); tlRefresh();
+    }
+    if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; }
+    tlTouchPan=true; tlTouchMoved=false; tlTouchStartX=e.touches[0].clientX; tlTouchStartScroll=scrollPct;
+  } else if(e.touches.length>=2){
+    tlTouchPan=false; tlPinch=true;
+    tlPinchD0=Math.abs(e.touches[0].clientX-e.touches[1].clientX)||1; tlPinchZ0=zoom;
+    var r=tlTrack.getBoundingClientRect(), cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    tlPinchAnchor=scrollPct+((cx-r.left)/r.width)/zoom;
+  }
+  e.preventDefault();
+},{passive:false});
+tlWrap.addEventListener('touchmove', function(e){
+  if(!dur) return;
+  if(tlPinch && e.touches.length>=2){
+    var d=Math.abs(e.touches[0].clientX-e.touches[1].clientX)||1;
+    zoom=Math.max(1,Math.min(40, tlPinchZ0*(d/tlPinchD0)));
+    var r=tlTrack.getBoundingClientRect(), cx=(e.touches[0].clientX+e.touches[1].clientX)/2, mx=(cx-r.left)/r.width;
+    scrollPct=clampScroll(tlPinchAnchor-mx/zoom); scrollTarget=scrollPct; zoomTarget=zoom; tlRefresh(); syncZoomSlider();
+  } else if(tlTouchPan && e.touches.length===1){
+    if(Math.abs(e.touches[0].clientX-tlTouchStartX)>2) tlTouchMoved=true;
+    if(zoom>1.01){
+      // zoomed: pan the view smoothly
+      var panR=tlTrack.getBoundingClientRect();
+      if(panR.width){ scrollPct=clampScroll(tlTouchStartScroll-(e.touches[0].clientX-tlTouchStartX)/panR.width/zoom); scrollTarget=scrollPct; tlRefresh(); }
+    } else {
+      doScrub(e.touches[0].clientX);
+    }
+  }
+  e.preventDefault();
+},{passive:false});
+tlWrap.addEventListener('touchend', function(e){
+  if(tlTouchPan && !tlTouchMoved && !tlPinch && e.changedTouches.length){
+    var _ct=e.changedTouches[0];
+    var _onMarker=_ct.target && _ct.target.closest && _ct.target.closest('.tl-marker');
+    if(!_onMarker){ selStampSet.clear(); syncTouchButtons(); }
+    doScrub(_ct.clientX); tlRefresh();
+  }
+  if(e.touches.length===0){ tlTouchPan=false; tlPinch=false; }
+},{passive:false});
+// Marker drag + lyrics drag via touch (reuse the mouse pipeline through fake events).
+var _mkDragRafId=null, _mkDragLastX=0;
+var _lyrTouchVelY=0, _lyrTouchLastY=0, _lyrTouchLastT=0;
+window.addEventListener('touchmove', function(e){
+  if(!e.touches.length) return;
+  if(mkDrag){
+    _mkDragLastX=e.touches[0].clientX;
+    e.preventDefault();
+    if(!_mkDragRafId){ _mkDragRafId=requestAnimationFrame(function(){ _mkDragRafId=null; if(mkDrag) onGlobalMove({clientX:_mkDragLastX}); }); }
+    return;
+  }
+  if(lyrDrag){
+    var cy=e.touches[0].clientY, now=Date.now(), dt=now-_lyrTouchLastT;
+    if(dt>0 && dt<100) _lyrTouchVelY=(cy-_lyrTouchLastY)/dt*16;
+    _lyrTouchLastY=cy; _lyrTouchLastT=now;
+    onGlobalMove({clientY:cy}); e.preventDefault(); return;
+  }
+},{passive:false});
+window.addEventListener('touchend', function(){
+  if(mkDrag){ if(_mkDragRafId){ cancelAnimationFrame(_mkDragRafId); _mkDragRafId=null; onGlobalMove({clientX:_mkDragLastX}); } onGlobalUp(); }
+  if(lyrDrag){ lyrVel=_lyrTouchVelY; onGlobalUp(); if(Math.abs(lyrVel)>0.5) startLyrEase(); }
+});
+
+// Minimap (overview shown when zoomed): click/drag to navigate
+var tlMini=document.getElementById('tlMini');   // removed in Verso 2 (no zoom minimap) — guard listeners
+if(tlMini){
+  tlMini.addEventListener('mousedown', function(e){ if(e.button!==0||!dur) return; miniDragging=true; miniSeek(e.clientX); e.preventDefault(); });
+  tlMini.addEventListener('touchstart', function(e){ if(!dur||!e.touches.length) return; miniDragging=true; miniSeek(e.touches[0].clientX); e.preventDefault(); },{passive:false});
+  tlMini.addEventListener('touchmove',  function(e){ if(!miniDragging||!e.touches.length) return; miniSeek(e.touches[0].clientX); e.preventDefault(); },{passive:false});
+  tlMini.addEventListener('touchend',   function(){ miniDragging=false; },{passive:false});
+}
+
+// Lyrics: smooth drag-to-view + smooth wheel scroll
+var lyrStage=document.getElementById('lyrStage');
+lyrStage.addEventListener('mousedown', function(e){ lyrBrowseUntil=Date.now()+5000; if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0; lyrDrag=true; lyrMoved=false; lyrDragStartY=e.clientY; var fl=document.getElementById('lyrFlow'); lyrBaseY=getTY(fl); fl.classList.add('nodrift'); lyrStage.classList.add('grabbing'); });
+lyrStage.addEventListener('wheel', function(e){ e.preventDefault(); lyrBrowseUntil=Date.now()+5000; document.getElementById('lyrFlow').classList.add('nodrift'); lyrVel += -e.deltaY*0.12; if(lyrVel>18)lyrVel=18; if(lyrVel<-18)lyrVel=-18; startLyrEase(); },{passive:false});
+lyrStage.addEventListener('touchstart', function(e){ if(e.touches.length!==1) return; lyrBrowseUntil=Date.now()+5000; if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0; _lyrTouchVelY=0; lyrDrag=true; lyrMoved=false; lyrDragStartY=e.touches[0].clientY; _lyrTouchLastY=e.touches[0].clientY; _lyrTouchLastT=Date.now(); var fl=document.getElementById('lyrFlow'); lyrBaseY=getTY(fl); fl.classList.add('nodrift'); },{passive:true});
+lyrStage.addEventListener('touchend', function(){ if(IS_TOUCH && selStampSet.size && !lyrMoved){ selStampSet.clear(); syncTouchButtons(); tlRefresh(); } },{passive:true});
+
+['eov','asov','gov','chPop'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('click', function(e){ if(e.target===e.currentTarget) e.target.classList.remove('open'); }); });
+// ─── CHANNELS (fixed list; each maps to its Lyrics + TH comp by exact name) ───
+// The list is always shown (never depends on reading the project). Only the
+// actions (Import / Thumbnail / audio) reach into AE, targeting these comps by name.
+// Verso (single channel): one versatile channel. No fixed names — targets the
+// comp containing "Lyrics", the comp containing "TH" and the footage containing
+// "Song" by suffix. The channel name shows the song title once loaded.
+var CH_DATA=[
+  {name:'Verso', lyr:'Lyrics', th:'TH', song:'Song'}
+];
+function _leadNumJS(s){ var m=(s||'').match(/^\s*(\d+)/); return m?parseInt(m[1],10):null; }
+
+// ─── control-bar icons ───
+var NOTE_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.6A3.5 3.5 0 1 0 14 17V7.2l5 1V4.5L12 3z"/></svg>';            // filled music note
+var ARROWDN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v14M6 12l6 6 6-6"/></svg>';   // import / export = down arrow
+var PLAY_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';                                                  // render = filled play
+var TRASH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+var IMG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5-5L5 21"/></svg>';  // global thumbnails = outlined image
+var LYRICS3_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="7" x2="19" y2="7"/><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="17" x2="13" y2="17"/></svg>';  // Genius lyrics loader
+var REFRESH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>';
+var MK_LEFT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="16" y2="12"/><polyline points="9 7 4 12 9 17"/><line x1="20" y1="6" x2="20" y2="18"/></svg>';
+var MK_RIGHT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="4" y2="18"/><line x1="8" y1="12" x2="19" y2="12"/><polyline points="15 7 20 12 15 17"/></svg>';
+var MK_SHRINK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="4" y2="18"/><line x1="16" y1="12" x2="5" y2="12"/><polyline points="11 7 6 12 11 17"/></svg>';
+var MK_MOVE_LEFT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 6 5 12 11 18"/></svg>';
+var MK_MOVE_RIGHT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>';
+
+// Builds the control bar. AE-only buttons (Render, global-thumbnail) appear only in AE.
+//   left   = Clear · Master(menu) · [Thumbnails-all (AE)]
+//   centre = timer + status  (hover the timer → horizontal speed menu opens upward)
+//   right  = Lyrics-loader · Import/Export(menu) · [Render (AE)]
+// Verso 2: hover-expanding labelled buttons. Left buttons expand right (icon→label),
+// right buttons expand left (label→icon). No Sync. Import split into Import + SRT.
+function _ebL(id,onclick,title,icon,label){
+  return '<button class="t-exp" id="'+id+'" onclick="'+onclick+'" title="'+title+'"><span class="t-ico">'+icon+'</span><span class="t-label">'+label+'</span></button>';
+}
+function _ebR(id,onclick,title,icon,label,extra){
+  return '<button class="t-exp exp-l'+(extra?' '+extra:'')+'" id="'+id+'" onclick="'+onclick+'" title="'+title+'"><span class="t-label">'+label+'</span><span class="t-ico">'+icon+'</span></button>';
+}
+// A control pill (icon + label) for the timeline bar.
+function _pill(id,onclick,title,icon,label,cls){
+  return '<button class="tl-btn'+(cls?' '+cls:'')+'" id="'+id+'" onclick="'+onclick+'" title="'+title+'"><span class="tl-ico">'+icon+'</span><span class="tl-lbl">'+label+'</span></button>';
+}
+// Flash an action pill in the accent colour, then clear it after ~2s.
+function flashPill(id){ var el=document.getElementById(id); if(!el) return; el.classList.add('on'); var c=el.closest('.tl-ctl'); if(c&&c._slideRest) c._slideRest(); clearTimeout(el._flash); el._flash=setTimeout(function(){ el.classList.remove('on'); if(c&&c._slideRest) c._slideRest(); },2000); }
+// Sliding hover indicator: an indigo pill that glides to the hovered button and,
+// on mouse-leave, returns to the container's "resting" button (restFn) — switch-like.
+function initSlider(container, restFn){
+  if(!container) return;
+  var ind=document.createElement('div'); ind.className='slide-ind';
+  container.insertBefore(ind, container.firstChild);
+  container._slideTo=function(el){ if(!el){ ind.classList.remove('show'); return; } var cr=container.getBoundingClientRect(), r=el.getBoundingClientRect(); ind.style.left=(r.left-cr.left)+'px'; ind.style.width=r.width+'px'; ind.classList.toggle('danger', !!(el.classList&&el.classList.contains('danger'))); ind.classList.toggle('gfound', !!(el.classList&&el.classList.contains('gyellow'))); ind.classList.add('show'); };
+  // Slide to an explicit rect — used by the Import pill so its indicator can embrace the
+  // full Import+SRT width from the FIRST frame, before the menu has finished expanding.
+  container._slideRect=function(left,width){ ind.classList.remove('danger','gfound'); ind.style.left=left+'px'; ind.style.width=width+'px'; ind.classList.add('show'); };
+  container._slideRest=function(){ requestAnimationFrame(function(){ container._slideTo(restFn?restFn():null); }); };
+  container.addEventListener('mouseover', function(e){ var b=e.target.closest('.tl-btn,.tl-imp,.mode-pill,.dp-act'); if(!b||!container.contains(b)) return;
+    if(b.closest('.tl-imp')) return;   // Import gestiona su propio indicador (ancho final inmediato)
+    var tgt=b;
+    // El layout ya viene asentado (Import lo fuerza al entrar/salir), asi que se puede
+    // medir y deslizar de inmediato. El re-slide es solo una red de seguridad.
+    container._slideTo(tgt);
+    clearTimeout(container._reslide); container._reslide=setTimeout(function(){ container._slideTo(tgt); }, 300);
+  });
+  container.addEventListener('mouseleave', function(){ clearTimeout(container._reslide); container._slideRest(); });
+  container._slideRest();
+}
+function buildActionBar(){
+  // 1) Lyrics-panel centre block: legends (status) above, timer below, speeds flanking.
+  var bar=document.querySelector('.lyr-controls');
+  if(bar){
+    bar.classList.remove('ae');
+    bar.innerHTML=
+      '<div class="t-center-timer">'+
+        '<div class="t-status" id="tStatus"></div>'+
+        '<div class="t-timer-flat" id="tTimer" title="Click to cycle speed: 1× → 1.5× → 2.1× → 3×" onclick="toggleRate15()">00:00:00</div>'+
+      '</div>';
+  }
+  // 2) Timeline bar — LEFT: Song · Details · Import · Render (control pills).
+  var importPill = IN_AE
+    ? '<div class="tl-imp" id="tlImp">'+
+        '<button class="tl-btn tl-imp-head" id="btnImport" onclick="importClick(event)" title="Import timestamped lyrics to the comp"><span class="tl-ico">'+CLIP_SVG+'</span><span class="tl-lbl">Import</span></button>'+
+        '<div class="tl-imp-menu">'+
+          '<button class="tl-imp-opt" onclick="importSRTFile(event)" title="Import an external .srt into the comp">SRT</button>'+
+        '</div>'+
+      '</div>'
+    : _pill('mainActionBtn','importClick(event)','Export SRT',ARROWDN_SVG,'Export');
+  var tlLeft=document.getElementById('tlLeft');
+  if(tlLeft){
+    tlLeft.innerHTML=
+      _pill('btnMaster','loadSingleSong(event)',(IN_AE?'Load a new song':'Load audio'),NOTE_SVG,'Song')+
+      _pill('btnDetails','toggleDetails(event)','Details — edit song info & lyrics',CARD_SVG,'Details')+
+      importPill+
+      (IN_AE?_pill('btnRender','renderAction(event)','Render',PLAY_SVG,'Render'):'');
+  }
+  // 3) Timeline bar — RIGHT: lines-per-timestamp icons + Video/Short toggle.
+  var tlRight=document.getElementById('tlRight');
+  if(tlRight){
+    tlRight.innerHTML=
+      '<div class="tl-lines" id="tlLines">'+
+        '<button class="tl-icobtn" id="lt2" onclick="setLinesPerStamp(2)" title="2 lines per timestamp">'+LINES2_SVG+'</button>'+
+        '<button class="tl-icobtn" id="lt3" onclick="setLinesPerStamp(3)" title="3 lines per timestamp">'+LINES3_SVG+'</button>'+
+        '<button class="tl-icobtn" id="lt4" onclick="setLinesPerStamp(4)" title="4 lines per timestamp">'+LINES4_SVG+'</button>'+
+      '</div>'+
+      '<div class="mode-toggle" id="modeToggle" role="switch" aria-label="Video / Short">'+
+        '<span class="mode-pill'+(!SHORT_MODE?' on':'')+'" onclick="setMode(false)">Video</span>'+
+        '<span class="mode-pill'+(SHORT_MODE?' on':'')+'" onclick="setMode(true)">Short</span>'+
+      '</div>';
+  }
+  syncRateUI();
+  syncLinesMenu();
+  // sliding hover indicators: controls (rests on the active/flashed pill) + toggle (rests on selected)
+  initSlider(document.getElementById('tlLeft'), function(){ var c=document.getElementById('tlLeft'); return c?c.querySelector('.tl-btn.on'):null; });
+  initSlider(document.getElementById('modeToggle'), function(){ var c=document.getElementById('modeToggle'); return c?c.querySelector('.mode-pill.on'):null; });
+  // Import hover: shrink Render to its icon (slides right) so the Import/SRT pill fits
+  var imp=document.getElementById('tlImp'), ctl=document.getElementById('tlLeft');
+  if(imp&&ctl){
+    // Measure the Import pill (head + expanded options) and size the indicator to it.
+    // FINAL width up-front: while collapsed the menu is clipped (max-width:0), so measure
+    // its scrollWidth instead of the live rect. The indicator embraces Import+SRT from the
+    // first frame — no "sit on Import, then grow" two-step.
+    var _impInd=function(){
+      if(!ctl._slideRect) return;
+      var head=imp.querySelector('.tl-imp-head'), menu=imp.querySelector('.tl-imp-menu');
+      if(!head) return;
+      var cr=ctl.getBoundingClientRect(), ir=imp.getBoundingClientRect();
+      ctl._slideRect(ir.left-cr.left, head.offsetWidth+(menu?menu.scrollWidth:0));
+    };
+    // Asienta el layout al instante (sin animar) para poder medir el estado FINAL.
+    // El indicador conserva su propia transicion, asi que sigue deslizandose suave.
+    var _settle=function(){ ctl.classList.add('no-anim'); void ctl.offsetWidth; };
+    var _unsettle=function(){ ctl.classList.remove('no-anim'); };
+    imp.addEventListener('mouseenter',function(){
+      clearTimeout(ctl._reslide);          // cancela el slide pendiente de Details/Render
+      ctl.classList.add('imp-open');
+      _settle(); _impInd(); _unsettle();   // menu ya expandido -> ancho final exacto
+    });
+    imp.addEventListener('mouseleave',function(){
+      clearTimeout(ctl._reslide);
+      ctl.classList.remove('imp-open');
+      _settle();                            // menu colapsado y Render ya en su sitio
+      var h=ctl.querySelector('.tl-btn:hover');
+      if(h) ctl._slideTo(h); else ctl._slideRest();
+      _unsettle();
+    });
+  }
+  // Lock the controls container to its resting width so the Import hover (expand/shrink)
+  // never resizes the markers track (which was making the timeline "recede").
+  // min-width (not a fixed width): keeps the markers track from receding, but still lets
+  // the pill GROW when Import expands, so Import+SRT never get clipped at the edge.
+  if(ctl){ ctl.style.width=''; ctl.style.minWidth=''; requestAnimationFrame(function(){ if(ctl.offsetWidth) ctl.style.minWidth=ctl.offsetWidth+'px'; }); }
+}
+// Verso 2: speed selectors flanking the timer (slow left, fast right). No containers,
+// semi-opaque numbers; the selected one turns blue. 1x = none selected.
+// La velocidad es GLOBAL: se conserva al cambiar de cancion/canal y entre sesiones, para
+// no tener que reajustarla cada vez. El timer cicla 1× → 1.5× → 2.1× → 3× → 1×.
+var currentRate=1;
+try{ var _sr=parseFloat(localStorage.getItem('verso_rate')); if(_sr>0&&_sr<=3) currentRate=_sr; }catch(e){}
+function toggleRate15(){
+  var cur=currentRate||1, next;
+  if(Math.abs(cur-1)<0.001) next=1.5;
+  else if(Math.abs(cur-1.5)<0.001) next=2.1;
+  else if(Math.abs(cur-2.1)<0.001) next=3;
+  else next=1;
+  currentRate=next;
+  try{ localStorage.setItem('verso_rate', String(next)); }catch(e){}
+  applyGlobalRate(); toast('Speed '+next+'×', 1500);
+}
+// Cargar una cancion nueva resetea playbackRate a 1 → reaplicar la velocidad global.
+function applyGlobalRate(){
+  try{ if(Math.abs((AEL.playbackRate||1)-currentRate)>0.001) AEL.playbackRate=currentRate; }catch(e){}
+  syncRateUI();
+}
+AEL.addEventListener('loadedmetadata', applyGlobalRate);
+AEL.addEventListener('canplay', applyGlobalRate);
+AEL.addEventListener('play', applyGlobalRate);
+function syncRateUI(){ var t=document.getElementById('tTimer'); if(t) t.classList.toggle('rate15', Math.abs(currentRate-1)>0.001); }
+// Verso: load a NEW song. Web → file picker. AE → ExtendScript dialog that replaces
+// the project's "Song" footage with the chosen file, then loads it into the timeline.
+function loadSingleSong(ev){
+  if(ev) ev.stopPropagation();
+  flashPill('btnMaster');
+  if(!csInterface){ openAudio(); return; }
+  var short=SHORT_MODE;                                      // Short → replace the "Short Song" footage
+  toast(short?'Select the short song file…':'Select the song file…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript((short?'loadShortSongFile()':'loadSingleSongFile()'), function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('Song: '+(raw||'no response')); return; }
+      if(!r.ok){ if((r.msg||'')!=='Cancelled') toast('Song: '+(r.msg||'error')); return; }
+      var ch=getActive();
+      if(ch && r.path){ _applySongTitle(ch, r.path, true); if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); } }
+      renderChannels(); syncTitle(); tlRefresh();
+      toast('✓ '+(short?'Short song':'Song')+' loaded · range adjusted'+(r.removed?(' · '+r.removed+' SRT cleared'):''));
+      // Auto-update the thumbnail with the new Artist/Song (same step the Thumbnail button does).
+      if(ch && chArtist(ch) && chSong(ch)){ thumbnailAction(ch.id); }
+    });
+  });
+}
+// Verso single-channel: the song container (artist/song/lyrics/thumbnail) as a popup.
+var CARD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/><line x1="7" y1="16.5" x2="11" y2="16.5"/></svg>';
+// Details panel: slides in from the left inside the lyrics panel and shifts the
+// lyrics content right to re-centre it. A click outside the panel closes it.
+function toggleDetails(ev){ if(ev) ev.stopPropagation(); var lp=document.getElementById('lyricsPanel'); if(!lp) return; var open=!lp.classList.contains('details-open'); setDetailsOpen(open); }
+function setDetailsOpen(open){
+  var lp=document.getElementById('lyricsPanel'); if(!lp) return;
+  if(open){
+    // Details panel width matches the first (controls) container; content shifts to re-centre.
+    var tlLeft=document.getElementById('tlLeft'), panel=document.getElementById('detailsPanel');
+    var w=(tlLeft&&tlLeft.offsetWidth)?tlLeft.offsetWidth:224;
+    if(panel) panel.style.width=w+'px';
+    lp.style.setProperty('--dp-shift', Math.round(w/2+6)+'px');
+    renderChannels();
+  }
+  lp.classList.toggle('details-open', open);
+  var b=document.getElementById('btnDetails'); if(b) b.classList.toggle('on', open);
+}
+function closeDetails(){ setDetailsOpen(false); }
+// legacy aliases (older callers)
+function openChPop(ev){ if(ev) ev.stopPropagation(); setDetailsOpen(true); }
+function closeChPop(){ setDetailsOpen(false); }
+// click outside the details panel (and not on the Details button) closes it.
+document.addEventListener('mousedown', function(e){
+  var lp=document.getElementById('lyricsPanel');
+  if(!lp || !lp.classList.contains('details-open')) return;
+  if(e.target.closest && (e.target.closest('#detailsPanel') || e.target.closest('#btnDetails'))) return;
+  closeDetails();
+});
+
+// ─── Verso 2 icons (SRT button + line toggles) ───
+var SRT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="10" x2="11" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/><line x1="15" y1="14" x2="17" y2="14"/></svg>';
+var CLIP_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+var LINES2_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg>';
+var LINES3_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+var LINES4_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="10.5" x2="20" y2="10.5"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="4" y1="19.5" x2="20" y2="19.5"/></svg>';
+var SEARCH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>';
+
+// ─── Verso 2: lines per timestamp (1 default / 2 / 3) ───
+// Groups consecutive lyric lines so each timestamp covers up to N lines.
+var linesPerStamp=1;
+// Only changes how many lines the NEXT timestamp will cover/underline.
+// Does NOT alter the lyrics text or remove existing markers.
+function setLinesPerStamp(n){
+  linesPerStamp=(linesPerStamp===n)?1:n;   // clicking the active one turns it back to 1
+  syncLinesMenu();
+  updateLyricHighlight(AEL.currentTime||0);   // no rebuild — just refresh (keeps painted lines)
+  toast(linesPerStamp===1?'1 line per timestamp':(linesPerStamp+' lines per timestamp'));
+}
+function syncLinesMenu(){
+  var b2=document.getElementById('lt2'), b3=document.getElementById('lt3'), b4=document.getElementById('lt4');
+  if(b2) b2.classList.toggle('cur', linesPerStamp===2);
+  if(b3) b3.classList.toggle('cur', linesPerStamp===3);
+  if(b4) b4.classList.toggle('cur', linesPerStamp===4);
+}
+// Returns the up-to-N stampable line indices starting at line index `from`.
+function stampGroupFrom(from){
+  var idxs=[], c=Math.max(0,from);
+  while(idxs.length<linesPerStamp && c<lines.length){
+    c=nextStampable(c); if(c>=lines.length) break;
+    idxs.push(c); c++;
+  }
+  return idxs;
+}
+// Color by number of lines: 1=blue, 2=celeste, 3=magenta, 4=rosado.
+// n=1 (default) uses the theme accent; 2/3/4-line groups keep distinct indicator colours.
+// ACCENT_* mirror the CSS --accent so inline marker/karaoke colours match the theme.
+var ACCENT='#5762FA', ACCENT_DIM='rgba(87,98,250,.5)', ACCENT_HI='rgba(87,98,250,.18)';
+// Markers are ALWAYS indigo, regardless of how many lines the stamp groups.
+function lineColor(){ return ACCENT; }
+function lineColorDim(){ return ACCENT_DIM; }
+function lineColorHi(){ return ACCENT_HI; }
+// After deleting markers, continue stamping from AFTER the last remaining marker
+// (so freed-up lines become stampable again and the order isn't broken).
+function recomputeCurLine(){
+  var maxLine=-1;
+  for(var i=0;i<stamps.length;i++){ var ls=stampLineSet(stamps[i]); for(var k=0;k<ls.length;k++) if(ls[k]>maxLine) maxLine=ls[k]; }
+  curLine=nextStampable(maxLine+1);
+}
+
+// Verso 2: import an external .srt file into THIS channel's Lyrics comp.
+function importSRTFile(ev){
+  if(ev) ev.stopPropagation();
+  flashPill('btnImport');
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  var ch=getActive(); if(!ch){ toast('No channel'); return; }
+  toast('Select the .srt file…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('readSrtFile()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('SRT: '+(raw||'no response')); return; }
+      if(!r.ok){ if((r.msg||'')!=='Cancelled') toast('SRT: '+(r.msg||'error')); return; }
+      var opt={ styleLayerName:'Style Controler', fadeIn:0.3, fadeOut:0.3, lyricsBySuffix:true };
+      var target=(ch.lyr||'Lyrics');
+      var call=SHORT_MODE
+        ? 'importLyricsToShort('+JSON.stringify(r.srt)+','+JSON.stringify(JSON.stringify(opt))+')'
+        : 'importLyricsToComp('+JSON.stringify(target)+','+JSON.stringify(r.srt)+','+JSON.stringify(JSON.stringify(opt))+')';
+      csInterface.evalScript(call, function(result){
+        if(!result||result==='undefined'){ toast('No response from AE'); return; }
+        if(result.indexOf('ok:')===0){ toast('✓ SRT imported: '+result.slice(3)); }
+        else { toast('AE: '+(result.indexOf('err:')===0?result.slice(4):result)); }
+      });
+    });
+  });
+}
+
+// ─── icons for the touch-only below-timeline controls ───
+var HAMB_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+var UNDO_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 5 5v0"/></svg>';
+var REDO_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l5 5-5 5"/><path d="M20 12H9a5 5 0 0 0-5 5v0"/></svg>';
+var STAMP_SVG='<svg viewBox="0 0 64 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="10" y1="12" x2="54" y2="12"/><line x1="32" y1="6" x2="32" y2="18"/></svg>';
+var TPLAY_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+var TPAUSE_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+
+// Build the bar on every platform; touch adds the below-timeline controls + drawer.
+try{ buildActionBar(); }catch(e){}
+if(IS_TOUCH){ try{ buildTouchTimelineControls(); }catch(e){} try{ buildHamburger(); }catch(e){} }
+// On open (panel already up while a project loads): auto-pull the song filename and fill
+// Artist/Song without needing a manual refresh.
+if(IN_AE){ ensureHost(function(ok){ if(ok) aeLoadSong(getActive(), false, true); }); }
+// Auto-sync: while the panel stays open and the user opens/changes the project or loads a
+// new song, re-pull the filename and refresh Artist/Song — but ONLY when the on-disk file
+// actually changes, so it never clobbers titles the user typed by hand.
+function _autoSyncSong(){
+  if(!IN_AE||!csInterface) return;
+  var ch=getActive(); if(!ch) return;
+  csInterface.evalScript(_songReadJsx(ch), function(raw){
+    if(!raw||raw.indexOf('OK:')!==0) return;
+    var p=raw.slice(3);
+    if(p && p!==_lastSongPath){ _applySongTitle(ch, p, true); if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); } renderChannels(); syncTitle(); }
+  });
+}
+if(IN_AE) setInterval(_autoSyncSong, 3000);
+// One row of big touch buttons below the timeline: Undo · Play · Timestamp · Redo.
+// All the same height; the middle two are wider for easier tapping.
+function buildTouchTimelineControls(){
+  var col=document.getElementById('rightCol'); if(!col) return;
+  if(document.getElementById('touchTLC')) return;
+  var box=document.createElement('div'); box.className='touch-tlc'; box.id='touchTLC';
+  box.innerHTML=
+    '<div class="ttc-zoom">'+
+      '<span class="ttc-zoom-lbl">Zoom</span>'+
+      '<input type="range" id="tlZoomSlider" min="1" max="20" step="0.25" value="1">'+
+      '<span class="ttc-zoom-val" id="tlZoomVal">1×</span>'+
+    '</div>'+
+    '<div class="ttc-row">'+
+      '<button class="ttc-btn dim narrow" id="ttcUndo" title="Undo">'+UNDO_SVG+'</button>'+
+      '<button class="ttc-btn wide" id="ttcPlay" title="Play / Pause"></button>'+
+      '<button class="ttc-btn wide ttc-stamp" id="ttcStamp" title="Add timestamp"></button>'+
+      '<button class="ttc-btn dim narrow" id="ttcRedo" title="Redo">'+REDO_SVG+'</button>'+
+    '</div>'+
+    '<div class="ttc-row" id="ttcMoveRow" style="display:none;margin-top:6px">'+
+      '<button class="ttc-btn wide sel-mode" id="ttcMoveL" title="Move marker left">'+MK_MOVE_LEFT_SVG+'</button>'+
+      '<button class="ttc-btn wide sel-mode" id="ttcMoveR" title="Move marker right">'+MK_MOVE_RIGHT_SVG+'</button>'+
+    '</div>';
+  col.appendChild(box);
+  document.getElementById('ttcUndo').onclick=function(){ undoAction(); };
+  document.getElementById('ttcPlay').onclick=function(){ togglePlay(); touchSyncPlayIcon(); };
+  document.getElementById('ttcStamp').onclick=function(){ doStamp(); };
+  var _zs=document.getElementById('tlZoomSlider');
+  if(_zs) _zs.addEventListener('input', function(){ zoom=zoomTarget=Math.max(1,Math.min(20,parseFloat(this.value)||1)); tlRefresh(); syncZoomSlider(); });
+  document.getElementById('ttcRedo').onclick=function(){ redoAction(); };
+  AEL.addEventListener('play', touchSyncPlayIcon);
+  AEL.addEventListener('pause', touchSyncPlayIcon);
+}
+// Smooth hold engine: rAF loop with accelerating velocity, replaces step-based timers
+var _holdId=null, _holdActive=false;
+function _holdStart(fn){
+  _holdStop(); pushUndo(); _holdActive=true;
+  var t0=performance.now(), prev=t0;
+  fn(0.1);
+  function loop(now){
+    if(!_holdActive) return;
+    var dt=Math.min((now-prev)*0.001,0.05); prev=now;
+    var vel=Math.min(5, 0.5+(now-t0)*0.003);
+    fn(vel*dt);
+    _holdId=requestAnimationFrame(loop);
+  }
+  _holdId=requestAnimationFrame(loop);
+}
+function _holdStop(){ _holdActive=false; if(_holdId){ cancelAnimationFrame(_holdId); _holdId=null; } saveWorkingSet(); }
+function adjustMarkerEdge(side, shrink, step){
+  var selArr=Array.from(selStampSet); if(!selArr.length) return;
+  var s=getStampById(selArr[0]); if(!s) return;
+  var i=stamps.indexOf(s);
+  if(side==='l'){
+    var newT=Math.max(0,s.time-step); if(newT===s.time) return;
+    s.len=(s.len!=null?s.len:markerLen(s,i))+(s.time-newT); s.time=newT;
+  } else {
+    var curLen=s.len!=null?s.len:markerLen(s,i);
+    var newLen=shrink?Math.max(0.1,curLen-step):curLen+step;
+    if(!shrink&&dur&&s.time+newLen>dur) newLen=dur-s.time;
+    if(shrink?newLen>=curLen:newLen<=curLen) return;
+    s.len=newLen;
+  }
+  resolveCollisions(i,0.002); tlRefresh();
+}
+function adjustMarkerPosition(dir, step){
+  var selArr=Array.from(selStampSet); if(!selArr.length) return;
+  var s=getStampById(selArr[0]); if(!s) return;
+  var i=stamps.indexOf(s);
+  var len=s.len!=null?s.len:markerLen(s,i);
+  if(dir==='l'){ s.time=Math.max(0,s.time-step); }
+  else { var maxT=dur?Math.max(0,dur-len):s.time+step; s.time=Math.min(maxT,s.time+step); }
+  tlRefresh();
+}
+function syncTouchButtons(){
+  if(!IS_TOUCH) return;
+  var play=document.getElementById('ttcPlay'), stamp=document.getElementById('ttcStamp');
+  if(!play||!stamp) return;
+  var moveRow=document.getElementById('ttcMoveRow');
+  var moveL=document.getElementById('ttcMoveL'), moveR=document.getElementById('ttcMoveR');
+  var mkSel=selStampSet.size===1;
+  if(mkSel){
+    play.innerHTML=MK_SHRINK_SVG; play.title='Shorten right edge';
+    stamp.innerHTML=MK_RIGHT_SVG; stamp.title='Extend right edge';
+    play.classList.add('sel-mode'); stamp.classList.add('sel-mode');
+    play.onclick=null; stamp.onclick=null;
+    play.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerEdge('r',true,s); }); };
+    play.ontouchend=play.ontouchcancel=function(){ _holdStop(); };
+    stamp.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerEdge('r',false,s); }); };
+    stamp.ontouchend=stamp.ontouchcancel=function(){ _holdStop(); };
+    if(moveRow) moveRow.style.display='flex';
+    if(moveL){ moveL.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerPosition('l',s); }); }; moveL.ontouchend=moveL.ontouchcancel=function(){ _holdStop(); }; }
+    if(moveR){ moveR.ontouchstart=function(e){ e.preventDefault(); _holdStart(function(s){ adjustMarkerPosition('r',s); }); }; moveR.ontouchend=moveR.ontouchcancel=function(){ _holdStop(); }; }
+  } else {
+    _holdStop();
+    play.innerHTML=''; play.title='Play / Pause';
+    stamp.innerHTML=''; stamp.title='Add timestamp';
+    play.classList.remove('sel-mode'); stamp.classList.remove('sel-mode');
+    play.ontouchstart=play.ontouchend=play.ontouchcancel=null;
+    stamp.ontouchstart=stamp.ontouchend=stamp.ontouchcancel=null;
+    play.onclick=function(){ togglePlay(); touchSyncPlayIcon(); };
+    stamp.onclick=function(){ doStamp(); };
+    if(moveRow) moveRow.style.display='none';
+    touchSyncPlayIcon();
+  }
+}
+// Play button has no icon; toggle a subtle "playing" class instead.
+function touchSyncPlayIcon(){ var b=document.getElementById('ttcPlay'); if(b) b.classList.toggle('playing', !AEL.paused); }
+function syncZoomSlider(){ var sl=document.getElementById('tlZoomSlider'), vl=document.getElementById('tlZoomVal'); if(sl) sl.value=Math.min(20,zoom).toFixed(2); if(vl) vl.textContent=zoom.toFixed(1)+'×'; }
+// Hamburger → slide-in songs drawer (mobile / iPad portrait).
+function buildHamburger(){
+  var app=document.querySelector('.app'); if(!app || document.getElementById('hamb')) return;
+  var hb=document.createElement('button'); hb.id='hamb'; hb.className='hamburger'; hb.innerHTML=HAMB_SVG; hb.title='Song container';
+  hb.onclick=function(e){ e.stopPropagation(); openChPop(e); };   // Verso: opens the song container popup
+  app.appendChild(hb);
+  var bd=document.createElement('div'); bd.id='songsBackdrop'; bd.className='songs-backdrop'; bd.onclick=function(){ toggleSongsDrawer(false); };
+  app.appendChild(bd);
+}
+function toggleSongsDrawer(force){
+  var sp=document.getElementById('songsPanel'), bd=document.getElementById('songsBackdrop');
+  if(!sp) return;
+  var open=(force===undefined)?!sp.classList.contains('open'):force;
+  sp.classList.toggle('open', open); if(bd) bd.classList.toggle('on', open);
+}
+// ─── HOST LOADER (ensures host.jsx functions exist before any AE action) ───
+var _hostReady=false, _hostSrc=null;
+function _extBase(){
+  try{
+    var href=window.location.href;                 // e.g. file:///C:/.../extensions/v6/index.html
+    var p=href.replace(/[#?].*$/,'').replace(/[^\/]*$/,''); // strip file name + query/hash
+    p=p.replace(/^file:\/\/\//i,'').replace(/^file:\/\//i,'');
+    return decodeURI(p);
+  }catch(e){ return ''; }
+}
+function probeHost(cb){ if(!csInterface){ cb(false); return; } csInterface.evalScript('(typeof importLyricsToComp==="function")?"1":"0"', function(r){ cb(r==='1'); }); }
+function loadHostViaXHR(done){
+  if(_hostSrc){ csInterface.evalScript(_hostSrc, function(){ done(); }); return; }
+  try{
+    var xhr=new XMLHttpRequest(); xhr.open('GET','jsx/host.jsx?ts='+Date.now(),true);
+    xhr.onreadystatechange=function(){ if(xhr.readyState!==4) return;
+      if(xhr.responseText && xhr.responseText.indexOf('function')!==-1){ _hostSrc=xhr.responseText; csInterface.evalScript(_hostSrc, function(){ done(); }); }
+      else done();
+    };
+    xhr.onerror=function(){ done(); }; xhr.send();
+  }catch(e){ done(); }
+}
+function loadHostViaPath(done){
+  var ext=''; try{ ext=csInterface.getSystemPath(SystemPath.EXTENSION); }catch(e){}
+  if(!ext) ext=_extBase();
+  if(!ext){ done(); return; }
+  var hp=(ext.replace(/[\/\\]+$/,'')+'/jsx/host.jsx').replace(/\\/g,'/');
+  csInterface.evalScript('(function(){try{$.evalFile(new File("'+hp+'"));return "1";}catch(e){return "0";}})()', function(){ done(); });
+}
+// Run cb(true) once the CURRENT host.jsx is loaded. The ExtendScript engine persists
+// across panel reloads and may hold a stale version, so on the first call this session
+// we ALWAYS re-evaluate the fresh source (XHR) before trusting it — never skip on probe.
+function ensureHost(cb){
+  if(!csInterface){ cb(false); return; }
+  if(_hostReady){ cb(true); return; }
+  loadHostViaXHR(function(){
+    probeHost(function(ok){
+      if(ok){ _hostReady=true; cb(true); return; }
+      loadHostViaPath(function(){
+        probeHost(function(ok2){ _hostReady=ok2; cb(ok2); });
+      });
+    });
+  });
+}
+
+// ─── SEED CHANNELS (fixed list, used on web AND inside AE) ───
+(function seed(){
+  CH_DATA.forEach(function(c){
+    channels.push({ id:++chSeq, name:c.name, lyr:c.lyr, th:c.th, songName:c.song, num:_leadNumJS(c.lyr),
+      artist:'', song:'', lyricsText:'', lines:[], stamps:[], curLine:0, loaded:false,
+      audioFile:null, audioURL:null, audioName:'', audioDur:0 });
+  });
+  activeId=channels[0].id; expandedId=channels[0].id;
+  loadActiveIntoWorkingSet();
+  renderChannels(); renderLyricsFlow(); syncTitle(); tlRefresh();
+  if(IN_AE) aeLoadSong(getActive());   // load first channel's Song audio from the project
+})();
+
+// ─── CHANNEL HELPERS ───
+function getChannel(id){ for(var i=0;i<channels.length;i++) if(channels[i].id===id) return channels[i]; return null; }
+function getActive(){ return getChannel(activeId); }
+function chTimed(ch){ return ch.id===activeId ? stamps.length>0 : (ch.stamps&&ch.stamps.length>0); }
+function chComplete(ch){ return !!(ch.artist&&ch.artist.trim() && ch.song&&ch.song.trim() && ch.loaded); }
+function saveWorkingSet(){ var ch=getChannel(activeId); if(!ch) return; ch.lines=lines.slice(); ch.stamps=JSON.parse(JSON.stringify(stamps)); ch.curLine=curLine; if(!(ch.lyricsText&&ch.lyricsText.length)) ch.lyricsText=lines.join('\n'); ch.loaded=lines.length>0; }
+function loadActiveIntoWorkingSet(){ pendingId=null; var ch=getActive(); if(!ch){ lines=[];stamps=[];curLine=0; return; } lines=ch.lines.slice(); stamps=JSON.parse(JSON.stringify(ch.stamps)); curLine=ch.curLine||0; undoStack=[]; redoStack=[]; selStampSet.clear(); }
+function avatar(name){ var h=0; for(var i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); var hue=Math.abs(h)%360; return '<div class="ch-av" style="background:linear-gradient(135deg,hsl('+hue+',72%,56%),hsl('+((hue+45)%360)+',72%,44%))">'+esc((name.charAt(0)||'?').toUpperCase())+'</div>'; }
+
+// Verso single-channel: the title shows "Artist - Song" (no separate subtitle).
+function chDisplayName(ch){
+  var a=(ch.artist||'').trim(), s=(ch.song||'').trim();
+  if(a&&s) return a+' - '+s;
+  return s || a || 'Untitled';
+}
+// ─── RENDER CHANNELS ───
+// Verso 2: the editor lives in the persistent Details panel (#detailsPanel). It is
+// rebuilt on every relevant change (song load, mode switch, edits), which keeps the
+// Artist/Song inputs in sync — no need to reopen the panel.
+function renderChannels(){
+  var host=document.getElementById('detailsPanel'); if(!host) return;
+  var ch=getActive(); if(!ch){ host.innerHTML=''; return; }
+  host.innerHTML='';
+  var body=document.createElement('div'); body.className='dp-body'; body.onclick=function(e){ e.stopPropagation(); };
+
+  var clrIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+  var thumbIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="M21 15l-5-5L5 18"/></svg>';
+
+  // Artist / Song inputs + refresh (re-reads the loaded song title)
+  var _a=chArtist(ch), _s=chSong(ch);
+  var ins=document.createElement('div'); ins.className='dp-inputs';
+  var inA=document.createElement('input'); inA.className='dp-in'+((_a&&_a.trim())?' filled':''); inA.placeholder='Artist'; inA.value=_a;
+  inA.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editArtist(ch.id,this.value); };
+  var inS=document.createElement('input'); inS.className='dp-in'+((_s&&_s.trim())?' filled':''); inS.placeholder='Song'; inS.value=_s;
+  inS.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editSong(ch.id,this.value); };
+  var rf=document.createElement('button'); rf.className='dp-refresh'; rf.title='Re-read the loaded song title'; rf.innerHTML=REFRESH_SVG;
+  rf.onclick=function(e){ e.stopPropagation(); channelReload(ch.id); };
+  ins.appendChild(inA); ins.appendChild(inS); ins.appendChild(rf); body.appendChild(ins);
+
+  // Lyrics textarea
+  var ta=document.createElement('textarea'); ta.className='dp-lyr'+((ch.lyricsText&&ch.lyricsText.trim())?' filled':''); ta.placeholder='Lyrics — one line per row…'; ta.value=ch.lyricsText||'';
+  ta.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editLyrics(ch.id,this.value); };
+  body.appendChild(ta);
+
+  // AE: thumbnail preview
+  if(IN_AE){ var timg=document.createElement('img'); timg.className='dp-thumb'; timg.style.display='none'; timg.onclick=function(e){ e.stopPropagation(); }; body.appendChild(timg); ch._thumbImg=timg; }
+
+  // Unified actions pill: Lyrics · Thumbnail · Clear (sliding indigo hover).
+  // Clicking "Lyrics" extends an inline Genius input over the whole pill (no popup);
+  // once the lyrics load it animates back to the minimised button.
+  var acts=document.createElement('div'); acts.className='dp-actions'; acts.id='dpActions';
+  var bLyr=document.createElement('button'); bLyr.className='dp-act'; bLyr.id='dpLyrBtn'; bLyr.title='Find the lyrics on Genius';
+  bLyr.innerHTML=SEARCH_SVG+'<span>Lyrics</span>'; bLyr.onclick=function(e){ e.stopPropagation(); if(!IN_AE && (GENIUS_TAB_URL||GENIUS_TAB_LYRICS)){ applyGeniusFromTab(); } else { toggleGeniusInput(); } };
+  acts.appendChild(bLyr);
+  if(IN_AE){
+    var bThumb=document.createElement('button'); bThumb.className='dp-act'; bThumb.title='Update the thumbnail (Artist/Song text layers)';
+    bThumb.innerHTML=thumbIcon+'<span>Thumbnail</span>'; bThumb.onclick=function(e){ e.stopPropagation(); thumbnailAction(ch.id); };
+    acts.appendChild(bThumb);
+  }
+  var bClr=document.createElement('button'); bClr.className='dp-act danger'; bClr.title='Clear inputs, lyrics, timestamps & SRT layers';
+  bClr.innerHTML=clrIcon+'<span>Clear</span>'; bClr.onclick=function(e){ e.stopPropagation(); if(IN_AE) clearChannelFull(ch.id); else clearActive(); };
+  acts.appendChild(bClr);
+  // Genius input overlay (covers the whole pill; extends from the left = the Lyrics button)
+  var over=document.createElement('div'); over.className='dp-genius-over';
+  var gin=document.createElement('input'); gin.className='dp-genius-inp'; gin.id='g-link-inline'; gin.type='text'; gin.placeholder='Paste a Genius link…';
+  gin.onkeydown=function(e){ if(e.key==='Enter') loadGeniusInline(e); else if(e.key==='Escape') closeGeniusInput(); };
+  var ggo=document.createElement('button'); ggo.className='dp-genius-go'; ggo.title='Load lyrics'; ggo.innerHTML=SEARCH_SVG; ggo.onclick=function(e){ e.stopPropagation(); loadGeniusInline(e); };
+  over.appendChild(gin); over.appendChild(ggo); acts.appendChild(over);
+  body.appendChild(acts);
+
+  host.appendChild(body);
+  initSlider(acts, null);   // hover-only sliding indicator (turns red over Clear)
+  if(!IN_AE) scanGeniusTab();   // web: ask the Chrome extension for an open Genius tab → "Lyrics Found"
+}
+// Extend the Lyrics button into an inline Genius input over the actions pill.
+function toggleGeniusInput(){
+  var a=document.getElementById('dpActions'); if(!a) return;
+  var open=a.classList.toggle('genius-mode');
+  if(open){ var i=a.querySelector('.dp-genius-inp'); if(i){ try{ i.focus(); }catch(e){} } }
+}
+function closeGeniusInput(){ var a=document.getElementById('dpActions'); if(a) a.classList.remove('genius-mode'); }
+// Re-read the channel's loaded song and refresh its Artist/Song title.
+function channelReload(id){
+  var ch=getChannel(id); if(!ch) return;
+  if(IN_AE && (ch.songName||ch.num!=null)){
+    aeLoadSong(ch, true, true); toast('Refreshing title…');   // re-read the song + overwrite the title
+  } else if(ch.audioName){
+    var meta=parseAudioMeta(ch.audioName);
+    if(meta.artist) ch.artist=meta.artist; if(meta.song) ch.song=meta.song;
+    if(ch.id===activeId) syncTitle(); renderChannels(); toast('Title refreshed');
+  } else { toast('No audio loaded to read'); }
+}
+function updTimed(){ var ch=getActive(); if(ch) ch.loaded=lines.length>0; var row=document.querySelector('.channel[data-id="'+activeId+'"]'); if(row){ row.classList.toggle('loaded', lines.length>0); row.classList.toggle('dim', (ch&&!chComplete(ch)) && activeId!==expandedId); } }
+
+// ─── CHANNEL ACTIONS ───
+function selectChannel(id){
+  if(id===expandedId){ expandedId=null; setExpanded(-1); return; }   // collapse the open one (animated)
+  if(activeId!==null && activeId!==id) saveWorkingSet();
+  activeId=id; expandedId=id;
+  loadActiveIntoWorkingSet();
+  loadChannelAudio();   // swap to this channel's own audio (previous channel keeps its own)
+  if(IN_AE){ aeLoadSong(getActive(), true); loadThumbPreview(getActive()); }   // pull Song audio + TH preview
+  setExpanded(id); refreshChannelStates(); renderLyricsFlow(); syncTitle(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  if(IS_TOUCH) toggleSongsDrawer(false);   // tapping a channel closes the drawer
+}
+// El .ch-editor se despliega animando max-height (900px) con overflow:hidden, asi que
+// al estirar el textarea mas alla de ese tope el contenido quedaba RECORTADO. Tras
+// terminar la animacion se quita el tope: el box se puede agrandar hacia abajo libremente.
+// Al cerrar se devuelve a un valor en px para que el colapso siga animando.
+function _fitEditor(row, expanded){
+  var ed=row.querySelector('.ch-editor'); if(!ed) return;
+  clearTimeout(ed._fitT);
+  if(expanded){
+    ed._fitT=setTimeout(function(){ ed.style.maxHeight='none'; ed.style.overflow='visible'; }, 470);
+  } else {
+    if(ed.style.maxHeight==='none'){ ed.style.maxHeight=ed.scrollHeight+'px'; void ed.offsetHeight; }
+    ed.style.overflow=''; ed.style.maxHeight='';
+  }
+}
+function setExpanded(id){
+  document.querySelectorAll('.channel').forEach(function(r){
+    var rid=+r.dataset.id, ch=getChannel(rid); if(!ch) return;
+    r.classList.toggle('expanded', rid===id);
+    _fitEditor(r, rid===id);
+    r.classList.toggle('dim', !chComplete(ch) && rid!==id);
+    var info=((ch.artist||'')+(ch.artist&&ch.song?' - ':'')+(ch.song||'')).trim();
+    var sub=r.querySelector('.ch-sub'); if(sub) sub.textContent=(rid===id)?(info||'Load Contents'):info;
+  });
+}
+function refreshChannelStates(){
+  document.querySelectorAll('.channel').forEach(function(r){ var rid=+r.dataset.id, ch=getChannel(rid); if(!ch) return; r.classList.toggle('loaded',!!ch.loaded); r.classList.toggle('dim', !chComplete(ch) && rid!==expandedId); });
+}
+function addChannel(){
+  saveWorkingSet();
+  var ch={ id:++chSeq, name:'New Channel '+chSeq, artist:'', song:'', lyricsText:'', lines:[], stamps:[], curLine:0, loaded:false, audioFile:null, audioURL:null, audioName:'', audioDur:0 };
+  channels.push(ch); activeId=ch.id; expandedId=ch.id;
+  loadActiveIntoWorkingSet(); loadChannelAudio();
+  renderChannels(); renderLyricsFlow(); syncTitle(); tlRefresh(); toast('Channel added');
+}
+function editArtist(id,v){ var ch=getChannel(id); if(!ch) return; setChArtist(ch,v); if(id===activeId) syncTitle(); updateSub(id); updDim(id); refreshChanName(id); }
+function editSong(id,v){ var ch=getChannel(id); if(!ch) return; setChSong(ch,v); if(id===activeId) syncTitle(); updateSub(id); updDim(id); refreshChanName(id); }
+// Verso single-channel: keep the channel head name in sync with the song title.
+function refreshChanName(id){ var ch=getChannel(id); if(!ch) return; var n=document.querySelector('.channel[data-id="'+id+'"] .ch-name'); if(n) n.textContent=chDisplayName(ch); }
+function updDim(id){ var ch=getChannel(id), row=document.querySelector('.channel[data-id="'+id+'"]'); if(ch&&row) row.classList.toggle('dim', !chComplete(ch) && id!==expandedId); }
+function editLyrics(id,v){
+  var ch=getChannel(id); if(!ch) return;
+  ch.lyricsText=v; ch.lines=deriveLines(v); ch.loaded=ch.lines.length>0;
+  var row=document.querySelector('.channel[data-id="'+id+'"]'); if(row){ row.classList.toggle('loaded',ch.loaded); row.classList.toggle('dim', !chComplete(ch) && id!==expandedId); }
+  if(id===activeId){ lines=ch.lines.slice(); pendingId=null; if(curLine>lines.length) curLine=lines.length; renderLyricsFlow(); updateLyricHighlight(AEL.currentTime||0); }
+}
+function updateSub(id){ var ch=getChannel(id), row=document.querySelector('.channel[data-id="'+id+'"]'); if(!ch||!row) return; var s=row.querySelector('.ch-sub'); if(!s) return; var info=((ch.artist||'')+(ch.artist&&ch.song?' - ':'')+(ch.song||'')).trim(); s.textContent=(id===expandedId)?(info||'Load Contents'):info; }
+function syncTitle(){ var ch=getActive(); var s=chSong(ch), a=chArtist(ch); document.getElementById('lyrSong').textContent=s?s:'Untitled'; document.getElementById('lyrArtist').textContent=a?a:'';
+  // Keep the static status legend in sync with the song/channel being worked on.
+  var lbl=s?(a?a+' — '+s:s):((ch&&ch.name&&ch.name.indexOf('New Channel')!==0)?ch.name:''); setLegend(lbl?('♪ '+lbl):''); }
+
+// ─── LYRICS PANEL ───
+function renderLyricsFlow(){
+  var flow=document.getElementById('lyrFlow'), ch=getActive();
+  if(!ch||!ch.lines.length){ flow.innerHTML=''; flow.style.transform='translateY(0)'; if(!document.getElementById('lyrEmpty')){ var e=document.createElement('div'); e.className='lyr-empty'; e.id='lyrEmpty'; e.textContent='No lyrics yet'; document.getElementById('lyrStage').appendChild(e); } document.getElementById('lyrEmpty').style.display='flex'; return; }
+  var em=document.getElementById('lyrEmpty'); if(em) em.style.display='none';
+  flow.innerHTML='';
+  ch.lines.forEach(function(ln,i){ var sec=isSection(ln); var d=document.createElement('div'); d.className='lyr-line'+(sec?' section':''); d.dataset.i=i; var sp=document.createElement('span'); sp.className='lk'; sp.textContent=ln; d.appendChild(sp); if(!sec) d.onclick=function(){ if(lyrMoved){ lyrMoved=false; return; } seekToLine(i); }; flow.appendChild(d); });
+  flow.classList.add('nodrift'); lyrManualY=null;
+  // Center the first line so the lyrics are visible immediately after loading.
+  var firstLn=flow.querySelector('.lyr-line:not(.section)')||flow.querySelector('.lyr-line');
+  if(firstLn){ var stage=document.getElementById('lyrStage'); flow.style.transform='translateY('+(-(firstLn.offsetTop - stage.clientHeight/2 + firstLn.offsetHeight/2))+'px)'; }
+  else flow.style.transform='translateY(0)';
+}
+function stampLineSet(s){ return (s.idxs&&s.idxs.length)?s.idxs:[s.lineIdx]; }
+function updateLyricHighlight(t){
+  var ch=getActive(); if(!ch||!ch.lines.length) return;
+  // Active stamp = the one whose window contains the current time (highlights ALL its lines).
+  var activeStamp=null;
+  for(var k=0;k<stamps.length;k++){
+    var st=stamps[k].time, ln=(stamps[k].len!=null)?stamps[k].len:((k+1<stamps.length)?(stamps[k+1].time-st):(dur?dur-st:3)), en=st+Math.max(0.05,ln);
+    if(t>=st && t<en){ activeStamp=stamps[k]; break; }
+  }
+  var activeIdxs=activeStamp?stampLineSet(activeStamp):[];
+  // Preview underline: the next group the next ENTER will stamp (1/2/3 lines).
+  var nextGrp=stampGroupFrom(curLine), nextSet={}; for(var g=0;g<nextGrp.length;g++) nextSet[nextGrp[g]]=true;
+
+  var flow=document.getElementById('lyrFlow'), nodes=flow.children, centerNode=null;
+  for(var n=0;n<nodes.length;n++){
+    var el=nodes[n]; if(el.classList.contains('section')){ el.classList.remove('nextgrp'); continue; }
+    var li=+el.dataset.i;
+    // owning stamp (the one whose line-set includes this line)
+    var owner=null, oi=-1; for(var j=0;j<stamps.length;j++){ if(stampLineSet(stamps[j]).indexOf(li)!==-1){ owner=stamps[j]; oi=j; break; } }
+    if(activeStamp && activeIdxs.indexOf(li)!==-1){ paintLine(el,'active',stampLineSet(activeStamp).length); if(!centerNode) centerNode=el; }
+    else if(owner){ var s2=owner.time, l2=(owner.len!=null)?owner.len:((oi+1<stamps.length)?(stamps[oi+1].time-s2):(dur?dur-s2:3)), e2=s2+Math.max(0.05,l2); paintLine(el,(t>=e2)?'past':'future',stampLineSet(owner).length); }
+    else paintLine(el,'future');
+    // subtle "next group" hint: faint indigo TEXT on the upcoming line(s) (respects lines-per-stamp)
+    var _isActive=(activeStamp && activeIdxs.indexOf(li)!==-1);
+    if(nextSet[li] && !_isActive && el.firstChild) el.firstChild.style.color=NEXT_COLOR;
+    el.classList.remove('nextgrp'); if(el.firstChild) el.firstChild.style.background='';
+  }
+  if(lyrManualY!==null && (AEL.paused || Date.now()<lyrBrowseUntil)) return; // user is browsing the lyrics
+  flow.classList.remove('nodrift');
+  if(centerNode){ var stage=document.getElementById('lyrStage'); flow.style.transform='translateY('+(-(centerNode.offsetTop - stage.clientHeight/2 + centerNode.offsetHeight/2))+'px)'; }
+}
+// Line colouring by number of lines (1=blue,2=celeste,3=magenta,4=rosado).
+// Active line(s) simply lit in a subtle indigo (in the text — no underline/box).
+var ACCENT_LYRIC='rgba(87,98,250,.85)';
+var NEXT_COLOR='rgba(124,130,178,.5)';   // desaturated (muted) indigo — distinct from the vivid "past" indigo
+function paintLine(el, state, n){
+  var lk=el.firstChild; if(!lk) return;
+  lk.style.color = state==='active' ? ACCENT_LYRIC : state==='past' ? ACCENT_DIM : 'rgba(255,255,255,.26)';
+}
+function seekToLine(i){
+  if(!dur){ toast('Load audio first'); return; }
+  var s=null; for(var k=0;k<stamps.length;k++){ if(stampLineSet(stamps[k]).indexOf(i)!==-1){ s=stamps[k]; break; } }
+  if(!s){ toast('No timestamp on this line yet'); return; }
+  AEL.currentTime=s.time; var vp=1/zoom, gp=s.time/dur; scrollPct=Math.max(0,Math.min(1-vp,gp-vp/2)); lyrManualY=null; frameUpdate();
+}
+function getTY(el){ var m=/translateY\((-?[\d.]+)px\)/.exec(el.style.transform||''); return m?parseFloat(m[1]):0; }
+function clampLyr(y){ var stage=document.getElementById('lyrStage'), fl=document.getElementById('lyrFlow'); var min=-(fl.offsetHeight - stage.clientHeight*0.4), max=stage.clientHeight*0.4; return Math.max(min,Math.min(max,y)); }
+function startLyrEase(){ if(lyrEaseId) return; var fl=document.getElementById('lyrFlow'); (function step(){ var cur=clampLyr(getTY(fl)+lyrVel); fl.style.transform='translateY('+cur+'px)'; lyrManualY=cur; lyrVel*=0.8; if(Math.abs(lyrVel)>0.15){ lyrEaseId=requestAnimationFrame(step); } else { lyrVel=0; lyrEaseId=null; } })(); }
+function isSection(line){ var s=(line||'').trim(); if(!s) return false; if(/^\[.*\]$/.test(s)) return true; if(/^\(\s*(?:pre-?chorus|post-?chorus|intro|verse|chorus|bridge|outro|hook|refrain|interlude|breakdown|instrumental|solo)(?:\s*\d+)?(?:\s*[:\-]\s*[^)]{0,30})?\s*\)$/i.test(s)) return true; if(/^(intro|verse|chorus|pre-?chorus|post-?chorus|bridge|outro|hook|refrain|interlude|breakdown|instrumental|solo)(\s*\d+)?\s*:?$/i.test(s)) return true; return false; }
+function nextStampable(from){ for(var i=Math.max(0,from);i<lines.length;i++) if(!isSection(lines[i])) return i; return lines.length; }
+// Strip Genius artifacts ("You might also like" promo, Embed counts, etc.) — they are not part of the lyrics
+function isJunkLine(s){ return /^you might also like$/i.test(s) || /^\d+\s*embed$/i.test(s) || /^embed$/i.test(s) || /^see .+ live/i.test(s) || /get tickets as low as/i.test(s) || /^\d+\s*contributors?/i.test(s) || /^translations?$/i.test(s); }
+function deriveLines(text){
+  var raw=(text||'').split('\n');
+  var out=[], skip=false;
+  // Skip everything before the first section marker ([Verse], [Chorus], etc.) to strip
+  // contributor names and other metadata that Genius places before the actual lyrics.
+  var firstSection=-1;
+  for(var j=0;j<raw.length;j++){ if(isSection(raw[j].trim())){ firstSection=j; break; } }
+  var start=firstSection>=0?firstSection:0;
+  for(var i=start;i<raw.length;i++){
+    var s=raw[i].trim();
+    var idx=s.toLowerCase().indexOf('you might also like');
+    if(idx>=0){ var before=s.slice(0,idx).trim(); if(before && !isJunkLine(before)) out.push(before); skip=true; continue; }
+    if(skip){ if(isSection(s)){ skip=false; } else continue; }
+    if(!s || isJunkLine(s)) continue;
+    out.push(s);
+  }
+  return out;
+}
+
+// ─── TIMELINE ─── (markers rebuilt only when dirty/scroll/zoom changes; playhead positioned every frame = smooth)
+function defaultLen(i){ if(i+1<stamps.length) return Math.max(0.15, stamps[i+1].time-stamps[i].time-0.02); return Math.min(2, Math.max(0.5, dur?dur-stamps[i].time:2)); }
+function markerLen(s,i){ return (s.len!=null)? s.len : defaultLen(i); }
+function resolveCollisions(idx, spp){
+  if(idx<0) return; var GAP=Math.max(0.02, 4*(spp||0));
+  var body=function(i){ return stamps[i].len!=null ? stamps[i].len : 0; };   // default-length markers behave as points for collision
+  for(var j=idx+1;j<stamps.length;j++){ var need=stamps[j-1].time+body(j-1)+GAP; if(stamps[j].time < need){ stamps[j].time=Math.min(dur,need); } else break; }   // push touching markers right, stop at first gap
+  for(var k=idx-1;k>=0;k--){ var max=stamps[k+1].time-GAP-body(k); if(stamps[k].time > max){ stamps[k].time=Math.max(0,max); } else break; }                       // push touching markers left, stop at first gap
+}
+function getStampById(id){ for(var i=0;i<stamps.length;i++) if(stamps[i].id===id) return stamps[i]; return null; }
+
+function renderMarkers(){
+  var W=tlTrack.clientWidth, mk=document.getElementById('tlMarkers'); mk.innerHTML='';
+  _lastScroll=scrollPct; _lastZoom=zoom;
+  if(!dur) return;
+  var vp=1/zoom;
+  stamps.forEach(function(s,i){
+    var gp=s.time/dur, len=markerLen(s,i), ge=Math.min(1,(s.time+len)/dur);
+    if(ge<scrollPct||gp>scrollPct+vp) return;
+    // markers touch by default; the SELECTED one detaches (small gap) so its length is adjustable
+    var _selm=selStampSet.has(s.id), _gap=_selm?5:0;
+    var x=(gp-scrollPct)/vp*W+_gap/2, w=Math.max(8,(ge-gp)/vp*W-_gap);
+    var el=document.createElement('div'); el.className='tl-marker'+(selStampSet.has(s.id)?' sel':''); el.style.left=x+'px'; el.style.width=w+'px'; el.style.background=lineColor(stampLineSet(s).length); el.dataset.sid=s.id; el.title='#'+(i+1)+'  '+fmtClock(s.time);
+    el.addEventListener('mousemove', function(ev){ if(mkDrag||scrubbing) return; var r=el.getBoundingClientRect(), ox=ev.clientX-r.left; el.style.cursor=(ox<7||ox>r.width-7)?'ew-resize':'grab'; });
+    el.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDrag(ev, s.id, el); });
+    // Selected marker: explicit resize handles near each end for finer length control.
+    if(selStampSet.has(s.id) && w>10){
+      (function(sid, mel){
+        var hl=document.createElement('div'); hl.className='tl-handle l';
+        var hr=document.createElement('div'); hr.className='tl-handle r';
+        hl.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDragMode(ev, sid, mel, 'l'); });
+        hr.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDragMode(ev, sid, mel, 'r'); });
+        mel.appendChild(hl); mel.appendChild(hr);
+      })(s.id, el);
+    }
+    mk.appendChild(el);
+  });
+}
+function positionPlayhead(t){
+  var W=tlTrack.clientWidth, vp=1/zoom, ph=document.getElementById('tlPlayhead');
+  setTimer(t);
+  if(!dur){ ph.style.display='none'; return; }
+  var gp=t/dur, lx=(gp-scrollPct)/vp*W;
+  if(lx<0||lx>W){ ph.style.display='none'; return; }
+  ph.style.display='block'; ph.style.left=lx+'px';
+}
+function setTimer(t){ var el=document.getElementById('tTimer'); if(el) el.textContent=fmtTimer(t); }
+// Timeline track height is CONSTANT — zoom only lengthens markers horizontally,
+// it never resizes the timeline container.
+function updTrackThickness(){ if(tlTrack) tlTrack.style.height=(IS_TOUCH?12:8)+'px'; }
+function renderTimeline(t){
+  if(t===undefined) t=AEL.currentTime||0;
+  updTrackThickness();
+  tlWrap.classList.toggle('zoomed', zoom>1.001);
+  var ph=document.getElementById('tlPlayhead'); ph.style.width='2px'; ph.style.marginLeft='-1px';   // thin, constant at any zoom
+  if(tlDirty || scrollPct!==_lastScroll || zoom!==_lastZoom){ renderMarkers(); tlDirty=false; }
+  renderMini();
+  positionPlayhead(t);
+}
+function renderMini(){
+  var mini=document.getElementById('tlMini'); if(!mini) return;
+  if(zoom<=1.001 || !dur){ mini.style.display='none'; return; }
+  mini.style.display='block';
+  var W=mini.clientWidth, marks=document.getElementById('tlMiniMarks'); marks.innerHTML='';
+  stamps.forEach(function(s,i){ var d=document.createElement('div'); d.className='tl-mini-mk'; d.style.left=((s.time/dur)*W)+'px'; d.style.width=Math.max(2,(markerLen(s,i)/dur)*W)+'px'; d.style.background=lineColor(stampLineSet(s).length); marks.appendChild(d); });
+  var vp=document.getElementById('tlMiniVp'); vp.style.left=(scrollPct*W)+'px'; vp.style.width=((1/zoom)*W)+'px';
+}
+function miniSeek(cx){ var mini=document.getElementById('tlMini'), r=mini.getBoundingClientRect(); if(!r.width) return; var pct=(cx-r.left)/r.width; scrollPct=clampScroll(pct-(1/zoom)/2); scrollTarget=scrollPct; tlRefresh(); }
+function tlRefresh(){ tlDirty=true; renderTimeline(); }
+function clampScroll(s){ return Math.max(0,Math.min(1-1/zoom,s)); }
+function startTlEase(){ if(tlEaseId) return; (function step(){ var ds=scrollTarget-scrollPct, dz=zoomTarget-zoom; if(Math.abs(ds)<0.0006 && Math.abs(dz)<0.004){ zoom=zoomTarget; scrollPct=clampScroll(scrollTarget); tlRefresh(); tlEaseId=null; return; } zoom+=dz*0.22; scrollPct=clampScroll(scrollPct+ds*0.22); tlRefresh(); tlEaseId=requestAnimationFrame(step); })(); }
+
+function startMarkerDrag(ev, sid, el){
+  var s=getStampById(sid); if(!s) return;
+  var r=el.getBoundingClientRect(), ox=ev.clientX-r.left, mode=(ox<7)?'l':(ox>r.width-7)?'r':'move';
+  var i=stamps.indexOf(s);
+  mkDrag={ sid:sid, mode:mode, startX:ev.clientX, t0:s.time, len0:markerLen(s,i), W:tlTrack.clientWidth, moved:false, pushed:false, ctrl:ev.ctrlKey||ev.metaKey };
+}
+// Resize a marker from an explicit handle (forced 'l'/'r' edge).
+function startMarkerDragMode(ev, sid, el, mode){
+  var s=getStampById(sid); if(!s) return;
+  var i=stamps.indexOf(s);
+  mkDrag={ sid:sid, mode:mode, startX:ev.clientX, t0:s.time, len0:markerLen(s,i), W:tlTrack.clientWidth, moved:false, pushed:false, ctrl:false };
+}
+// Touch start on a marker: a node grabs that edge (resize); the body moves it.
+function startMarkerTouch(ev, sid, el){
+  var s=getStampById(sid); if(!s) return;
+  var t=ev.touches[0];
+  var i=stamps.indexOf(s);
+  if(!selStampSet.has(sid)){ selStampSet.clear(); selStampSet.add(sid); syncTouchButtons(); }
+  mkDrag={ sid:sid, mode:'move', startX:t.clientX, t0:s.time, len0:markerLen(s,i), W:tlTrack.clientWidth, moved:false, pushed:false, ctrl:false, touch:true };
+  tlRefresh();
+}
+function doScrub(clientX){
+  var r=tlTrack.getBoundingClientRect(); if(!r.width) return;
+  var pct=Math.max(0,Math.min(1,(clientX-r.left)/r.width)), t=Math.max(0,Math.min(dur,(scrollPct+pct/zoom)*dur));
+  document.getElementById('tlPlayhead').style.left=(pct*r.width)+'px';
+  setTimer(t);
+  AEL.currentTime=t; lyrManualY=null; updateLyricHighlight(t);
+}
+function showTip(timeSec, clientX){ var wrap=document.getElementById('tlWrap'), tip=document.getElementById('tlTip'), r=wrap.getBoundingClientRect(); tip.style.left=(clientX-r.left)+'px'; tip.style.display='block'; tip.textContent=fmtTip(timeSec); }
+function hideTip(){ document.getElementById('tlTip').style.display='none'; }
+function clearActive(){ if(!stamps.length){ toast('No timestamps'); return; } pushUndo(); stamps=[]; curLine=nextStampable(0); pendingId=null; selStampSet.clear(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Timestamps cleared'); }
+
+// ─── RAF / FRAME ───
+function schedRAF(){ if(rafId) return; rafId=requestAnimationFrame(function loop(){ frameUpdate(); if(!AEL.paused) rafId=requestAnimationFrame(loop); else rafId=null; }); }
+function frameUpdate(){
+  var t=AEL.currentTime||0;
+  if(!AEL.paused){
+    if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } scrollTarget=scrollPct;
+    var browsing=Date.now()<lyrBrowseUntil;   // user is scrolling the lyrics to read ahead
+    if(!browsing){ if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0; }
+    var vp=1/zoom, gp=dur?t/dur:0, mg=vp*0.08; if(gp>scrollPct+vp-mg) scrollPct=Math.min(1-vp,gp-vp+mg); else if(gp<scrollPct+mg&&zoom>1) scrollPct=Math.max(0,gp-mg);
+    if(!browsing) lyrManualY=null;
+  }
+  renderTimeline(t); updateLyricHighlight(t);
+}
+
+// ─── AUDIO ───
+function openAudio(){ document.getElementById('fin').click(); }
+function loadAudio(inp){
+  var f=inp.files[0]; if(!f) return; var ch=getActive(); if(!ch){ toast('Open a channel first'); return; }
+  if(ch.audioURL){ try{ URL.revokeObjectURL(ch.audioURL); }catch(e){} }
+  ch.audioFile=f; ch.audioURL=URL.createObjectURL(f); ch.audioName=f.name; ch.audioDur=0;   // audio stored per channel
+  audioFile=f; AEL.src=ch.audioURL; AEL.load();
+  applyAudioMeta(f.name); toast('Loaded: '+f.name);
+}
+function loadChannelAudio(){
+  var ch=getActive(); AEL.pause();
+  if(ch && ch.audioURL){ if(AEL.getAttribute('src')!==ch.audioURL){ AEL.src=ch.audioURL; AEL.load(); } dur=ch.audioDur||0; audioFile=ch.audioFile||null; }
+  else { try{ AEL.removeAttribute('src'); AEL.load(); }catch(e){} dur=0; audioFile=null; }
+  try{ if(AEL.src) AEL.currentTime=0; }catch(e){}
+  scrollPct=0; scrollTarget=0;
+}
+function parseAudioMeta(filename){ var n=(filename||'').replace(/\.[^.]+$/,'').replace(/_/g,' ').trim(); var artist='', song=n; var parts=n.split(/\s+[-–—]\s+/); if(parts.length>=2){ artist=parts[0].trim(); song=parts.slice(1).join(' - ').trim(); } return {artist:artist, song:song}; }   // keeps "ft./feat." inside the song title
+function applyAudioMeta(filename){ var m=parseAudioMeta(filename), ch=getActive(); if(!ch) return; if(m.artist) ch.artist=m.artist; if(m.song) ch.song=m.song; syncTitle(); renderChannels(); }
+function togglePlay(){
+  var ch=getActive();
+  if(!ch||!ch.audioURL){
+    if(IN_AE && ch){ aeLoadSong(ch, true); toast('Loading channel audio…'); }   // try to pull it from the project
+    else toast('This channel has no audio — load one first');
+    return;
+  }
+  if(AEL.paused) AEL.play(); else AEL.pause();
+}
+function toggleRateMenu(ev){
+  if(ev) ev.stopPropagation();
+  var m=document.getElementById('rateMenu'); if(m.classList.contains('open')){ m.classList.remove('open'); return; }
+  m.innerHTML='';
+  rates.forEach(function(r,i){ var it=document.createElement('div'); it.className='rate-item'+(i===rateIdx?' cur':''); it.textContent=r+'x'; it.onclick=function(e){ e.stopPropagation(); setRate(i); }; m.appendChild(it); });
+  var btn=document.getElementById('tRate'), br=btn.getBoundingClientRect();
+  m.style.left='auto'; m.style.right=(window.innerWidth-br.left+8)+'px'; m.style.top=(br.top+br.height/2)+'px'; m.style.transform='translateY(-50%)';   // anchor right edge → grows leftward
+  m.classList.add('open');
+}
+function closeRateMenu(){ var m=document.getElementById('rateMenu'); if(m) m.classList.remove('open'); }
+function setRate(i){ rateIdx=i; currentRate=rates[rateIdx]; try{ localStorage.setItem('verso_rate', String(currentRate)); }catch(e){} AEL.playbackRate=currentRate; var b=document.getElementById('tRate'); if(b) b.textContent=rates[rateIdx]+'x'; closeRateMenu(); buildRateMenuH(); }
+// Horizontal speed menu that opens upward when hovering the timer.
+function buildRateMenuH(){
+  var m=document.getElementById('rateMenuH'); if(!m) return;
+  m.innerHTML='';
+  rates.forEach(function(r,i){ var it=document.createElement('button'); it.className='stack-item'+(i===rateIdx?' cur':''); it.textContent=r+'x'; it.onclick=function(e){ e.stopPropagation(); setRate(i); }; m.appendChild(it); });
+}
+// Import/Export button — click acts (with active flash); Sync/SRT-All float above on hover.
+function importClick(ev){
+  if(ev) ev.stopPropagation();
+  flashPill('btnImport'); flashPill('mainActionBtn');
+  if(csInterface) importToChannel(); else doExport();
+}
+// Clear button — AE: delete all SRT layers; web/touch: clear every channel's timestamps.
+function clearAction(){
+  if(IN_AE){ masterClearAll(); return; }
+  pushUndo();
+  for(var i=0;i<channels.length;i++){ channels[i].stamps=[]; channels[i].curLine=0; }
+  stamps=[]; curLine=nextStampable(0); selStampSet.clear();
+  saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); renderChannels();
+  toast('All timestamps cleared');
+}
+// web/touch: load several audio files (sorted by time) into the channels in order.
+function masterMulti(){
+  var inp=document.getElementById('finMulti'); if(inp) inp.click();
+}
+function loadMultiAudio(inp){
+  var files=Array.prototype.slice.call(inp.files||[]); inp.value='';
+  if(!files.length) return;
+  files.sort(function(a,b){ return (a.lastModified||0)-(b.lastModified||0); });
+  var n=Math.min(files.length, channels.length);
+  for(var i=0;i<n;i++){
+    var ch=channels[i], f=files[i];
+    if(ch.audioURL){ try{ URL.revokeObjectURL(ch.audioURL); }catch(e){} }
+    ch.audioFile=f; ch.audioURL=URL.createObjectURL(f); ch.audioName=f.name; ch.audioDur=0;
+    var meta=parseAudioMeta(f.name);                       // fill Artist / Song from the file name
+    if(meta.artist) ch.artist=meta.artist;
+    if(meta.song)   ch.song=meta.song;
+  }
+  // reload the active channel's audio if it got one
+  var a=getActive(); if(a&&a.audioURL){ audioFile=a.audioFile; AEL.src=a.audioURL; AEL.load(); }
+  renderChannels(); syncTitle(); toast('✓ '+n+' songs loaded into channels');
+}
+// Build an SRT string for an arbitrary channel (active one uses the live working set).
+function buildSRTFor(ch, lpb){
+  lpb=lpb||1;
+  var st=(ch.id===activeId)?stamps:(ch.stamps||[]);
+  var ln=(ch.id===activeId)?lines:(ch.lines||[]);
+  var d =(ch.id===activeId)?dur:(ch.audioDur||0);
+  if(!st.length) return '';
+  function mlen(s,i){ if(s.len!=null) return s.len; if(i+1<st.length) return Math.max(0.15, st[i+1].time-st[i].time-0.02); return Math.min(2, Math.max(0.5, d?d-st[i].time:2)); }
+  var blocks=[];
+  for(var i=0;i<st.length;i+=lpb){ var blk=st.slice(i,i+lpb), s0=blk[0].time, li=i+blk.length-1, last=st[li], en=last.time+mlen(last,li); if(d) en=Math.min(en,d); blocks.push({st:s0,en:Math.max(s0+.3,en),txt:blk.map(function(s){ return stampTextOf(s,ln); }).join('\n')}); }
+  return blocks.map(function(b,i){ return (i+1)+'\n'+toSRT(b.st)+' --> '+toSRT(b.en)+'\n'+b.txt; }).join('\n\n');
+}
+// Download a string as a real .srt file (octet-stream → iOS won't append .txt).
+function dlText(text, name){
+  var fn=String(name||'subtitles').replace(/[^\w\-]+/g,'_')+'.srt';
+  var blob=new Blob([text],{type:'application/octet-stream'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1500);
+}
+// web/touch "All": export every channel that has timestamps, one .srt each.
+function exportAll(){
+  saveWorkingSet();
+  var lpb=1, lpbEl=document.getElementById('lpb'); if(lpbEl) lpb=parseInt(lpbEl.value)||1;
+  var n=0;
+  channels.forEach(function(c){
+    var srt=buildSRTFor(c, lpb); if(!srt.trim()) return;
+    dlText(srt, c.song||c.name); n++;
+  });
+  toast(n?('✓ Exported '+n+' SRT files'):'No finished channels to export');
+}
+// AE: update ALL thumbnails at once (Artist/Song of every "… TH" comp).
+function thumbnailAll(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  saveWorkingSet();
+  var list=channels.filter(function(c){ return !!c.th; })
+    .map(function(c){ return {th:c.th, artist:c.artist||'', song:c.song||''}; });
+  if(!list.length){ toast('No channels with TH comps'); return; }
+  toast('Updating all thumbnails…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('updateAllThumbnails('+JSON.stringify(JSON.stringify(list))+')', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){}
+      if(r&&r.ok){ toast('✓ '+r.updated+'/'+r.total+' thumbnails updated'); }
+      else { toast('TH: '+((r&&r.msg)||raw||'error')); }
+    });
+  });
+}
+// SRT batch — load .srt files and apply them to the Lyrics comps (selected or all). AE-only.
+function srtBatchAction(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  toast('Loading SRT…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('importSRTBatch()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('SRT: '+(raw||'no response')); return; }
+      if(!r.ok){ toast('SRT: '+(r.msg||'error')); return; }
+      toast('✓ SRT applied to '+r.applied+'/'+r.total+' comps · '+r.layers+' layers');
+    });
+  });
+}
+// Master Clear — delete every "SRT" text layer across ALL comps (no confirm). AE-only.
+function masterClearAll(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  toast('Clearing SRT layers…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('clearAllLyricLayers()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){}
+      if(r&&r.ok){ toast('✓ '+r.removed+' SRT layers removed in '+r.comps+' comps'); }
+      else { toast('Clear all: '+((r&&r.msg)||raw||'error')); }
+    });
+  });
+}
+
+// ─── STAMP ───
+function doStamp(){
+  var ach=getActive(); if(!ach||!ach.audioURL){ toast('Load audio for this channel first'); return; }
+  if(!lines.length){ toast('Add lyrics first'); return; }
+  lyrBrowseUntil=0; lyrManualY=null;   // stamping snaps the lyrics back to the current line
+  // When timestamping starts, collapse the expanded channel container for more room.
+  if(expandedId!==null){ expandedId=null; setExpanded(-1); }
+  // Each ENTER stamps the current line and moves to the next (v2 behaviour). Marker length is adjusted manually by resizing.
+  curLine=nextStampable(curLine);
+  if(curLine>=lines.length){
+    // No more lines: one last ENTER closes the last marker at the current time.
+    if(stamps.length){
+      var last=stamps[stamps.length-1], end=AEL.currentTime;
+      if(end>last.time+0.05){ pushUndo(); last.len=end-last.time; saveWorkingSet(); tlRefresh(); toast('last marker closed at '+fmtClock(end)); return; }
+    }
+    toast('All lines stamped'); return;
+  }
+  pushUndo();
+  var grp=stampGroupFrom(curLine);   // up to linesPerStamp stampable lines
+  if(!grp.length){ toast('All lines stamped'); return; }
+  stamps.push({id:++stampSeq,lineIdx:grp[0],idxs:grp,time:AEL.currentTime}); stamps.sort(function(a,b){ return a.time-b.time; });
+  curLine=nextStampable(grp[grp.length-1]+1);
+  saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  toast('timestamp at '+fmtClock(AEL.currentTime));
+}
+
+// ─── UNDO / REDO ───
+function pushUndo(){ undoStack.push({stamps:JSON.parse(JSON.stringify(stamps)),curLine:curLine}); if(undoStack.length>80) undoStack.shift(); redoStack=[]; }
+function undoAction(){ if(!undoStack.length){ toast('Nothing to undo'); return; } redoStack.push({stamps:JSON.parse(JSON.stringify(stamps)),curLine:curLine}); var s=undoStack.pop(); stamps=s.stamps; curLine=s.curLine; saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Undo'); }
+function redoAction(){ if(!redoStack.length){ toast('Nothing to redo'); return; } undoStack.push({stamps:JSON.parse(JSON.stringify(stamps)),curLine:curLine}); var s=redoStack.pop(); stamps=s.stamps; curLine=s.curLine; saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Redo'); }
+
+// ─── KEYBOARD ───
+function onKey(e){
+  var tg=document.activeElement.tagName; if(tg==='TEXTAREA'||tg==='INPUT'||tg==='SELECT') return;
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){ e.preventDefault(); if(e.shiftKey) redoAction(); else undoAction(); return; }
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  if(e.code==='Enter'){ e.preventDefault(); doStamp(); }
+  if((e.code==='Delete'||e.code==='Backspace') && selStampSet.size){ e.preventDefault(); pushUndo(); stamps=stamps.filter(function(s){ return !selStampSet.has(s.id); }); selStampSet.clear(); recomputeCurLine(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Marker(s) deleted'); }
+}
+
+// ─── GLOBAL MOUSE ───
+function onGlobalMove(e){
+  if(hDrag){ var dx=e.clientX-hStartX, w=Math.max(220,Math.min(hStartW+dx, document.getElementById('workspace').offsetWidth*0.6)); document.getElementById('songsPanel').style.width=w+'px'; tlRefresh(); return; }
+  if(vDrag){ var dy=vStartY-e.clientY, h=Math.max(80,Math.min(vStartH+dy, window.innerHeight*0.5)); document.getElementById('timelineZone').style.height=h+'px'; tlRefresh(); return; }
+  if(tlPanning){ var pr=tlTrack.getBoundingClientRect(); if(pr.width){ var pdx=e.clientX-tlPanStartX; scrollPct=clampScroll(tlPanStartScroll - pdx/pr.width/zoom); scrollTarget=scrollPct; tlRefresh(); } return; }
+  if(miniDragging){ miniSeek(e.clientX); return; }
+  if(scrubbing){ doScrub(e.clientX); return; }
+  if(mkDrag){
+    var ddx=e.clientX-mkDrag.startX; if(Math.abs(ddx)>2) mkDrag.moved=true;
+    if(mkDrag.moved&&!mkDrag.pushed){ pushUndo(); mkDrag.pushed=true; }
+    var s=getStampById(mkDrag.sid); if(!s||!mkDrag.W) return;
+    var secPerPx=(dur/zoom)/mkDrag.W, di=stamps.indexOf(s), GAP=Math.max(0.02,4*secPerPx);
+    if(mkDrag.mode==='move'){
+      var desired=Math.max(0,Math.min(dur,mkDrag.t0+ddx*secPerPx));
+      if(mkDrag.touch){
+        s.time=desired; showTip(s.time,e.clientX);
+      } else {
+        var bodyS=(s.len!=null?s.len:0);
+        var prev=stamps[di-1], next=stamps[di+1];
+        var lo=prev?(prev.time+(prev.len!=null?prev.len:0)+GAP):0, hi=next?(next.time-GAP-bodyS):dur; if(hi<lo) hi=lo;
+        s.time=Math.max(lo,Math.min(hi,desired)); showTip(s.time,e.clientX);
+      }
+    }
+    else if(mkDrag.mode==='r'){
+      // right edge: clamp against the NEXT marker (leave a gap) — never push it.
+      var nR=stamps[di+1];
+      var maxLen=(nR?(nR.time-GAP):dur)-s.time;
+      s.len=Math.max(0.1, Math.min(mkDrag.len0+ddx*secPerPx, Math.max(0.1,maxLen)));
+      showTip(s.time+s.len,e.clientX);
+    }
+    else {
+      // left edge: move start, keep the right edge fixed; clamp against the PREV marker.
+      var pL=stamps[di-1];
+      var minT=pL?(pL.time+(pL.len!=null?pL.len:0)+GAP):0;
+      var rightEdge=mkDrag.t0+mkDrag.len0;
+      var nt=Math.max(minT, Math.min(rightEdge-0.1, mkDrag.t0+ddx*secPerPx));
+      s.time=nt; s.len=Math.max(0.1, rightEdge-nt); showTip(s.time,e.clientX);
+    }
+    tlRefresh(); return;
+  }
+  if(lyrDrag){ var dy2=e.clientY-lyrDragStartY; if(Math.abs(dy2)>3) lyrMoved=true; var fl=document.getElementById('lyrFlow'); fl.style.transform='translateY('+(lyrBaseY+dy2)+'px)'; lyrManualY=lyrBaseY+dy2; return; }
+}
+function onGlobalUp(){
+  if(hDrag){ hDrag=false; document.getElementById('rszH').classList.remove('drag'); }
+  if(vDrag){ vDrag=false; document.getElementById('rszV').classList.remove('drag'); }
+  if(scrubbing){ scrubbing=false; }
+  if(tlPanning){ tlPanning=false; }
+  if(miniDragging){ miniDragging=false; }
+  if(mkDrag){
+    if(!mkDrag.moved){ if(mkDrag.ctrl){ if(selStampSet.has(mkDrag.sid)) selStampSet.delete(mkDrag.sid); else selStampSet.add(mkDrag.sid); } else { selStampSet.clear(); selStampSet.add(mkDrag.sid); } }
+    else { stamps.sort(function(a,b){ return a.time-b.time; }); saveWorkingSet(); updTimed(); }
+    hideTip(); mkDrag=null; tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+    if(IS_TOUCH) syncTouchButtons();
+  }
+  if(lyrDrag){ lyrDrag=false; document.getElementById('lyrStage').classList.remove('grabbing'); }
+}
+
+// ─── EXPORT / IMPORT ───
+// Builds the SRT string from the current stamps. lpb = lines per block.
+// Text of a stamp = its covered lines joined (Verso 2: up to 3 lines per timestamp).
+function stampTextOf(s, ln){ ln=ln||lines; if(s.idxs&&s.idxs.length) return s.idxs.map(function(i){ return ln[i]||''; }).join('\n'); return ln[s.lineIdx]||''; }
+function buildSRT(lpb){
+  lpb=lpb||1; var blocks=[];
+  for(var i=0;i<stamps.length;i+=lpb){ var blk=stamps.slice(i,i+lpb), st=blk[0].time, li=i+blk.length-1, last=stamps[li], en=last.time+markerLen(last,li); if(dur) en=Math.min(en,dur); blocks.push({st:st,en:Math.max(st+.3,en),txt:blk.map(function(s){ return stampTextOf(s,lines); }).join('\n')}); }
+  return blocks.map(function(b,i){ return (i+1)+'\n'+toSRT(b.st)+' --> '+toSRT(b.en)+'\n'+b.txt; }).join('\n\n');
+}
+// Main control button: inside AE it imports straight into the comp; on the web it opens the export modal.
+function mainAction(){ if(csInterface) importStyleController(); else doExport(); }
+function doExport(){
+  if(!stamps.length){ toast('No timestamps yet'); return; }
+  var lpb=parseInt(document.getElementById('lpb').value)||1;
+  document.getElementById('srtout').value=buildSRT(lpb);
+  document.getElementById('eov').classList.add('open');
+}
+function closeExport(){ document.getElementById('eov').classList.remove('open'); }
+function copySRT(){ navigator.clipboard.writeText(document.getElementById('srtout').value).then(function(){ toast('Copied!'); }); }
+function dlSRT(){ dlText(document.getElementById('srtout').value, (getActive()&&getActive().song)?getActive().song:'subtitles'); }
+// Channels whose import auto-creates the AE comp (named like the channel) when no comp is selected.
+function chAutoCreatesComp(name){ return (name||'').trim().toLowerCase()==='nightclub nostalgia'; }
+
+// Import lyrics into After Effects using the "Style Controler" layer:
+//   - Target comp = the comp selected/active in the AE Project panel.
+//   - If none is selected and the channel auto-creates (Nightclub Nostalgia),
+//     a comp named like the channel is found or created.
+//   - Each line is a duplicate of the "Style Controler" layer (inherited style +
+//     box text), centered, with an opacity fade in/out expression.
+function importStyleController(){
+  if(!csInterface){ toast('Not running inside After Effects'); return; }
+  if(!stamps.length){ toast('No timestamps yet'); return; }
+  var lpbEl=document.getElementById('lpb'), lpb=lpbEl?(parseInt(lpbEl.value)||1):1;
+  var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to import'); return; }
+  var ch=getActive(), chName=(ch&&ch.name)?ch.name.trim():'';
+  var opt={
+    compName:chName,
+    autoCreate:chAutoCreatesComp(chName),
+    styleLayerName:'Style Controler',
+    fadeIn:0.3, fadeOut:0.3,
+    center:true, extend:true,
+    // Verso single-channel: target the comp containing "Lyrics" automatically.
+    lyricsBySuffix:true,
+    compWidth:1920, compHeight:1080, compFps:30, compDuration:60
+  };
+  toast('Importing to comp…');
+  csInterface.evalScript('importViaStyleController('+JSON.stringify(srt)+','+JSON.stringify(JSON.stringify(opt))+')', function(result){
+    if(!result||result==='undefined'){ toast('No response from AE — check Script Debug Console'); return; }
+    if(result.indexOf('ok:')===0){ toast('✓ '+result.slice(3)); }
+    else { var msg=result.indexOf('err:')===0?result.slice(4):result; toast('AE error: '+msg); }
+  });
+}
+
+// Pull the channel's Song audio from the project into the timeline.
+// Self-contained ExtendScript (does NOT depend on host.jsx being loaded): it finds the
+// "… Song" footage by exact name (else by leading number among audio footage) and returns
+// the on-disk path of whatever file is currently loaded there.
+// verbose=true → toast the reason if it can't be found (used on channel click / play).
+// Self-contained ExtendScript that finds the channel's "… Song" footage (by name, else
+// by leading number) and returns "OK:<current file path>" or "ERR:…". No host needed.
+function _songReadJsx(ch){
+  // Mode-aware: Video reads the "Song" footage (excluding "short"); Short reads "Short Song".
+  var isShort=SHORT_MODE;
+  var want=isShort?'short song':((ch.songName||'song').toLowerCase());
+  return '(function(){try{'+
+    'var want='+JSON.stringify(want)+';var isShort='+(isShort?'true':'false')+';var found=null,list=[];'+
+    'function ok(nm){nm=nm.toLowerCase();if(nm.indexOf("song")===-1)return false;return isShort?(nm.indexOf("short")!==-1):(nm.indexOf("short")===-1);}'+
+    'for(var i=1;i<=app.project.numItems;i++){var it=app.project.item(i);'+
+      'if(it instanceof FootageItem){'+
+        'if(it.hasAudio)list.push(it.name);'+
+        'var n=it.name.replace(/^\\s+|\\s+$/g,"").toLowerCase();'+
+        'if(n===want){found=it;break;}'+
+      '}}'+
+    'if(!found){for(var s=1;s<=app.project.numItems;s++){var it3=app.project.item(s);'+
+      'if(it3 instanceof FootageItem && ok(it3.name)){found=it3;break;}'+
+    '}}'+
+    'if(!found)return "ERR:Audio not found. Available: "+(list.join(" | ")||"(none)");'+
+    'var f=null;try{f=found.file;}catch(e){}if(!f){try{f=found.mainSource.file;}catch(e){}}'+
+    'if(!f)return "ERR:\\""+found.name+"\\" has no file on disk (load it with Master)";'+
+    'return "OK:"+f.fsName;'+
+  '}catch(e){return "ERR:"+e.toString();}})()';
+}
+// Apply a channel's loaded-song title (from the file name). overwrite=true replaces it.
+function _applySongTitle(ch, path, overwrite){
+  _lastSongPath=path;   // keep the auto-sync sentinel aligned so the poller won't redo this
+  var cp=path.replace(/\\/g,'/'); ch.audioURL='file://'+(cp[0]==='/'?cp:'/'+cp); ch.audioName=ch.songName||'';
+  var base=path.split(/[\\\/]/).pop(), meta=parseAudioMeta(base), changed=false;
+  var curA=chArtist(ch), curS=chSong(ch);
+  if(meta.artist && (overwrite || !(curA&&curA.trim()))){ setChArtist(ch,meta.artist); changed=true; }
+  if(meta.song   && (overwrite || !(curS&&curS.trim()))){ setChSong(ch,meta.song);     changed=true; }
+  // Verso single-channel: the channel/container name IS the video song title (not Short).
+  if(!SHORT_MODE && typeof SINGLE_CHANNEL!=='undefined' && SINGLE_CHANNEL && ch.song && ch.song.trim()){
+    ch.name=ch.song.trim();
+    var rowN=document.querySelector('.channel[data-id="'+ch.id+'"] .ch-name');
+    if(rowN) rowN.textContent=ch.name;
+  }
+  if(changed){
+    var na=chArtist(ch), ns=chSong(ch);
+    var host=document.getElementById('detailsPanel');
+    if(host){ var ins=host.querySelectorAll('.dp-in');
+      if(ins[0]){ ins[0].value=na; ins[0].classList.toggle('filled',!!(na&&na.trim())); }
+      if(ins[1]){ ins[1].value=ns; ins[1].classList.toggle('filled',!!(ns&&ns.trim())); }
+    }
+    updateSub(ch.id); updDim(ch.id); if(ch.id===activeId) syncTitle();
+  }
+  return changed;
+}
+function aeLoadSong(ch, verbose, overwrite){
+  if(!csInterface||!ch) return;
+  if(ch.audioURL && !overwrite){ if(ch.id===activeId && AEL.getAttribute('src')!==ch.audioURL){ AEL.src=ch.audioURL; AEL.load(); } return; }
+  if(overwrite) ch.audioURL=null;
+  csInterface.evalScript(_songReadJsx(ch), function(raw){
+    if(!raw){ if(verbose) toast('Audio: no response from AE',6000); return; }
+    if(raw.indexOf('OK:')===0){ _applySongTitle(ch, raw.slice(3), overwrite); if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); } }
+    else if(verbose){ toast('Audio: '+(raw.indexOf('ERR:')===0?raw.slice(4):raw),7000); }
+  });
+}
+// Refresh titles button in control bar — spins icon while working.
+function masterRefreshClick(){
+  var btn=document.getElementById('btnLyrRefresh'); if(btn) btn.classList.add('spinning');
+  refreshAllTitles(function(){ if(btn) btn.classList.remove('spinning'); });
+}
+// MASTER refresh: re-read EVERY channel's song and overwrite its title. Verbose summary.
+function refreshAllTitles(doneCb){
+  if(!IN_AE){
+    var c=0; channels.forEach(function(ch){ if(ch.audioName){ var m=parseAudioMeta(ch.audioName); if(m.artist) ch.artist=m.artist; if(m.song){ ch.song=m.song; c++; } } });
+    loadChannelAudio(); renderChannels(); syncTitle(); toast('Titles refreshed: '+c);
+    if(doneCb) doneCb(); return;
+  }
+  toast('Refreshing titles…');
+  var total=channels.length, done=0, changed=0, lastErr='';
+  channels.forEach(function(ch){
+    if(ch.songName==null && ch.num==null){ done++; if(done>=total) finish(); return; }
+    csInterface.evalScript(_songReadJsx(ch), function(raw){
+      done++;
+      if(raw && raw.indexOf('OK:')===0){ if(_applySongTitle(ch, raw.slice(3), true)) changed++; }
+      else if(raw && raw.indexOf('ERR:')===0){ lastErr=raw.slice(4); }
+      if(done>=total) finish();
+    });
+  });
+  function finish(){ renderChannels(); syncTitle(); toast('✓ Titles updated: '+changed+'/'+total+(changed===0&&lastErr?(' · '+lastErr):''), 6000); if(doneCb) doneCb(); }
+}
+
+// ─── MASTER / RENDER (from Range Manager) ───
+// On web/touch the ♪ button just loads an audio file; Master is AE-only.
+function masterAction(ev){
+  if(ev) ev.stopPropagation();
+  if(!csInterface){ openAudio(); return; }
+  toast('Master…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript('masterRun()', function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('Master: '+(raw||'no response')); return; }
+      if(!r.ok){ toast('Master: '+(r.msg||r.step||'error')); return; }
+      toast('✓ Audio '+r.replaced+'/'+r.total+' · Lyrics '+r.lyricsCleaned+'/'+r.lyricsTotal+' · Ranges '+r.rangeUpdated+'/'+r.rangeTotal);
+      // Clear all SRT layers (separate call so it never risks breaking the song replacement).
+      csInterface.evalScript('clearAllLyricLayers()', function(){});
+      // Apply new song paths returned directly by masterRun (no second evalScript round-trip needed).
+      if(r.songs && r.songs.length){
+        var applied=0;
+        r.songs.forEach(function(s){
+          if(!s.path) return;
+          var sname=(s.name||'').toLowerCase().replace(/\s+/g,'');
+          for(var ci=0;ci<channels.length;ci++){
+            var ch=channels[ci];
+            if(!ch.songName) continue;
+            if(ch.songName.toLowerCase().replace(/\s+/g,'')===sname){ _applySongTitle(ch,s.path,true); applied++; break; }
+          }
+        });
+        if(applied>0){ renderChannels(); syncTitle(); loadChannelAudio(); }
+        else { aeRefreshAfterMaster(); } // name match failed — fall back to re-reading from AE
+      } else {
+        aeRefreshAfterMaster(); // fallback if songs array not in response
+      }
+    });
+  });
+}
+// After Master replaces the songs, re-pull each channel's new audio and overwrite the
+// Artist/Song titles in the song containers from the new file names.
+function aeRefreshAfterMaster(){ refreshAllTitles(function(){ loadChannelAudio(); }); }
+function renderAction(ev){
+  if(ev) ev.stopPropagation();
+  flashPill('btnRender');
+  if(!csInterface){ toast('Render is only available inside After Effects'); return; }
+  var short=SHORT_MODE;                                      // Short → queue only the "Short" comp (H.264)
+  toast(short?'Render Short…':'Render…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    csInterface.evalScript((short?'renderShortRun()':'renderRun()'), function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){ toast('Render: '+(raw||'no response')); return; }
+      if(!r.ok){ toast('Render: '+r.msg); return; }
+      var m=short ? ('✓ Short "'+r.name+'" to Render Queue')
+                  : ('✓ '+r.added+' to Render Queue (TH '+r.thCount+' · Main '+r.mainCount+')');
+      if(r.tmplWarning) m+=' ⚠ '+r.tmplWarning;
+      toast(m);
+    });
+  });
+}
+
+// ─── AE: THUMBNAIL (update the channel's "… TH" comp Artist/Song text + preview) ───
+function thumbnailAction(id){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  var ch=id!=null?getChannel(id):getActive();
+  // Short mode targets the "Short" comp's "Short Artist" / "Short Song" text layers.
+  if(!SHORT_MODE && (!ch||!ch.th)){ toast('Channel has no TH comp'); return; }
+  toast('Updating thumbnail…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    var call=SHORT_MODE
+      ? 'updateShortThumbnail('+JSON.stringify(chArtist(ch))+','+JSON.stringify(chSong(ch))+')'
+      : 'updateThumbnailComp('+JSON.stringify(ch.th)+','+JSON.stringify(chArtist(ch))+','+JSON.stringify(chSong(ch))+')';
+    csInterface.evalScript(call, function(r){
+      if(r&&r.indexOf('ok:')===0){ toast('✓ Thumbnail: '+r.slice(3)); loadThumbPreview(ch); }
+      else { toast('TH: '+(r&&r.indexOf('err:')===0?r.slice(4):(r||'no response'))); }
+    });
+  });
+}
+// Render a PNG preview of the channel's TH comp (or the "Short" comp) under the lyrics box.
+function loadThumbPreview(ch){
+  if(!csInterface) return;
+  if(!SHORT_MODE && (!ch||!ch.th)) return;
+  ensureHost(function(ok){
+    if(!ok) return;
+    var call=SHORT_MODE ? 'getShortThumbnailPreview()' : 'getThumbnailPreviewComp('+JSON.stringify(ch.th)+')';
+    csInterface.evalScript(call, function(raw){
+      var r=null; try{ r=JSON.parse(raw); }catch(e){}
+      if(!r||!r.ok||!r.path) return;
+      var img=ch&&ch._thumbImg; if(!img) return;
+      img.src='file:///'+String(r.path).replace(/\\/g,'/');   // unique filename per render → no cache-bust needed
+      img.style.display='block';
+    });
+  });
+}
+
+// ─── AE: IMPORT MENU (opens left like the speed menu) ───
+function toggleImportMenu(ev){
+  if(ev) ev.stopPropagation();
+  if(!csInterface){ doExport(); return; }   // safety: on web behave as Export
+  var m=document.getElementById('importMenu'), btn=document.getElementById('mainActionBtn');
+  if(m.classList.contains('open')){ closeImportMenu(); return; }
+  m.innerHTML='';
+  var items=[{label:'Import to Comp',fn:importToChannel},{label:'Sync',fn:showAutoSync}];
+  items.forEach(function(it){ var d=document.createElement('div'); d.className='rate-item'; d.textContent=it.label; d.onclick=function(e){ e.stopPropagation(); closeImportMenu(); it.fn(); }; m.appendChild(d); });
+  var br=btn.getBoundingClientRect();
+  m.style.left='auto'; m.style.right=(window.innerWidth-br.left+8)+'px'; m.style.top=(br.top+br.height/2)+'px'; m.style.transform='translateY(-50%)';
+  m.classList.add('open'); btn.classList.add('menu-open');
+}
+function closeImportMenu(){ var m=document.getElementById('importMenu'); if(m) m.classList.remove('open'); var b=document.getElementById('mainActionBtn'); if(b) b.classList.remove('menu-open'); }
+
+// Import lyrics into the channel's "… Lyrics" comp (targeted by exact comp name).
+function importToChannel(){
+  if(!csInterface){ toast('Only inside After Effects'); return; }
+  if(!stamps.length){ toast('No timestamps yet'); return; }
+  var ch=getActive(); if(!ch||!ch.lyr){ toast('Channel has no Lyrics comp'); return; }
+  var lpbEl=document.getElementById('lpb'), lpb=lpbEl?(parseInt(lpbEl.value)||1):1;
+  var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to import'); return; }
+  var opt={ styleLayerName:'Style Controler', fadeIn:0.3, fadeOut:0.3, lyricsBySuffix:true };
+  toast('Importing to '+(SHORT_MODE?'Short Lyrics':ch.lyr)+'…');
+  ensureHost(function(ok){
+    if(!ok){ toast('Could not connect to the AE host'); return; }
+    var call=SHORT_MODE
+      ? 'importLyricsToShort('+JSON.stringify(srt)+','+JSON.stringify(JSON.stringify(opt))+')'
+      : 'importLyricsToComp('+JSON.stringify(ch.lyr)+','+JSON.stringify(srt)+','+JSON.stringify(JSON.stringify(opt))+')';
+    csInterface.evalScript(call, function(result){
+      if(!result||result==='undefined'){ toast('No response from AE'); return; }
+      if(result.indexOf('ok:')===0){ toast('✓ '+result.slice(3)); }
+      else { toast('AE: '+(result.indexOf('err:')===0?result.slice(4):result)); }
+    });
+  });
+}
+
+// Clear: wipe the channel (inputs, lyrics, timestamps) and delete its "SRT" layers (AE).
+function clearChannelFull(id){
+  var ch=id!=null?getChannel(id):getActive(); if(!ch) return;
+  if(ch.id!==activeId) selectChannel(ch.id);
+  pushUndo();
+  // Clear only timestamps + the lyrics input. Keep Artist and Song.
+  stamps=[]; lines=[]; curLine=0; pendingId=null; selStampSet.clear();
+  ch.lyricsText=''; ch.lines=[]; ch.stamps=[]; ch.curLine=0; ch.loaded=false;
+  saveWorkingSet(); renderChannels(); renderLyricsFlow(); syncTitle(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  if(csInterface && ch.lyr){
+    ensureHost(function(ok){
+      if(!ok){ toast('Channel cleared (no AE connection to remove layers)'); return; }
+      csInterface.evalScript('clearLyricLayers('+JSON.stringify(ch.lyr)+')', function(raw){
+        if(raw&&raw.indexOf('ok:')===0){ var n=raw.slice(3); toast('Channel cleared'+(n&&n!=='0'?' · '+n+' SRT layers removed':'')); }
+        else { toast('Channel cleared (layers: '+(raw||'?')+')'); }
+      });
+    });
+  } else { toast('Channel cleared'); }
+}
+
+// ─── AUTO-SYNC (LRCLIB) ───
+function showAutoSync(){
+  var ch=getActive(); if(ch){ if(ch.artist) document.getElementById('as-artist').value=ch.artist; if(ch.song) document.getElementById('as-title').value=ch.song; }
+  document.getElementById('as-status').textContent=''; document.getElementById('as-results').style.display='none'; document.getElementById('as-results').innerHTML='';
+  document.getElementById('asov').classList.add('open'); setTimeout(function(){ document.getElementById('as-title').focus(); },80);
+}
+function closeAutoSync(){ document.getElementById('asov').classList.remove('open'); }
+function doAutoSync(){
+  var artist=document.getElementById('as-artist').value.trim(), title=document.getElementById('as-title').value.trim();
+  var _alEl=document.getElementById('as-album'), album=_alEl?_alEl.value.trim():'';
+  if(!title){ setASStatus('Please enter at least the song title.','#c44'); return; }
+  var btn=document.getElementById('as-searchbtn'); btn.disabled=true; btn.textContent='Searching…';
+  setASStatus('Contacting LRCLIB…','var(--bl)'); document.getElementById('as-results').style.display='none';
+  if(artist){
+    var params='artist_name='+encodeURIComponent(artist)+'&track_name='+encodeURIComponent(title); if(album) params+='&album_name='+encodeURIComponent(album);
+    xhrGet('https://lrclib.net/api/get?'+params, function(err,data){
+      if(err){ setASStatus('No exact match — searching…','var(--bl)'); doASSearch(artist,title); return; }
+      btn.disabled=false; resetSearchBtn(btn);
+      if(!data.syncedLyrics){ setASStatus(data.plainLyrics?'Only plain lyrics — searching for synced…':'No lyrics on exact match — searching…','var(--bl)'); doASSearch(artist,title); return; }
+      var parsed=parseLRC(data.syncedLyrics); if(!parsed.length){ setASStatus('Could not parse — searching…','var(--bl)'); doASSearch(artist,title); return; }
+      showASPreview(parsed,data);
+    });
+  } else { doASSearch('',title); }
+}
+function doASSearch(a,t){
+  var q=((a?a+' ':'')+t).trim();
+  xhrGet('https://lrclib.net/api/search?q='+encodeURIComponent(q), function(err,arr){
+    var btn=document.getElementById('as-searchbtn'); btn.disabled=false; resetSearchBtn(btn);
+    if(err||!arr||!arr.length){ setASStatus('No results found for "'+q+'".','#c44'); return; }
+    var sy=arr.filter(function(x){ return !!x.syncedLyrics; });
+    showSearchResults((sy.length?sy:arr).slice(0,8));
+  });
+}
+function xhrGet(url,cb){ var xhr=new XMLHttpRequest(); xhr.open('GET',url,true); xhr.setRequestHeader('Accept','application/json'); xhr.onload=function(){ if(xhr.status===404){ cb('NOT_FOUND',null); return; } if(xhr.status<200||xhr.status>=300){ cb('HTTP '+xhr.status,null); return; } try{ cb(null,JSON.parse(xhr.responseText)); }catch(e){ cb('Parse error',null); } }; xhr.onerror=function(){ cb('Network error — check internet connection',null); }; xhr.send(); }
+function resetSearchBtn(btn){ btn.innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search'; }
+function showSearchResults(results){
+  setASStatus('Select the correct track:','var(--bl)'); var div=document.getElementById('as-results'); div.style.display='block'; div.innerHTML='';
+  results.forEach(function(r){ var row=document.createElement('div'); row.style.cssText='padding:7px 9px;border-radius:8px;border:1px solid var(--ln);background:var(--p3);margin-bottom:4px;cursor:pointer;transition:border-color .1s'; row.onmouseenter=function(){ this.style.borderColor='var(--bl)'; }; row.onmouseleave=function(){ this.style.borderColor=''; }; var hs=!!r.syncedLyrics; row.innerHTML='<div style="font-size:12px;color:var(--tx);font-weight:600">'+esc(r.trackName)+'</div><div style="font-size:11px;color:var(--tx2);margin-top:1px">'+esc(r.artistName||'')+(r.albumName?' · '+esc(r.albumName):'')+'</div><div style="font-size:10px;color:'+(hs?'var(--bl)':'#888')+';margin-top:2px">'+(hs?'✓ Synced':'Plain only')+'</div>'; (function(data){ row.onclick=function(){ if(data.syncedLyrics){ var p=parseLRC(data.syncedLyrics); if(p.length) showASPreview(p,data); else setASStatus('Could not parse.','#c44'); } else if(data.plainLyrics){ applyPlainLRC(data.plainLyrics); setTimeout(closeAutoSync,1200); } }; })(r); div.appendChild(row); });
+}
+function showASPreview(parsed,data){
+  var div=document.getElementById('as-results'); div.style.display='block'; div.innerHTML='';
+  var info=document.createElement('div'); info.style.cssText='padding:7px 9px;border-radius:8px;border:1px solid rgba(255,46,99,.25);background:rgba(255,46,99,.07);margin-bottom:7px;font-size:11px;color:var(--tx2)'; info.innerHTML='<span style="color:var(--bl);font-weight:700">✓</span> '+esc(data.artistName)+' — '+esc(data.trackName)+(data.albumName?' ('+esc(data.albumName)+')':'')+'<br><span style="color:var(--tx3)">'+parsed.length+' synced lines</span>'; div.appendChild(info);
+  var prev=document.createElement('div'); prev.style.cssText='background:var(--p3);border-radius:6px;padding:6px 9px;margin-bottom:7px;font-size:10px;font-family:Consolas,monospace;color:var(--tx2);max-height:80px;overflow:hidden;line-height:1.7'; prev.textContent=parsed.slice(0,5).map(function(l){ return '['+fmtLRC(l.time)+'] '+l.text; }).join('\n')+(parsed.length>5?'\n…':''); div.appendChild(prev);
+  var ab=document.createElement('button'); ab.className='mbtn ok'; ab.style.cssText='width:100%;justify-content:center;padding:7px'; ab.textContent='Apply '+parsed.length+' timestamps'; ab.onclick=function(){ applyLRCStamps(parsed); }; div.appendChild(ab); setASStatus('','');
+}
+function applyLRCStamps(parsed){
+  if(!lines.length) lines=parsed.map(function(l){ return l.text; });
+  pushUndo(); stamps=[];
+  parsed.forEach(function(lrc){ var li=-1; for(var k=0;k<lines.length;k++){ if(lines[k].trim().toLowerCase()===lrc.text.trim().toLowerCase()){ li=k; break; } } if(li===-1) return; stamps.push({id:++stampSeq,lineIdx:li,time:lrc.time}); });
+  if(!stamps.length) parsed.forEach(function(lrc,i){ if(i<lines.length) stamps.push({id:++stampSeq,lineIdx:i,time:lrc.time}); });
+  stamps.sort(function(a,b){ return a.time-b.time; });
+  curLine=nextStampable(0); pendingId=null;
+  var a1=getActive(); if(a1) a1.lyricsText=lines.join('\n');
+  saveWorkingSet(); renderChannels(); renderLyricsFlow(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); closeAutoSync(); toast('✓ '+stamps.length+' timestamps applied');
+}
+function applyPlainLRC(plain){ lines=deriveLines(plain); stamps=[]; curLine=nextStampable(0); pendingId=null; var a2=getActive(); if(a2) a2.lyricsText=lines.join('\n'); saveWorkingSet(); renderChannels(); renderLyricsFlow(); tlRefresh(); closeAutoSync(); toast('Plain lyrics loaded'); }
+function parseLRC(lrc){ var result=[],re=/\[(\d{1,2}):(\d{2})\.(\d{2,3})\](.*)/; lrc.split('\n').forEach(function(line){ var m=re.exec(line); if(!m) return; var min=parseInt(m[1]),sec=parseInt(m[2]),ms=m[3].length===2?parseInt(m[3])*10:parseInt(m[3]),t=min*60+sec+ms/1000,txt=m[4].trim(); if(txt) result.push({time:t,text:txt}); }); return result; }
+function fmtLRC(s){ var m=Math.floor(s/60),sec=(s%60).toFixed(2); return p2(m)+':'+sec; }
+function setASStatus(msg,color){ var el=document.getElementById('as-status'); el.textContent=msg; el.style.color=color||'var(--tx3)'; }
+
+// ─── GENIUS LYRICS LOADER (single song) ───
+// Verso single-channel: paste ONE Genius link → fetches and fills this channel's lyrics.
+function openGenius(){
+  var inp=document.getElementById('g-link-single');
+  var ch=getActive();
+  if(inp) inp.value=(ch&&ch.geniusUrl)||'';
+  gStatus('');
+  document.getElementById('gov').classList.add('open');
+  if(inp){ try{ inp.focus(); }catch(e){} }
+}
+function closeGenius(){ document.getElementById('gov').classList.remove('open'); }
+function gStatus(msg,color){ var el=document.getElementById('g-status'); if(el){ el.textContent=msg; el.style.color=color||'var(--tx3)'; } }
+function loadGenius(){
+  var btn=document.getElementById('g-loadbtn');
+  var url=(document.getElementById('g-link-single').value||'').trim();
+  if(!url){ gStatus('Paste a Genius link first','#c66'); return; }
+  var ch=getActive(); if(!ch){ gStatus('No channel','#c66'); return; }
+  ch.geniusUrl=url;
+  btn.disabled=true; gStatus('Fetching…','var(--bl)');
+  fetchGeniusLyrics(url, function(err,lyr){
+    btn.disabled=false;
+    if(err||!lyr){ gStatus('Error: '+(err||'no lyrics found'),'#c66'); toast('Genius: '+(err||'no lyrics')); return; }
+    ch.lyricsText=lyr; ch.lines=deriveLines(lyr); ch.loaded=ch.lines.length>0;
+    if(ch.id===activeId){ lines=ch.lines.slice(); pendingId=null; renderLyricsFlow(); }
+    renderChannels(); syncTitle();
+    var ta=document.querySelector('.channel[data-id="'+ch.id+'"] .ch-lyr'); if(ta){ ta.value=ch.lyricsText; ta.classList.add('filled'); }
+    gStatus('✓ Loaded','var(--bl)'); toast('✓ Genius lyrics loaded'); closeGenius();
+  }, function(p){ gStatus(_geniusProgMsg(p), 'var(--bl)'); });
+}
+// Verso 2: load lyrics from the INLINE Genius input (inside the Lyrics button).
+function loadGeniusInline(ev){
+  if(ev&&ev.stopPropagation) ev.stopPropagation();
+  var inp=document.getElementById('g-link-inline'); var url=(inp&&inp.value||'').trim();
+  if(!url){ toast('Paste a Genius link first'); if(inp) inp.focus(); return; }
+  if(inp) inp.value='';
+  applyGeniusUrl(url);
+}
+// Fetch a Genius URL and fill the active channel's lyrics (shared by the inline input
+// and by the "Lyrics Found" one-click flow driven by the Chrome-extension bridge).
+// Clean + fill a channel's lyrics from raw Genius text (shared apply path).
+function _applyGeniusLyrics(ch, lyr){
+  lyr=_cleanGeniusText(lyr||''); if(!lyr) return false;
+  ch.lyricsText=lyr; ch.lines=deriveLines(lyr); ch.loaded=ch.lines.length>0;
+  if(ch.id===activeId){ lines=ch.lines.slice(); pendingId=null; curLine=nextStampable(0); renderLyricsFlow(); }
+  closeGeniusInput();   // animate the Genius input back to the minimised "Lyrics" button
+  var ta=document.querySelector('#detailsPanel .dp-lyr'); if(ta){ ta.value=ch.lyricsText; ta.classList.add('filled'); }
+  syncTitle(); updateLyricHighlight(AEL.currentTime||0);
+  return true;
+}
+function applyGeniusUrl(url){
+  var ch=getActive(); if(!ch){ toast('No channel'); return; }
+  ch.geniusUrl=url; toast('Fetching lyrics…', 60000);
+  var btn=document.getElementById('dpLyrBtn'); if(btn) btn.classList.add('loading');
+  fetchGeniusLyrics(url, function(err,lyr){
+    if(btn) btn.classList.remove('loading');
+    if(err||!lyr||!_applyGeniusLyrics(ch, lyr)){ toast('Genius: '+(err||'no lyrics found')); return; }
+    toast('✓ Lyrics loaded');
+  }, function(p){ toast(_geniusProgMsg(p), 60000); });
+}
+// Load from the detected Genius tab: use the instantly-scraped lyrics if we got them,
+// otherwise fetch the URL through the proxy. Falls back to the paste input if neither.
+function applyGeniusFromTab(){
+  var ch=getActive(); if(!ch){ toast('No channel'); return; }
+  if(GENIUS_TAB_LYRICS){ ch.geniusUrl=GENIUS_TAB_URL||ch.geniusUrl; if(_applyGeniusLyrics(ch, GENIUS_TAB_LYRICS)){ toast('✓ Lyrics loaded'); return; } }
+  if(GENIUS_TAB_URL){ applyGeniusUrl(GENIUS_TAB_URL); return; }
+  toggleGeniusInput();
+}
+
+// ─── Web-only: detect a Genius link on the clipboard (no extension needed) ───
+// A web page can't read other browser tabs (browser security), so — working purely
+// inside Verso — we look at the clipboard: copy the Genius tab's URL and the Details
+// "Lyrics" button turns into "Lyrics Found" → one click fetches & applies it.
+var GENIUS_TAB_URL=null, GENIUS_TAB_LYRICS=null;
+var GENIUS_RE=/https?:\/\/(?:www\.)?genius\.com\/[^\s"']+/i;
+var _gPasteInit=false;
+// Auto-load on paste (Ctrl+V): pasting a Genius link anywhere in the open Details panel
+// fetches its lyrics. Paste never triggers a clipboard permission prompt.
+function initGeniusPaste(){
+  if(_gPasteInit || IN_AE) return; _gPasteInit=true;
+  document.addEventListener('paste', function(e){
+    var txt=(e.clipboardData&&e.clipboardData.getData('text'))||'';
+    var m=txt.match(GENIUS_RE); if(!m) return;
+    var t=e.target, tn=t&&t.tagName;
+    // Pasting a link INTO the Genius field: let it land normally (never preventDefault →
+    // the paste always works), then auto-load it. This is the fix for "can't paste".
+    var isGeniusField = t && (t.id==='g-link-single' || t.id==='g-link-inline' || (t.classList&&t.classList.contains('dp-genius-inp')));
+    if(isGeniusField){ setTimeout(function(){ applyGeniusUrl(m[0]); }, 0); return; }
+    // Never hijack paste inside any other editable field (lyrics textarea, title, etc.).
+    if(tn==='INPUT'||tn==='TEXTAREA'||(t&&t.isContentEditable)) return;
+    // Paste anywhere else while the details panel is open → auto-load.
+    var lp=document.getElementById('lyricsPanel'); if(!lp||!lp.classList.contains('details-open')) return;
+    e.preventDefault(); applyGeniusUrl(m[0]);
+  });
+}
+function setGeniusFound(url){
+  GENIUS_TAB_URL=url||null;
+  var b=document.getElementById('dpLyrBtn'); if(!b) return;
+  // Yellow (Genius) indicator ONLY when a tab was auto-detected; indigo otherwise (and always in AE).
+  var on = !IN_AE && !!(GENIUS_TAB_URL||GENIUS_TAB_LYRICS);
+  b.classList.toggle('gyellow', on);
+  b.title = on ? 'Load the detected Genius lyrics' : 'Find the lyrics on Genius';
+}
+// Ask the Content Addon extension (the only thing that can read browser tabs) for the
+// open Genius tab. It scrapes the lyrics from that tab's DOM directly → instant. If a tab
+// is found and the song has no lyrics yet, load it automatically (no click needed).
+function scanGeniusTab(){
+  if(IN_AE) return;
+  initGeniusPaste();
+  var reqId=String(Date.now())+'_'+Math.random(), done=false;
+  function onMsg(e){
+    if(e.source!==window) return;
+    var d=e.data; if(!d||d.type!=='VERSO_GENIUS_RESULT'||d.reqId!==reqId) return;
+    done=true; window.removeEventListener('message', onMsg);
+    GENIUS_TAB_LYRICS=(d.lyrics&&(''+d.lyrics).trim().length>20)?(''+d.lyrics):null;
+    setGeniusFound(d.url||null);   // sets GENIUS_TAB_URL + turns the indicator yellow only when detected
+    if(GENIUS_TAB_URL||GENIUS_TAB_LYRICS){ var ch=getActive(); if(ch && !(ch.lyricsText&&ch.lyricsText.trim())) applyGeniusFromTab(); }
+  }
+  window.addEventListener('message', onMsg);
+  window.postMessage({ type:'VERSO_GET_GENIUS', reqId:reqId }, '*');
+  // No extension / no Genius tab → stay on the default paste flow (no auto action).
+  setTimeout(function(){ if(!done){ window.removeEventListener('message', onMsg); GENIUS_TAB_URL=null; GENIUS_TAB_LYRICS=null; setGeniusFound(null); } }, 700);
+}
+// Discreet progress message for the import (small line under the timer / in the popup).
+function _geniusProgMsg(p){
+  if(!p) return 'Fetching lyrics…';
+  if(p.stage==='done')   return '✓ Lyrics loaded';
+  if(p.stage==='deep')   return 'Fetching lyrics… (deep search)';
+  if(p.stage==='lrclib') return 'Fetching lyrics… (matching)';
+  var n=Math.min((p.done|0)+1, p.total||1);
+  return 'Fetching lyrics… ('+n+'/'+(p.total||1)+')';
+}
+// AE can fetch genius.com directly (no web security). On web/touch the browser blocks
+// cross-origin reads, so we go through CORS proxies that return the page.
+// FAST: all proxies race in parallel (8s cap each) AND LRCLIB fires alongside after a
+// short head-start — first source to yield lyrics wins. onProg(p) reports import status.
+function fetchGeniusLyrics(url, cb, onProg){
+  if(!/^https?:\/\//i.test(url)){ cb('invalid url', null); return; }
+  var enc=encodeURIComponent(url);
+  var sources=[
+    { u:'https://proxy.corsfix.com/?'+url,              json:false },
+    { u:'https://corsproxy.io/?url='+enc,               json:false },
+    { u:'https://api.allorigins.win/raw?url='+enc,      json:false },
+    { u:'https://api.codetabs.com/v1/proxy?quest='+enc, json:false },
+    { u:'https://thingproxy.freeboard.io/fetch/'+url,   json:false },
+    { u:'https://api.allorigins.win/get?url='+enc,      json:true  }  // JSON {contents:"..."}
+  ];
+  if(IN_AE) sources.unshift({ u:url, json:false });   // AE has no web security → direct
+  var done=false, pending=sources.length, tried=0, total=sources.length;
+  function report(stage){ if(onProg){ try{ onProg({stage:stage, done:tried, total:total}); }catch(e){} } }
+  report('start');
+  function finishNow(lyr, err){ if(done) return; done=true; if(lyr) report('done'); cb(lyr?null:(err||'no lyrics found'), lyr||null); }
+  // ALL page sources failed → no-proxy fallbacks: AE downloads the real page with the
+  // system curl; then LRCLIB (open lyrics API with CORS) searched by the URL slug.
+  function fallback(){
+    report('deep');
+    _aeCurlFetch(url, function(html){
+      var lyr=html?parseGeniusHTML(html):null;
+      if(lyr){ finishNow(lyr); return; }
+      _lrclibFetch(url, function(t){ finishNow(t||null, t?null:'no lyrics found'); });
+    });
+  }
+  function finish(err, lyr){
+    if(done) return;
+    tried++;
+    if(lyr){ finishNow(lyr); }
+    else{ report('progress'); if(--pending<=0){ fallback(); } }
+  }
+  sources.forEach(function(s){
+    var settled=false;
+    function settle(err, lyr){ if(settled||done) return; settled=true; finish(err, lyr); }
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var to=setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } settle('timeout', null); }, 5500);
+    fetch(s.u, ctrl ? { signal:ctrl.signal } : undefined)
+      .then(function(r){ return r.text(); })
+      .then(function(txt){
+        clearTimeout(to);
+        if(s.json){ try{ var j=JSON.parse(txt); txt=j.contents||j.html||''; }catch(e){ txt=''; } }
+        var lyr = txt ? parseGeniusHTML(txt) : null;
+        settle(lyr ? null : 'no lyrics', lyr);
+      })
+      .catch(function(){ clearTimeout(to); settle('network error', null); });
+  });
+  // Fire LRCLIB in parallel after a short head-start so a Genius-accurate proxy result is
+  // preferred when quick, but we still get a fast answer if the proxies stall. Runs in AE
+  // too — there the proxy/curl path is the slowest, so this is the big win.
+  setTimeout(function(){ if(done) return; _lrclibFetch(url, function(t){ if(t){ report('lrclib'); finishNow(t); } }); }, 700);
+}
+// Fallback #1 (AE only): download the Genius page with the SYSTEM curl (Windows 10+
+// ships it) via ExtendScript — real TLS + browser UA, immune to CEP CORS/Cloudflare.
+// The panel then reads the temp file (cep.fs) and parses it like any other source.
+function _aeCurlFetch(url, cb){
+  if(!IN_AE||!csInterface||!window.cep||!window.cep.fs){ cb(null); return; }
+  ensureHost(function(ok){
+    if(!ok){ cb(null); return; }
+    csInterface.evalScript('(typeof fetchGeniusToTemp==="function")?"1":"0"', function(has){
+      function go(){
+        csInterface.evalScript('fetchGeniusToTemp('+JSON.stringify(url)+')', function(r){
+          if(!r||r.indexOf('ok:')!==0){ cb(null); return; }
+          try{
+            var res=window.cep.fs.readFile(r.slice(3), window.cep.encoding.UTF8);
+            cb(res&&res.err===0?res.data:null);
+          }catch(e){ cb(null); }
+        });
+      }
+      if(has==='1'){ go(); } else { _hostSrc=null; loadHostViaXHR(go); }
+    });
+  });
+}
+// Fallback #2 (web + AE): LRCLIB, an open lyrics API with permissive CORS (no proxy,
+// no key). Searches "artist song" derived from the genius URL slug.
+function _lrclibFetch(url, cb){
+  var m=url.match(/genius\.com\/([^\/?#]+?)(?:-lyrics)?(?:[\/?#]|$)/i);
+  var q=m?m[1].replace(/-+/g,' ').replace(/\s+/g,' ').trim():'';
+  if(!q){ cb(null); return; }
+  var ctrl=window.AbortController?new AbortController():null;
+  var to=setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } }, 5000);
+  fetch('https://lrclib.net/api/search?q='+encodeURIComponent(q), ctrl?{signal:ctrl.signal}:undefined)
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      clearTimeout(to);
+      var best=null;
+      for(var i=0;i<(list||[]).length;i++){ var it=list[i]; if(it&&it.plainLyrics){ best=it; break; } }
+      cb(best?_cleanGeniusText(best.plainLyrics):null);
+    })
+    .catch(function(){ clearTimeout(to); cb(null); });
+}
+// Parse Genius HTML reliably via the DOM (handles nested spans/links + <br>).
+function _geniusNodeText(el){
+  var clone=el.cloneNode(true);
+  var brs=clone.querySelectorAll('br');
+  for(var i=0;i<brs.length;i++){ brs[i].parentNode.replaceChild(document.createTextNode('\n'), brs[i]); }
+  return clone.textContent||'';
+}
+function _cleanGeniusText(t){
+  return t
+          // Strip Genius' leading song-description block (ends with "Read More"), which sits
+          // between the title and the first [section] — covers contributors/translations too.
+          .replace(/^[\s\S]*?Read More\s*/,'')
+          // Fallback header strip: "N Contributors · Translations · <Title> Lyrics" (no description)
+          .replace(/^\s*\d+\s*Contributor(?:s)?[\s\S]*?Lyrics\s*/,'')
+          // Strip trailing "…Embed" counter Genius appends after the last line
+          .replace(/\d*Embed\s*$/,'')
+          .replace(/\[[^\]\n]{0,60}\]/g,function(m){return '\n'+m+'\n';})
+          .replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').replace(/^\s+|\s+$/g,'');
+}
+function parseGeniusHTML(html){
+  if(!html) return null;
+  try{
+    var doc=new DOMParser().parseFromString(html, 'text/html');
+
+    // 1. Modern Genius: data-lyrics-container
+    var nodes=doc.querySelectorAll('[data-lyrics-container="true"]');
+    if(!nodes.length) nodes=doc.querySelectorAll('[class*="Lyrics__Container"]');
+    if(!nodes.length) nodes=doc.querySelectorAll('.lyrics');
+    if(nodes && nodes.length){
+      var parts=[]; for(var i=0;i<nodes.length;i++) parts.push(_geniusNodeText(nodes[i]));
+      var t=_cleanGeniusText(parts.join('\n')); if(t) return t;
+    }
+
+    // 2. JSON-LD schema (schema.org MusicRecording)
+    var ldEl=doc.querySelector('script[type="application/ld+json"]');
+    if(ldEl){ try{ var ld=JSON.parse(ldEl.textContent||'{}'); if(ld.lyrics&&ld.lyrics.text){ var lt=_cleanGeniusText(ld.lyrics.text); if(lt) return lt; } }catch(e){} }
+
+    // 3. Inertia / SSR JSON embedded in <div id="app" data-page="...">
+    var appEl=doc.querySelector('#app[data-page]');
+    if(appEl){ try{
+      var pg=JSON.parse(appEl.getAttribute('data-page')||'{}');
+      var lyrObj=pg&&pg.props&&pg.props.song&&pg.props.song.lyrics_state;
+      if(lyrObj&&lyrObj.body&&lyrObj.body.plain){ var pt=_cleanGeniusText(lyrObj.body.plain); if(pt) return pt; }
+    }catch(e){} }
+
+    // 4. Regex fallback: lyrics_body in JSON script
+    var sm=html.match(/"lyrics_body"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if(sm){ try{ var rb=JSON.parse('"'+sm[1]+'"'); var ct=_cleanGeniusText(rb); if(ct) return ct; }catch(e){} }
+
+    return null;
+  }catch(e){ return null; }
+}
+
+// ─── UTILS ───
+function fmtClock(s){ s=Math.max(0,s||0); var m=Math.floor(s/60),sec=Math.floor(s%60); return p2(m)+':'+p2(sec); }
+function fmtTimer(s){ s=Math.max(0,s||0); var m=Math.floor(s/60),sec=Math.floor(s%60),cs=Math.floor((s%1)*100); return p2(m)+':'+p2(sec)+':'+p2(cs); }
+function fmtTip(s){ s=Math.max(0,s||0); var m=Math.floor(s/60),sec=Math.floor(s%60),cs=Math.floor((s%1)*100); return p2(m)+':'+p2(sec)+'.'+p2(cs); }
+function toSRT(s){ var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60),ms=Math.floor((s%1)*1000); return p2(h)+':'+p2(m)+':'+p2(sec)+','+p3(ms); }
+function p2(n){ return String(Math.floor(n)).padStart(2,'0'); }
+function p3(n){ return String(n).padStart(3,'0'); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Static base legend: which channel/song I'm working on. It stays fixed in the status
+// line while no transient toast is showing; toasts temporarily replace it and then it
+// comes back. Keeps the user oriented without an extra UI element.
+var _legendBase='';
+function _showBase(st){ st._tmp=false; st.textContent=_legendBase; st.classList.toggle('base', !!_legendBase); st.classList.toggle('on', !!_legendBase); }
+function setLegend(msg){
+  _legendBase=(msg||'').trim();
+  var st=document.getElementById('tStatus'); if(!st) return;
+  if(!st._tmp) _showBase(st);   // only refresh now if no toast is currently on screen
+}
+// Inside AE the update legends appear in the small status line under the timer.
+// On the web they use the floating toast.
+function toast(msg,ms){
+  // legends appear in the subtle status line above the timer (web AND AE)
+  var st=document.getElementById('tStatus');
+  if(st){ st._tmp=true; st.textContent=msg; st.classList.remove('base'); st.classList.add('on'); clearTimeout(st._t); st._t=setTimeout(function(){ _showBase(st); }, ms||4000); return; }
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },ms||2200);
+}
+</script>
+</body>
+</html>

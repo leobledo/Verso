@@ -3,6 +3,19 @@
 // CEP sets $.fileName to the .jsx path — we use that to locate sibling files.
 
 // ─── SAVE TO DISK ─────────────────────────────────────────────────────────────
+// ─── DIALOGOS DE ARCHIVO MULTIPLATAFORMA ──────────────────────────────────────
+// Windows: filtro por STRING (soportado, es el que siempre funciono).
+// macOS: SIN filtro. El string "Nombre:*.ext" es Windows-only, y pasar una FUNCION de
+// filtro es peor: ExtendScript la invoca por CADA archivo del directorio y puede colgar
+// el dialogo, dejando a evalScript sin respuesta ("SRT: no response"). Sin filtro el
+// dialogo siempre abre y el usuario elige su archivo igual.
+function _isWin() { try { return String($.os).indexOf("Windows") !== -1; } catch (e) { return false; } }
+function _dlgFilter(winFilter, exts) { return _isWin() ? winFilter : undefined; }
+// Sentinela de version del host: el panel comprueba que ESTA funcion exista para saber
+// si AE tiene cargada una copia vieja del jsx y forzar su recarga.
+function _hostVersion() { return 'verso-2025-06'; }
+function _AUDIO_FILTER() { return _dlgFilter('Audio:*.mp3,*.wav,*.aac,*.aif,*.aiff,*.ogg,*.m4a,*.flac,*.wma,*.caf', ["mp3","wav","aac","aif","aiff","ogg","m4a","flac","wma","caf"]); }
+function _SRT_FILTER()   { return _dlgFilter('SRT:*.srt,All files:*', ["srt","txt"]); }
 function saveSRTFile(srtContent, suggestedName) {
   try {
     var file = File.saveDialog('Save SRT file', 'SRT files:*.srt,All files:*');
@@ -354,6 +367,11 @@ function importViaStyleController(srtContent, optionsJSON) {
     if (!styleLayer) {
       styleLayer = _createDefaultStyleLayer(comp, styleName);
       createdStyle = true;
+    }
+    // Reemplazar: quitar las capas SRT generadas antes (incl. "SRT Frame"), desbloqueandolas
+    // por si quedaron locked, para que al reimportar NO se dupliquen. No toca la plantilla.
+    for (var _rl = comp.numLayers; _rl >= 1; _rl--) {
+      try { var _rL = comp.layer(_rl); if (_rL !== styleLayer && /^SRT/i.test(_rL.name)) { try { _rL.locked = false; } catch (eL) {} _rL.remove(); } } catch (eR) {}
     }
 
     var useStyleAnim  = !createdStyle && _hasTextAnimatorKeyframes(styleLayer);
@@ -1161,17 +1179,18 @@ function adjustRangeComp(comp) {
 // ── Master: reemplaza audios (dialogo) + limpia lyrics + ajusta rangos ──
 function masterRun() {
   try {
+    _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     var selectedComps = getSelectedGeneralCompsByPanelOrder();
     var limitToSelected = selectedComps.length > 0;
 
     Folder.current = Folder.desktop;
     var raw = File.openDialog(
       'Select the audio files' + (limitToSelected ? ' (' + selectedComps.length + ' selected comp(s))' : ''),
-      'Audio:*.mp3,*.wav,*.aac,*.aif,*.aiff,*.ogg,*.m4a,*.flac,*.wma,*.caf', true);
-    if (!raw) return JSON.stringify({ ok: false, step: 'folder', msg: 'Cancelled' });
+      _AUDIO_FILTER(), true);
+    if (!raw) return _writeResult({ ok: false, step: 'folder', msg: 'Cancelled' });
 
     var files = (raw instanceof Array) ? raw : [raw];
-    if (files.length === 0) return JSON.stringify({ ok: false, step: 'folder', msg: 'No files selected' });
+    if (files.length === 0) return _writeResult({ ok: false, step: 'folder', msg: 'No files selected' });
 
     var oneByOne = (files.length === 1);
     if (oneByOne) {
@@ -1179,7 +1198,7 @@ function masterRun() {
       for (var s = 1; s < totalSlots; s++) {
         try { Folder.current = files[files.length - 1].parent; } catch (e) {}
         var next = File.openDialog('Audio ' + (s + 1) + ' of ' + totalSlots + '  —  Cancel to stop here',
-          'Audio:*.mp3,*.wav,*.aac,*.aif,*.aiff,*.ogg,*.m4a,*.flac,*.wma,*.caf', false);
+          _AUDIO_FILTER(), false);
         if (!next) break;
         files.push(next);
       }
@@ -1202,11 +1221,22 @@ function masterRun() {
       for (var j2 = 0; j2 < count; j2++) { try { songs[j2].footage.replace(files[j2]); replaced++; } catch (e) {} }
     }
 
-    if (replaced === 0) { try { app.endUndoGroup(); } catch (ue) {} return JSON.stringify({ ok: false, step: 'replace', msg: 'No audio could be replaced' }); }
+    if (replaced === 0) { try { app.endUndoGroup(); } catch (ue) {} return _writeResult({ ok: false, step: 'replace', msg: 'No audio could be replaced' }); }
 
     var lyricsComps = limitToSelected ? getRelatedLyricsComps(selectedComps) : _allLyricsComps();
     var lyricsCleaned = 0;
     for (var lc = 0; lc < lyricsComps.length; lc++) if (cleanLyricComp(lyricsComps[lc])) lyricsCleaned++;
+
+    // Borrar las capas SRT (incl. "SRT Frame") AQUI DENTRO. Antes lo hacia el panel en una
+    // segunda llamada, pero masterRun abre un dialogo modal y evalScript pierde el retorno:
+    // el panel cortaba en el JSON.parse fallido y ese paso NUNCA llegaba a ejecutarse.
+    var srtRemoved = 0;
+    for (var sc = 0; sc < lyricsComps.length; sc++) {
+      var lcomp = lyricsComps[sc];
+      for (var lz = lcomp.numLayers; lz >= 1; lz--) {
+        try { var lyz = lcomp.layer(lz); if (/SRT/i.test(lyz.name)) { lyz.remove(); srtRemoved++; } } catch (er) {}
+      }
+    }
 
     var rangeComps = limitToSelected ? selectedComps : getGeneralComps();
     var rangeUpdated = 0, rangeSkipped = 0;
@@ -1221,13 +1251,13 @@ function masterRun() {
     }
 
     app.endUndoGroup();
-    return JSON.stringify({ ok: true, mode: limitToSelected ? 'parcial' : 'completo',
+    return _writeResult({ ok: true, mode: limitToSelected ? 'parcial' : 'completo',
       replaced: replaced, total: count, lyricsTotal: lyricsComps.length, lyricsCleaned: lyricsCleaned,
       rangeTotal: rangeComps.length, rangeUpdated: rangeUpdated, rangeSkipped: rangeSkipped,
-      songs: songResults });
+      srtRemoved: srtRemoved, songs: songResults });
   } catch (e) {
     try { app.endUndoGroup(); } catch (ue) {}
-    return JSON.stringify({ ok: false, step: 'exception', msg: e.toString() });
+    return _writeResult({ ok: false, step: 'exception', msg: e.toString() });
   }
 }
 
@@ -1243,10 +1273,11 @@ function getAllSelectedCompsByPanelOrder() {
 
 function doRenderOrQueue(sendToAME) {
   try {
+    _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     var downloads = new Folder('~/Downloads');
     if (downloads.exists) Folder.current = downloads;
     var outputFolder = Folder.selectDialog('Select the output folder for the render');
-    if (!outputFolder) return JSON.stringify({ ok: false, msg: 'Cancelled' });
+    if (!outputFolder) return _writeResult({ ok: false, msg: 'Cancelled' });
     if (!outputFolder.exists) outputFolder.create();
 
     var selected = getAllSelectedCompsByPanelOrder();
@@ -1262,7 +1293,7 @@ function doRenderOrQueue(sendToAME) {
       }
     }
     if (thComps.length === 0 && mainComps.length === 0)
-      return JSON.stringify({ ok: false, msg: 'No compositions detected.\nSelect comps in the panel\nor use a red (TH) / orange (main) label.' });
+      return _writeResult({ ok: false, msg: 'No compositions detected.\nSelect comps in the panel\nor use a red (TH) / orange (main) label.' });
 
     var allComps = thComps.concat(mainComps);
     var rq = app.project.renderQueue, jpegTplName = null, h264TplName = null;
@@ -1297,11 +1328,11 @@ function doRenderOrQueue(sendToAME) {
         added++;
       } catch (e3) {}
     }
-    if (added === 0) return JSON.stringify({ ok: false, msg: 'Could not add any comp to the queue' });
+    if (added === 0) return _writeResult({ ok: false, msg: 'Could not add any comp to the queue' });
     if (sendToAME) { try { rq.queueInAME(false); } catch (e) { try { app.executeCommand(3767); } catch (e2) {} } }
-    return JSON.stringify({ ok: true, added: added, thCount: thComps.length, mainCount: mainComps.length, mode: sendToAME ? 'AME' : 'AE', tmplWarning: tmplWarning, jpegTpl: usedJpeg });
+    return _writeResult({ ok: true, added: added, thCount: thComps.length, mainCount: mainComps.length, mode: sendToAME ? 'AME' : 'AE', tmplWarning: tmplWarning, jpegTpl: usedJpeg });
   } catch (e) {
-    return JSON.stringify({ ok: false, msg: e.toString() });
+    return _writeResult({ ok: false, msg: e.toString() });
   }
 }
 
@@ -1557,10 +1588,11 @@ function _footagePath(item) {
 // footage "Song" del proyecto con ese archivo (o la importa si no existe). Devuelve la ruta.
 function loadSingleSongFile() {
   try {
+    _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     Folder.current = Folder.desktop;
     var f = File.openDialog('Select the song audio file',
-      'Audio:*.mp3,*.wav,*.aac,*.aif,*.aiff,*.ogg,*.m4a,*.flac,*.wma,*.caf', false);
-    if (!f) return JSON.stringify({ ok: false, msg: 'Cancelled' });
+      _AUDIO_FILTER(), false);
+    if (!f) return _writeResult({ ok: false, msg: 'Cancelled' });
 
     // Respetar la comp seleccionada en el panel de Proyecto (romper el orden por defecto).
     var selComp = _selComp();
@@ -1570,14 +1602,14 @@ function loadSingleSongFile() {
     app.beginUndoGroup('Verso: Load song');
     if (song) {
       try { song.replace(f); }
-      catch (e) { app.endUndoGroup(); return JSON.stringify({ ok: false, msg: 'No se pudo reemplazar: ' + e.toString() }); }
+      catch (e) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo reemplazar: ' + e.toString() }); }
     } else {
       // No hay footage "Song": importar el archivo como footage nueva llamada "Song".
       try {
         var io = new ImportOptions(f);
         song = app.project.importFile(io);
         try { song.name = 'Song'; } catch (e2) {}
-      } catch (e3) { app.endUndoGroup(); return JSON.stringify({ ok: false, msg: 'No se pudo importar: ' + e3.toString() }); }
+      } catch (e3) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo importar: ' + e3.toString() }); }
     }
 
     // ── Como el Master, pero para este 1 canal ──
@@ -1613,11 +1645,11 @@ function loadSingleSongFile() {
     app.endUndoGroup();
 
     var p = _footagePath(song);
-    if (!p) return JSON.stringify({ ok: false, msg: 'La cancion no tiene archivo en disco' });
-    return JSON.stringify({ ok: true, path: p, name: song.name, rangeUpdated: rangeUpdated, removed: removed });
+    if (!p) return _writeResult({ ok: false, msg: 'La cancion no tiene archivo en disco' });
+    return _writeResult({ ok: true, path: p, name: song.name, rangeUpdated: rangeUpdated, removed: removed });
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
-    return JSON.stringify({ ok: false, msg: e.toString() });
+    return _writeResult({ ok: false, msg: e.toString() });
   }
 }
 
@@ -1670,24 +1702,25 @@ function _findShortSongFootage() {
 // loadSingleSongFile pero apuntando al par Short Song / comp "Short".
 function loadShortSongFile() {
   try {
+    _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     Folder.current = Folder.desktop;
     var f = File.openDialog('Select the SHORT song audio file',
-      'Audio:*.mp3,*.wav,*.aac,*.aif,*.aiff,*.ogg,*.m4a,*.flac,*.wma,*.caf', false);
-    if (!f) return JSON.stringify({ ok: false, msg: 'Cancelled' });
+      _AUDIO_FILTER(), false);
+    if (!f) return _writeResult({ ok: false, msg: 'Cancelled' });
 
     var song = _findShortSongFootage();
 
     app.beginUndoGroup('Verso: Load short song');
     if (song) {
       try { song.replace(f); }
-      catch (e) { app.endUndoGroup(); return JSON.stringify({ ok: false, msg: 'No se pudo reemplazar: ' + e.toString() }); }
+      catch (e) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo reemplazar: ' + e.toString() }); }
     } else {
       // No hay footage "Short Song": importar el archivo como footage nueva.
       try {
         var io = new ImportOptions(f);
         song = app.project.importFile(io);
         try { song.name = 'Short Song'; } catch (e2) {}
-      } catch (e3) { app.endUndoGroup(); return JSON.stringify({ ok: false, msg: 'No se pudo importar: ' + e3.toString() }); }
+      } catch (e3) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo importar: ' + e3.toString() }); }
     }
 
     var shortComp = _shortComp();
@@ -1720,19 +1753,40 @@ function loadShortSongFile() {
     app.endUndoGroup();
 
     var p = _footagePath(song);
-    if (!p) return JSON.stringify({ ok: false, msg: 'La cancion no tiene archivo en disco' });
-    return JSON.stringify({ ok: true, path: p, name: song.name, rangeUpdated: rangeUpdated, removed: removed });
+    if (!p) return _writeResult({ ok: false, msg: 'La cancion no tiene archivo en disco' });
+    return _writeResult({ ok: true, path: p, name: song.name, rangeUpdated: rangeUpdated, removed: removed });
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
-    return JSON.stringify({ ok: false, msg: e.toString() });
+    return _writeResult({ ok: false, msg: e.toString() });
   }
 }
 
 // Verso 2: abre un dialogo para elegir un archivo .srt externo y devuelve su contenido.
+// Abre el .srt E IMPORTA en UNA sola llamada. Antes el contenido viajaba a ExtendScript
+// -> panel -> ExtendScript (JSON.stringify dos veces): los caracteres no-ASCII de las
+// letras rompian el puente de CEP y evalScript devolvia vacio ("No response"). Aqui el
+// texto NUNCA cruza el puente; solo van el nombre de la comp y las opciones (ASCII).
+function importSrtFileToComp(lyrCompName, optionsJSON, isShort) {
+  try {
+    _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
+    Folder.current = Folder.desktop;
+    var f = File.openDialog('Select the .srt file', _SRT_FILTER(), false);
+    if (!f) return _writeRaw('cancel:');
+    f.encoding = 'UTF-8';
+    if (!f.open('r')) return _writeRaw('err:No se pudo abrir el archivo');
+    var content = f.read();
+    f.close();
+    if (!content) return _writeRaw('err:Archivo vacio');
+    if (isShort === true || isShort === 'true') return _writeRaw(importLyricsToShort(content, optionsJSON));
+    return _writeRaw(importLyricsToComp(lyrCompName, content, optionsJSON));
+  } catch (e) {
+    return _writeRaw('err:' + e.toString());
+  }
+}
 function readSrtFile() {
   try {
     Folder.current = Folder.desktop;
-    var f = File.openDialog('Select the .srt file', 'Subtitles:*.srt,*.txt', false);
+    var f = File.openDialog('Select the .srt file', _SRT_FILTER(), false);
     if (!f) return JSON.stringify({ ok: false, msg: 'Cancelled' });
     if (!f.open('r')) return JSON.stringify({ ok: false, msg: 'No se pudo abrir el archivo' });
     f.encoding = 'UTF-8';
@@ -1918,6 +1972,12 @@ function _buildStyleFrame(comp, entries, frameLayer, doCenter) {
 
 function _buildLyricLayers(comp, entries, fadeIn, fadeOut, styleName, doCenter, doExtend) {
   try { _SNAP_FD = comp.frameDuration; } catch (e) {}   // snap keyframes a frames del comp
+  // Reemplazar: quitar las capas SRT generadas antes (incl. "SRT Frame"), desbloqueandolas
+  // por si quedaron locked, para que al reimportar NO se dupliquen ni se sobrepongan. NUNCA
+  // toca la plantilla "Style Frame"/"Style Controler" (esas no empiezan por "SRT").
+  for (var rl = comp.numLayers; rl >= 1; rl--) {
+    try { var _rlL = comp.layer(rl); if (/^SRT\b/i.test(_rlL.name)) { try { _rlL.locked = false; } catch (eL) {} _rlL.remove(); } } catch (e) {}
+  }
   var lastEnd = 0;
   for (var q = 0; q < entries.length; q++) if (entries[q].endSec > lastEnd) lastEnd = entries[q].endSec;
   if (doExtend && (lastEnd + 0.5) > comp.duration) { try { comp.duration = lastEnd + 0.5; } catch (e) {} }
@@ -2338,24 +2398,78 @@ function _readFile(f) {
 //  - Si no, aplica a TODAS las comps de Lyrics del proyecto (en orden).
 //  - Multi-seleccion: ordena por fecha de creacion. 1 solo archivo: modo 1 por 1.
 //  - Sin alertas; cada SRT crea la letra en su comp con el estilo "Style Controler".
+// El valor de retorno de evalScript se PIERDE cuando la funcion abre un dialogo modal
+// (el panel recibia cadena vacia -> "sin respuesta de AE"). Por eso el resultado se
+// vuelca ademas a un archivo temporal que el panel lee con cep.fs, igual que ya se hace
+// con fetchGeniusToTemp. _resultPath() devuelve la ruta para que el panel sepa donde leer.
+var _RESULT_DIR = null;                       // carpeta donde el panel leera el volcado (dentro de la extension)
+function _setResultDir(d) { try { d = d ? String(d) : ''; var SEP = String.fromCharCode(92); while (d.length && (d.charAt(d.length-1)==='/' || d.charAt(d.length-1)===SEP)) d = d.slice(0, -1); _RESULT_DIR = d ? d : null; } catch (e) { _RESULT_DIR = null; } return 'ok'; }
+function _resultTempPath() { return Folder.temp.fsName + '/verso_result.json'; }
+// Ruta PRIMARIA del volcado: dentro de la extension. El panel la lee con XHR RELATIVO
+// (mismo origen que index.html => siempre permitido y sin pasar por el motor bloqueado).
+// Si el panel no fijo carpeta, cae al temporal del sistema.
+function _resultPath() { return _RESULT_DIR ? (_RESULT_DIR + '/verso_result.json') : _resultTempPath(); }
+function _writeFileUTF8(path, s) { try { var f = new File(path); f.encoding = 'UTF-8'; if (f.open('w')) { f.write(s); f.close(); return true; } } catch (e) {} return false; }
+function _removeFileSilently(path) { try { var f = new File(path); if (f.exists) f.remove(); } catch (e) {} }
+// Borra el volcado (primario y temporal) para que el panel no lea un resultado viejo.
+function _clearResult() { _removeFileSilently(_resultPath()); _removeFileSilently(_resultTempPath()); return 'ok'; }
+function _readResultText() {
+  try {
+    var f = new File(_resultPath());
+    if (!f.exists) { f = new File(_resultTempPath()); if (!f.exists) return ''; }
+    f.encoding = 'UTF-8';
+    if (!f.open('r')) return '';
+    var c = f.read(); f.close();
+    return c || '';
+  } catch (e) { return ''; }
+}
+// EMPUJA el resultado al panel con CSXSEvent (respaldo del sondeo por archivo).
+var _xLib = null;
+function _notify(s) {
+  try {
+    if (!_xLib) _xLib = new ExternalObject('lib:PlugPlugExternalObject');
+    var ev = new CSXSEvent();
+    ev.type = 'com.leobledo.verso.result';
+    ev.data = String(s);
+    ev.dispatch();
+  } catch (err) {}
+}
+// Escribe el volcado en la carpeta de la extension (para el XHR relativo) Y en el temporal
+// (respaldo para _readResultText), y ademas lo empuja por evento.
+function _writeRaw(s) { s = String(s); _writeFileUTF8(_resultPath(), s); _writeFileUTF8(_resultTempPath(), s); _notify(s); return s; }
+function _writeResult(obj) { return _writeRaw(JSON.stringify(obj)); }
+// Diagnostico (solo se llama si la leyenda no llego a tiempo): informa si la carpeta de
+// volcado es escribible y si los archivos existen, para saber por que no se entrego.
+function _diagResult() {
+  var o = { dir: (_RESULT_DIR || '(temp)') };
+  try { o.primaryExists = (new File(_resultPath())).exists ? 1 : 0; } catch (e) { o.primaryExists = -1; }
+  try { o.tempExists = (new File(_resultTempPath())).exists ? 1 : 0; } catch (e) { o.tempExists = -1; }
+  try {
+    var probe = new File((_RESULT_DIR || Folder.temp.fsName) + '/verso_probe.txt');
+    if (probe.open('w')) { probe.write('ok'); probe.close(); o.dirWritable = 1; try { probe.remove(); } catch (e2) {} }
+    else o.dirWritable = 0;
+  } catch (e) { o.dirWritable = 0; }
+  return JSON.stringify(o);
+}
 function importSRTBatch() {
   try {
+    _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     var targets = _selectedLyricsComps();
     if (!targets.length) targets = _allLyricsComps();
-    if (!targets.length) return JSON.stringify({ ok: false, msg: 'No Lyrics comps in the project' });
+    if (!targets.length) return _writeResult({ ok: false, msg: 'No Lyrics comps in the project' });
 
     Folder.current = Folder.desktop;
-    var raw = File.openDialog('Select the SRT files (' + targets.length + ' Lyrics comp(s))', 'SRT:*.srt,All files:*', true);
-    if (!raw) return JSON.stringify({ ok: false, msg: 'Cancelado' });
+    var raw = File.openDialog('Select the SRT files (' + targets.length + ' Lyrics comp(s))', _SRT_FILTER(), true);
+    if (!raw) return _writeResult({ ok: false, msg: 'Cancelado' });
     var files = (raw instanceof Array) ? raw : [raw];
-    if (files.length === 0) return JSON.stringify({ ok: false, msg: 'Sin archivos' });
+    if (files.length === 0) return _writeResult({ ok: false, msg: 'Sin archivos' });
 
     var oneByOne = (files.length === 1);
     if (oneByOne) {
       var slots = targets.length;
       for (var s = 1; s < slots; s++) {
         try { Folder.current = files[files.length - 1].parent; } catch (e) {}
-        var next = File.openDialog('SRT ' + (s + 1) + ' of ' + slots + '  —  Cancel to stop here', 'SRT:*.srt,All files:*', false);
+        var next = File.openDialog('SRT ' + (s + 1) + ' of ' + slots + '  —  Cancel to stop here', _SRT_FILTER(), false);
         if (!next) break;
         files.push(next);
       }
@@ -2364,7 +2478,7 @@ function importSRTBatch() {
     }
 
     app.beginUndoGroup('Lyricator: Import SRT batch');
-    var count = Math.min(targets.length, files.length), applied = 0, totalLayers = 0;
+    var count = Math.min(targets.length, files.length), applied = 0, totalLayers = 0, firstComp = null, names = [], fileNames = [];
     for (var j = 0; j < count; j++) {
       var content = _readFile(files[j]);
       if (content === null) continue;
@@ -2372,12 +2486,17 @@ function importSRTBatch() {
       if (!entries.length) continue;
       var res = _buildLyricLayers(targets[j], entries, 0.3, 0.3, 'Style Controler', true, true);
       totalLayers += res.count; applied++;
+      names.push(targets[j].name);
+      var _fn = String(files[j].name); var _dot = _fn.lastIndexOf('.'); if (_dot > 0) _fn = _fn.substring(0, _dot); fileNames.push(_fn);
+      if (!firstComp) firstComp = targets[j];
     }
     app.endUndoGroup();
-    return JSON.stringify({ ok: true, applied: applied, total: count, layers: totalLayers });
+    // Abrir la comp donde se importo, para quedar parado ahi.
+    try { if (firstComp) { firstComp.openInViewer(); app.project.activeItem; } } catch (eV) {}
+    return _writeResult({ ok: true, applied: applied, total: count, layers: totalLayers, names: names, files: fileNames });
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
-    return JSON.stringify({ ok: false, msg: e.toString() });
+    return _writeResult({ ok: false, msg: e.toString() });
   }
 }
 
@@ -2410,16 +2529,16 @@ function updateThumbnailComp(thCompName, artist, song) {
     var comp = _findCompByNameCI(thCompName);
     if (!comp) comp = _thCompByNum(_leadNum(thCompName));
     if (!comp) comp = _anyTHComp();   // Verso single-channel: la unica comp TH
-    if (!comp) return 'err:TH comp "' + thCompName + '" not found.';
+    if (!comp) return _writeRaw('err:TH comp "' + thCompName + '" not found.');
     app.beginUndoGroup('Lyricator: Update thumbnail');
     var setA = _setTextLayer(comp, 'Artist', artist);
     var setS = _setTextLayer(comp, 'Song', song);
     app.endUndoGroup();
-    if (!setA && !setS) return 'err:No "Artist" / "Song" layers found in "' + comp.name + '".';
-    return 'ok:' + comp.name;
+    if (!setA && !setS) return _writeRaw('err:No "Artist" / "Song" layers found in "' + comp.name + '".');
+    return _writeRaw('ok:' + comp.name);
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
-    return 'err:' + e.message;
+    return _writeRaw('err:' + e.message);
   }
 }
 

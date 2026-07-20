@@ -24,6 +24,11 @@
           <CEFCommandLine>
             <Parameter>--disable-web-security</Parameter>
             <Parameter>--allow-running-insecure-content</Parameter>
+            <!-- macOS: sin esto el <audio> no puede leer file:// y Chrome bloquea el
+                 play() programatico hasta que haya un gesto del usuario (por eso solo
+                 sonaba tras dar play en el proyecto de AE). -->
+            <Parameter>--allow-file-access-from-files</Parameter>
+            <Parameter>--autoplay-policy=no-user-gesture-required</Parameter>
           </CEFCommandLine>
           <NetworkAccess>
             <Allow>

@@ -91,3 +91,13 @@ CSInterface.prototype.setWindowTitle = function (title) {
   if (window.__adobe_cep__) window.__adobe_cep__.invokeSyncCommand
     ? window.__adobe_cep__.invokeSyncCommand(0, title) : null;
 };
+
+// Le pide al host (AE) que NO consuma estas combinaciones de teclas y las entregue al panel
+// en su lugar. Es el unico mecanismo que evita que macOS/AE intercepte Space (Play), Cmd+Z
+// (Undo), etc. a nivel nativo ANTES de que lleguen al DOM del panel — preventDefault() del
+// lado JS no alcanza a detenerlas en Mac. Faltaba en esta build recortada de CSInterface: sin
+// este metodo, cualquier llamada a registerKeyEventsInterest era un no-op silencioso.
+CSInterface.prototype.registerKeyEventsInterest = function (keyEventsInterest) {
+  if (!window.__adobe_cep__ || !window.__adobe_cep__.registerKeyEventsInterest) return false;
+  return window.__adobe_cep__.registerKeyEventsInterest(keyEventsInterest);
+};

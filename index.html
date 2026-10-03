@@ -13,10 +13,10 @@
   --container:#171717;
   --panel:#0E0E0E;                     /* lyrics + timeline panels (darker than side panels) */
   --track:#161616;
-  --accent:#5762FA;
-  --accent35:rgba(87,98,250,.35);
-  --accent25:rgba(87,98,250,.25);
-  --accent50:rgba(87,98,250,.5);
+  --accent:#8a8a8a;                    /* gris opaco (antes indigo) */
+  --accent35:rgba(138,138,138,.35);
+  --accent25:rgba(138,138,138,.22);
+  --accent50:rgba(138,138,138,.5);
   --btnbox:#161616;                    /* sub-container behind the button pills */
   --inact:rgba(255,255,255,.5);        /* inactive button icon + text */
   --title:rgba(255,255,255,.7);
@@ -28,7 +28,7 @@
   --p1:#171717;--p2:#1f1f1f;--p3:#212121;--p4:#3a3a3a;--p5:#444;
   --ln:rgba(255,255,255,.07);--ln2:rgba(255,255,255,.12);
   --tx:#e9e9e9;--tx2:#9a9a9a;--tx3:#6a6a6a;
-  --bl:#5762FA;--bl2:#7f88ff;--bl-dim:rgba(87,98,250,.15);
+  --bl:#8a8a8a;--bl2:#a8a8a8;--bl-dim:rgba(138,138,138,.15);
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',system-ui,sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
 
@@ -71,7 +71,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .ch-status svg{width:13px;height:13px}
 
 .ch-editor{display:flex;flex-direction:column;gap:8px;max-height:0;opacity:0;margin-top:0;overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1),opacity .35s ease,margin-top .45s cubic-bezier(.16,1,.3,1)}
-.channel.expanded .ch-editor{max-height:900px;opacity:1;margin-top:10px}
+.channel.expanded .ch-editor{max-height:1600px;opacity:1;margin-top:10px}   /* tope alto: el textarea (resize:vertical) puede agrandarse sin recortarse */
 .ch-clear{align-self:flex-end;background:none;border:none;color:var(--text-dim);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:7px;transition:.12s}
 .ch-clear:hover{color:#e06666;background:rgba(224,102,102,.1)}
 .ch-clear svg{width:11px;height:11px}
@@ -93,9 +93,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .lyr-stage.grabbing{cursor:grabbing}
 .lyr-flow{position:absolute;left:0;right:0;top:0;text-align:center;padding:46% 30px;transition:transform .55s cubic-bezier(.22,.61,.36,1);will-change:transform}
 .lyr-flow.nodrift{transition:none}
-.lyr-line{font-size:17.5px;font-weight:500;line-height:1.6;cursor:pointer;text-align:center}
+.lyr-line{font-size:17.5px;font-weight:400;line-height:1.6;cursor:pointer;text-align:center}
 .lyr-line:hover .lk{filter:brightness(1.3)}
-.lk{display:inline-block;color:rgba(255,255,255,.26);transition:color .3s ease}
+.lk{display:inline-block;color:rgba(255,255,255,.25);transition:color .3s ease,font-weight .15s ease}
 /* [Verse] / [Chorus] / [Bridge]… : siempre VISIBLES como referencia, pero INACTIVAS —
    no se clican, no se seleccionan, no se marcan y nunca entran al SRT. */
 .lyr-line.section{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;cursor:default;user-select:none;pointer-events:none;margin-top:.85em;margin-bottom:.15em}   /* breathing room between section blocks */
@@ -116,14 +116,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .tl-wrap.zoomed .tl-fade-x{display:block}
 .tl-fade-x.l{left:0;background:linear-gradient(to right,var(--track),rgba(48,48,48,0))}
 .tl-fade-x.r{right:0;background:linear-gradient(to left,var(--track),rgba(48,48,48,0))}
-.tl-marker{position:absolute;top:0;height:100%;background:var(--accent);border-radius:var(--rad-pill);pointer-events:auto;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tl-marker{position:absolute;top:0;height:100%;background:#b8b8b8;border-radius:var(--rad-pill);pointer-events:auto;box-shadow:0 1px 4px rgba(0,0,0,.3)}   /* gris claro, sin llegar a blanco */
 .tl-marker.sel{filter:brightness(1.15);box-shadow:0 0 0 2px rgba(255,255,255,.28);z-index:5}
 /* resize handles that appear inside a SELECTED marker, near each end */
 .tl-handle{position:absolute;top:50%;transform:translateY(-50%);width:2.5px;height:100%;background:#fff;border-radius:2px;cursor:ew-resize;z-index:9;box-shadow:0 0 3px rgba(0,0,0,.7)}
 .tl-handle.l{left:3px}.tl-handle.r{right:3px}
 /* Playhead: just a tall white line; constant length at any zoom, only its WIDTH thins on zoom, with a track-coloured ring so it never blends into the markers */
 .tl-playhead{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:#fff;z-index:20;pointer-events:none;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 0 5px rgba(255,255,255,.45)}
-.tl-tip{position:absolute;bottom:calc(100% + 6px);transform:translateX(-50%);background:#fff;color:#111;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;padding:3px 7px;border-radius:6px;white-space:nowrap;pointer-events:none;display:none;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+/* Recuadro de tiempo al ajustar un marcador: position:fixed para escapar del overflow del
+   timeline y quedar POR ENCIMA del panel de lyrics. Fondo muy opaco, texto blanco pequeño. */
+.tl-tip{position:fixed;transform:translateX(-50%);background:rgba(16,16,16,.92);color:#fff;font-size:9.5px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 6px;border-radius:5px;white-space:nowrap;pointer-events:none;display:none;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.6)}
 /* full-timeline overview, shown only when zoomed */
 .tl-mini{position:relative;height:20px;background:#151515;border-radius:8px;overflow:hidden;cursor:pointer;display:none}
 #tlMiniMarks{position:absolute;inset:0;pointer-events:none}
@@ -177,11 +179,25 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .lc-right{justify-content:flex-end}
 .lc-center{display:flex;align-items:center;gap:8px;flex-shrink:0}
 .t-center-timer{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px}
-.t-center-timer .t-timer-flat{font-size:15px}
+/* inactivo = blanco tenue (opaco); acelerado (rate15) = blanco pleno — paridad con LMG/CM */
+.t-center-timer .t-timer-flat{font-size:15px;color:rgba(255,255,255,.5);transition:color .2s ease}
+.t-center-timer .t-timer-flat.rate15{color:#fff}
 /* status legend ABOVE the timer, faint */
 .t-center-timer .t-status{font-size:11.5px;color:var(--text-dim);margin-bottom:2px;min-height:14px;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .25s ease}
 .t-center-timer .t-status.base{color:var(--text-dim);opacity:.55}
 .t-center-timer .t-status.on{opacity:.5}
+.t-center-timer .t-dots{display:flex;gap:3px;justify-content:center;align-items:center;height:6px;margin-bottom:2px;opacity:0;transition:opacity .25s ease}
+.t-center-timer .t-dots.on{opacity:1}
+.t-center-timer .t-dots span{width:4px;height:4px;border-radius:50%;background:#fff}
+/* Barra de progreso (ancho fijo + margin auto = centrado exacto bajo el timer en Win y Mac,
+   no depende del ancho flex, que se resuelve distinto entre plataformas). */
+.t-center-timer .t-pbar{width:72px;max-width:72px;height:2px;margin:3px auto 0;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden;opacity:0;transition:opacity .2s ease}
+.t-center-timer .t-pbar.on{opacity:1}
+.t-center-timer .t-pbar>i{display:block;height:100%;width:0;border-radius:2px;background:#fff;transition:width .18s linear}
+.t-center-timer .t-pbar.indet>i{width:35%;animation:pbarIndet 1s ease-in-out infinite}
+@keyframes pbarIndet{0%{margin-left:-35%}100%{margin-left:100%}}
+/* Leyenda fija (cancion) DEBAJO del timer — igual que LMG. */
+.t-center-timer .t-channel{font-size:11px;color:var(--text-dim);opacity:.6;margin-top:2px;min-height:13px;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 /* Verso 2: speed selectors flanking the timer (no containers, semi-opaque) */
 .rate-wrap{display:flex;align-items:center;justify-content:center}
 /* speed selectors: always visible, small, flanking the timer */
@@ -244,10 +260,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .tl-ctl>.tl-btn,.tl-ctl>.tl-imp,.mode-toggle>.mode-pill{position:relative;z-index:1}
 /* pill button — transparent; the sliding indicator provides the indigo highlight */
 .tl-btn{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border:none;border-radius:999px;background:transparent;color:var(--inact);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .15s}
+/* Web: el Export ocupa el hueco del toggle Video/Short (un poco mas ancho). */
+.tl-ctl.tl-wide{padding-left:6px;padding-right:6px}
+.tl-ctl.tl-wide .tl-btn{padding:0 22px}
 .tl-btn .tl-ico{display:flex;align-items:center;justify-content:center;width:14px;height:14px;flex:0 0 14px}
 .tl-btn .tl-ico svg{width:14px;height:14px}
-.tl-btn:hover,.tl-btn.on,.tl-btn.active-imp{color:var(--accent)}
-.tl-btn:hover .tl-ico,.tl-btn.on .tl-ico,.tl-btn.active-imp .tl-ico{color:var(--accent)}
+.tl-btn:hover,.tl-btn.on,.tl-btn.active-imp{color:rgba(255,255,255,.95)}
+.tl-btn:hover .tl-ico,.tl-btn.on .tl-ico,.tl-btn.active-imp .tl-ico{color:rgba(255,255,255,.95)}
 .tl-btn .tl-lbl{overflow:hidden;max-width:120px;transition:max-width .24s cubic-bezier(.22,1,.36,1),opacity .18s,padding .24s cubic-bezier(.22,1,.36,1)}
 /* Import: expands inline; on hover Render shrinks to its icon (slides right) to free space */
 .tl-imp{position:relative;display:inline-flex;align-items:center;border-radius:999px}
@@ -272,12 +291,12 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 /* ─── VIDEO / SHORT MODE TOGGLE (4th container) — sliding knob, returns to selected ─── */
 .mode-toggle{position:relative;display:inline-flex;gap:1px;align-items:center;background:var(--btnbox);border-radius:999px;padding:2px;user-select:none;flex-shrink:0}
 .mode-pill{font-size:11px;font-weight:700;line-height:1;padding:0 11px;height:22px;display:inline-flex;align-items:center;border-radius:999px;cursor:pointer;background:transparent;color:var(--inact);transition:color .18s}
-.mode-pill:hover,.mode-pill.on{color:var(--accent)}
+.mode-pill:hover,.mode-pill.on{color:rgba(255,255,255,.95)}
 
 /* ─── DETAILS PANEL — floating card ON TOP of the lyrics panel (inset, no shadow) ─── */
 .lyr-content{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.22,1,.36,1)}
-.lyrics.details-open .lyr-content{transform:translateX(var(--dp-shift,120px))}
-.details-panel{position:absolute;top:12px;left:12px;bottom:12px;width:224px;z-index:8;padding:13px;
+.lyrics.details-open .lyr-content{transform:translateX(var(--dp-shift,156px))}
+.details-panel{position:absolute;top:12px;left:12px;bottom:12px;width:300px;max-width:calc(100% - 24px);z-index:8;padding:13px;
   background:#121212;border:1px solid rgba(255,255,255,.06);border-radius:14px;
   opacity:0;transform:scale(.97);transform-origin:left center;pointer-events:none;
   transition:opacity .2s ease,transform .22s cubic-bezier(.22,1,.36,1);
@@ -286,10 +305,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dp-body{display:flex;flex-direction:column;gap:8px;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none}
 .dp-body::-webkit-scrollbar{display:none}
 .dp-inputs{display:flex;gap:7px}
-/* inputs: no border, just a subtly lighter container so they stand out from the panel */
-.dp-in{flex:1;min-width:0;height:30px;padding:0 11px;border-radius:9px;border:none;background:#1c1c1c;color:var(--text);font-size:11px;font-weight:600;outline:none}
+/* inputs: borde tenue que se ilumina al enfocar (paridad con CM/LMG) */
+.dp-in{flex:1 1 0;min-width:0;height:30px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#1c1c1c;color:var(--text);font-size:11px;font-weight:600;outline:none;transition:border-color .15s,background .15s,flex-grow .32s cubic-bezier(.22,1,.36,1)}
+.dp-in:focus{flex-grow:3.4;border-color:var(--accent);background:rgba(255,255,255,.07)}
 .dp-in::placeholder{color:rgba(255,255,255,.35)}
-.dp-lyr{flex:1 1 auto;min-height:110px;max-height:70vh;resize:vertical;padding:10px 11px;border-radius:11px;border:none;background:#1c1c1c;color:var(--text);font-size:12px;line-height:1.6;outline:none;font-family:inherit;scrollbar-width:none;-ms-overflow-style:none}
+/* Sin max-height: el flex-parent (.dp-body, height:100%) ya limita la altura real
+   disponible del panel; un max-height:70vh dejaba hueco debajo de los botones en
+   ventanas altas porque el textarea se topaba con ese techo antes de llegar al fondo. */
+.dp-lyr{flex:1 1 auto;min-height:110px;padding:10px 11px;border-radius:11px;border:1px solid rgba(255,255,255,.10);background:#1c1c1c;color:var(--text);font-size:12px;line-height:1.6;outline:none;font-family:inherit;scrollbar-width:none;-ms-overflow-style:none;transition:border-color .15s,background .15s}
+.dp-lyr:focus{border-color:var(--accent);background:rgba(255,255,255,.07)}
 .dp-lyr::-webkit-scrollbar{display:none}
 .dp-lyr::placeholder{color:rgba(255,255,255,.35)}
 .dp-thumb{width:100%;border-radius:9px}
@@ -302,7 +326,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dp-actions>.dp-act{position:relative;z-index:1;flex:1}
 .dp-act{display:flex;align-items:center;justify-content:center;gap:6px;height:28px;border:none;border-radius:999px;background:transparent;color:var(--inact);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .15s}
 .dp-act svg{width:14px;height:14px}
-.dp-act:hover,.dp-act:hover svg{color:var(--accent)}
+.dp-act:hover,.dp-act:hover svg{color:rgba(255,255,255,.95)}
 .dp-act.danger:hover,.dp-act.danger:hover svg{color:#e06666}
 .dp-act.loading{opacity:.55;pointer-events:none}
 /* Genius input that extends from the Lyrics button to cover the whole pill */
@@ -436,10 +460,8 @@ body.touch .app{height:100vh;height:100dvh}
 .mbtn:hover{background:var(--p4);color:var(--tx)}
 .mbtn.ok{background:var(--bl);border-color:var(--bl);color:#fff}
 .mbtn.ok:hover{background:var(--bl2)}
-.srtout{width:100%;height:240px;background:var(--p3);border:1px solid var(--ln2);border-radius:8px;color:var(--bl);font-size:11px;padding:8px;resize:none;outline:none;line-height:1.7;font-family:'Consolas',monospace}
 .minput{width:100%;height:28px;background:var(--p3);border:1px solid var(--ln2);border-radius:8px;color:var(--tx);font-size:11px;padding:0 8px;outline:none;transition:border-color .1s}
 .minput:focus{border-color:var(--bl)}
-.lpb-sel{height:24px;padding:0 6px;background:var(--p3);border:1px solid var(--ln2);color:var(--tx2);font-size:11px;border-radius:6px;cursor:pointer;outline:none}
 
 /* ─── TOAST ─── */
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--p3);border:1px solid var(--ln2);border-radius:8px;padding:7px 16px;font-size:12px;color:var(--tx);z-index:400;opacity:0;transition:opacity .15s,transform .15s;pointer-events:none;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,.6)}
@@ -502,25 +524,6 @@ input[type=file]{display:none}
   </div>
 </div>
 
-<!-- EXPORT MODAL (web only — inside AE the main button imports directly) -->
-<div class="ov" id="eov">
-  <div class="modal" style="width:500px">
-    <h3>Export SRT</h3>
-    <p>Copy or download the subtitles as an .srt file.</p>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:11px;color:var(--tx3)">Lines per block:</span>
-      <select class="lpb-sel" id="lpb"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
-    </div>
-    <textarea class="srtout" id="srtout" readonly></textarea>
-
-    <div class="mact">
-      <button class="mbtn" onclick="closeExport()">Close</button>
-      <button class="mbtn" onclick="copySRT()">Copy</button>
-      <button class="mbtn" onclick="dlSRT()">Download .srt</button>
-    </div>
-  </div>
-</div>
-
 <!-- AUTO-SYNC MODAL -->
 <div class="ov" id="asov">
   <div class="modal" style="width:440px">
@@ -576,6 +579,7 @@ if (window.__adobe_cep__ && typeof CSInterface !== 'undefined') {
   try { csInterface = new CSInterface(); } catch(e){ csInterface = null; }
 }
 var IN_AE = !!csInterface;   // single source of truth for "running inside After Effects"
+var IS_MAC = (navigator.platform||'').toLowerCase().indexOf('mac')>=0 || /mac/i.test(navigator.userAgent||'');
 // Touch device = iPad / iPhone (web on a touch screen). AE/desktop-web use the mouse.
 var IS_TOUCH = (('ontouchstart' in window) || (navigator.maxTouchPoints||0) > 0) && !IN_AE;
 try{
@@ -661,9 +665,31 @@ AEL.addEventListener('seeked', frameUpdate);
 AEL.addEventListener('ended', function(){ cancelAnimationFrame(rafId); rafId=null; });
 AEL.addEventListener('loadedmetadata', function(){ var a=getActive(); dur=AEL.duration||0; if(a) a.audioDur=dur; tlRefresh(); frameUpdate(); });
 
-window.addEventListener('keydown', onKey);
+window.addEventListener('keydown', onKey, true);   // capture: interceptar antes que nada
 window.addEventListener('mousemove', onGlobalMove);
 window.addEventListener('mouseup', onGlobalUp);
+// ── FOCO / TECLADO EN AE ──
+// MAC: cualquier manipulacion de foco (window.focus(), .focus() a un elemento, blur) SACA del
+// panel y AE termina reproduciendo su composicion. Por eso en Mac NO tocamos el foco: el clic
+// nativo ya enfoca el WebView del panel (igual que en Windows), y el enrutado de Space/Enter/
+// Delete/Cmd+Z al panel lo resuelve registerKeyEventsInterest con el keyCode CORRECTO (ver
+// _registerKeys: JS keyCode 32 para Space, no el virtual de macOS 49, que era el bug real).
+// WINDOWS: reclamar el foco de la ventana funciona perfecto — NO se cambia.
+function reclaimFocus(e){
+  if(!IN_AE || IS_MAC) return;   // MAC: no tocar el foco en absoluto
+  try{ window.focus(); }catch(e4){}
+  try{ if(document.activeElement && document.activeElement.blur && /^(BUTTON|A)$/.test(document.activeElement.tagName)) document.activeElement.blur(); }catch(e5){}
+}
+if(IN_AE){
+  if(!IS_MAC){
+    window.addEventListener('mousedown', reclaimFocus, true);
+    window.addEventListener('pointerdown', reclaimFocus, true);
+    window.addEventListener('touchstart', reclaimFocus, true);
+  }
+  // Re-registrar el interes de teclas al (re)enfocar la ventana; algunas versiones de CEP lo
+  // pierden al cambiar de ventana. Inocuo, y ayuda a que las teclas vayan al panel.
+  window.addEventListener('focus', function(){ try{ if(csInterface && csInterface.registerKeyEventsInterest) _registerKeys(); }catch(e){} });
+}
 window.addEventListener('resize', function(){ tlRefresh(); updateLyricHighlight(AEL.currentTime||0); });
 window.addEventListener('mousedown', function(e){ if(!e.target.closest('#rateMenu')&&!e.target.closest('#tRate')) closeRateMenu(); if(!e.target.closest('#importMenu')&&!e.target.closest('#mainActionBtn')) closeImportMenu(); });
 
@@ -780,7 +806,7 @@ lyrStage.addEventListener('wheel', function(e){ e.preventDefault(); lyrBrowseUnt
 lyrStage.addEventListener('touchstart', function(e){ if(e.touches.length!==1) return; lyrBrowseUntil=Date.now()+5000; if(lyrEaseId){ cancelAnimationFrame(lyrEaseId); lyrEaseId=null; } lyrVel=0; _lyrTouchVelY=0; lyrDrag=true; lyrMoved=false; lyrDragStartY=e.touches[0].clientY; _lyrTouchLastY=e.touches[0].clientY; _lyrTouchLastT=Date.now(); var fl=document.getElementById('lyrFlow'); lyrBaseY=getTY(fl); fl.classList.add('nodrift'); },{passive:true});
 lyrStage.addEventListener('touchend', function(){ if(IS_TOUCH && selStampSet.size && !lyrMoved){ selStampSet.clear(); syncTouchButtons(); tlRefresh(); } },{passive:true});
 
-['eov','asov','gov','chPop'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('click', function(e){ if(e.target===e.currentTarget) e.target.classList.remove('open'); }); });
+['asov','gov','chPop'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('click', function(e){ if(e.target===e.currentTarget) e.target.classList.remove('open'); }); });
 // ─── CHANNELS (fixed list; each maps to its Lyrics + TH comp by exact name) ───
 // The list is always shown (never depends on reading the project). Only the
 // actions (Import / Thumbnail / audio) reach into AE, targeting these comps by name.
@@ -847,17 +873,22 @@ function initSlider(container, restFn){
   container._slideRest();
 }
 function buildActionBar(){
-  // 1) Lyrics-panel centre block: legends (status) above, timer below, speeds flanking.
+  // 1) Lyrics-panel centre block (igual que LMG): avisos temporales ARRIBA del timer y la
+  //    leyenda fija (cancion) ABAJO, en #tChannel.
   var bar=document.querySelector('.lyr-controls');
   if(bar){
     bar.classList.remove('ae');
     bar.innerHTML=
       '<div class="t-center-timer">'+
         '<div class="t-status" id="tStatus"></div>'+
+        '<div class="t-dots" id="tDots"></div>'+
         '<div class="t-timer-flat" id="tTimer" title="Click to cycle speed: 1× → 1.5× → 2.1× → 3×" onclick="toggleRate15()">00:00:00</div>'+
+        '<div class="t-pbar" id="tPbar"><i></i></div>'+
+        '<div class="t-channel" id="tChannel">'+esc(_legendBase)+'</div>'+
       '</div>';
   }
-  // 2) Timeline bar — LEFT: Song · Details · Import · Render (control pills).
+  // 2) Timeline bar — LEFT: Song · Details · Import · Render (control pills). Web: no
+  // Export here — it lives in the RIGHT group instead (next to the line selector).
   var importPill = IN_AE
     ? '<div class="tl-imp" id="tlImp">'+
         '<button class="tl-btn tl-imp-head" id="btnImport" onclick="importClick(event)" title="Import timestamped lyrics to the comp"><span class="tl-ico">'+CLIP_SVG+'</span><span class="tl-lbl">Import</span></button>'+
@@ -865,7 +896,7 @@ function buildActionBar(){
           '<button class="tl-imp-opt" onclick="importSRTFile(event)" title="Import an external .srt into the comp">SRT</button>'+
         '</div>'+
       '</div>'
-    : _pill('mainActionBtn','importClick(event)','Export SRT',ARROWDN_SVG,'Export');
+    : '';
   var tlLeft=document.getElementById('tlLeft');
   if(tlLeft){
     tlLeft.innerHTML=
@@ -874,7 +905,8 @@ function buildActionBar(){
       importPill+
       (IN_AE?_pill('btnRender','renderAction(event)','Render',PLAY_SVG,'Render'):'');
   }
-  // 3) Timeline bar — RIGHT: lines-per-timestamp icons + Video/Short toggle.
+  // 3) Timeline bar — RIGHT: lines-per-timestamp icons + Video/Short toggle (AE) or the
+  // wide Export button in its place (web — sin toggle, como Verso LMG).
   var tlRight=document.getElementById('tlRight');
   if(tlRight){
     tlRight.innerHTML=
@@ -883,16 +915,19 @@ function buildActionBar(){
         '<button class="tl-icobtn" id="lt3" onclick="setLinesPerStamp(3)" title="3 lines per timestamp">'+LINES3_SVG+'</button>'+
         '<button class="tl-icobtn" id="lt4" onclick="setLinesPerStamp(4)" title="4 lines per timestamp">'+LINES4_SVG+'</button>'+
       '</div>'+
-      '<div class="mode-toggle" id="modeToggle" role="switch" aria-label="Video / Short">'+
-        '<span class="mode-pill'+(!SHORT_MODE?' on':'')+'" onclick="setMode(false)">Video</span>'+
-        '<span class="mode-pill'+(SHORT_MODE?' on':'')+'" onclick="setMode(true)">Short</span>'+
-      '</div>';
+      (IN_AE
+        ? '<div class="mode-toggle" id="modeToggle" role="switch" aria-label="Video / Short">'+
+            '<span class="mode-pill'+(!SHORT_MODE?' on':'')+'" onclick="setMode(false)">Video</span>'+
+            '<span class="mode-pill'+(SHORT_MODE?' on':'')+'" onclick="setMode(true)">Short</span>'+
+          '</div>'
+        : '<div class="tl-ctl tl-wide" id="tlRenderCtl">'+_pill('mainActionBtn','importClick(event)','Export SRT',ARROWDN_SVG,'Export')+'</div>');
   }
   syncRateUI();
   syncLinesMenu();
   // sliding hover indicators: controls (rests on the active/flashed pill) + toggle (rests on selected)
   initSlider(document.getElementById('tlLeft'), function(){ var c=document.getElementById('tlLeft'); return c?c.querySelector('.tl-btn.on'):null; });
   initSlider(document.getElementById('modeToggle'), function(){ var c=document.getElementById('modeToggle'); return c?c.querySelector('.mode-pill.on'):null; });
+  initSlider(document.getElementById('tlRenderCtl'), function(){ var c=document.getElementById('tlRenderCtl'); return c?c.querySelector('.tl-btn.on'):null; });
   // Import hover: shrink Render to its icon (slides right) so the Import/SRT pill fits
   var imp=document.getElementById('tlImp'), ctl=document.getElementById('tlLeft');
   if(imp&&ctl){
@@ -937,6 +972,30 @@ function buildActionBar(){
 // no tener que reajustarla cada vez. El timer cicla 1× → 1.5× → 2.1× → 3× → 1×.
 var currentRate=1;
 try{ var _sr=parseFloat(localStorage.getItem('verso_rate')); if(_sr>0&&_sr<=3) currentRate=_sr; }catch(e){}
+// ─── Barra de progreso (ancho del timer). Para procesos largos: avanza con el tiempo
+// (creep asintotico) y se completa al terminar. Si hay conteo real, setProgress(frac) manda.
+function _pbarHide(p){ if(!p) return; p.classList.remove('on'); if(p.firstChild) p.firstChild.style.width='0'; }
+function startProgress(estMs){
+  var p=document.getElementById('tPbar'); if(!p) return; var bar=p.firstChild;
+  clearTimeout(p._h); clearTimeout(p._safety); if(p._raf){ cancelAnimationFrame(p._raf); p._raf=null; }
+  p.classList.add('on'); bar.style.width='2%';
+  var t0=Date.now(), est=estMs||7000;
+  (function creep(){ var e=(Date.now()-t0)/est, f=Math.min(0.92, 1-Math.exp(-e*1.6)); bar.style.width=(f*100).toFixed(1)+'%'; p._raf=requestAnimationFrame(creep); })();
+  // Red de seguridad (se veia en Mac que la barra quedaba pegada): si ningun stopProgress la
+  // cierra —dialogo cancelado, error, o un nuevo start que cancelo el ocultado— se oculta igual.
+  // El tope se reinicia en cada start/set, asi que procesos largos legitimos no se cortan antes.
+  p._safety=setTimeout(function(){ if(p._raf){ cancelAnimationFrame(p._raf); p._raf=null; } _pbarHide(p); }, Math.max(15000,(est||0)+8000));
+}
+function setProgress(frac){
+  var p=document.getElementById('tPbar'); if(!p) return; if(p._raf){ cancelAnimationFrame(p._raf); p._raf=null; }
+  clearTimeout(p._safety); p._safety=setTimeout(function(){ _pbarHide(p); }, 15000);
+  p.classList.add('on'); p.firstChild.style.width=(Math.max(0,Math.min(1,frac))*100).toFixed(1)+'%';
+}
+function stopProgress(){
+  var p=document.getElementById('tPbar'); if(!p) return; if(p._raf){ cancelAnimationFrame(p._raf); p._raf=null; }
+  clearTimeout(p._safety);
+  p.firstChild.style.width='100%'; clearTimeout(p._h); p._h=setTimeout(function(){ _pbarHide(p); }, 450);   // llena y desaparece al completar
+}
 function toggleRate15(){
   var cur=currentRate||1, next;
   if(Math.abs(cur-1)<0.001) next=1.5;
@@ -945,7 +1004,16 @@ function toggleRate15(){
   else next=1;
   currentRate=next;
   try{ localStorage.setItem('verso_rate', String(next)); }catch(e){}
-  applyGlobalRate(); toast('Speed '+next+'×', 1500);
+  applyGlobalRate(); showSpeedDots(next);
+}
+// Puntos ENCIMA del timer indicando el nivel de velocidad; se desvanecen tras un momento.
+function showSpeedDots(rate){
+  var d=document.getElementById('tDots'); if(!d) return;
+  var n = Math.abs(rate-1.5)<0.02?1 : Math.abs(rate-2.1)<0.02?2 : Math.abs(rate-3)<0.02?3 : 0;
+  var h=''; for(var i=0;i<n;i++) h+='<span></span>'; d.innerHTML=h;
+  clearTimeout(d._t);
+  if(n>0){ d.classList.add('on'); d._t=setTimeout(function(){ d.classList.remove('on'); }, 1800); }
+  else d.classList.remove('on');
 }
 // Cargar una cancion nueva resetea playbackRate a 1 → reaplicar la velocidad global.
 function applyGlobalRate(){
@@ -962,19 +1030,30 @@ function loadSingleSong(ev){
   if(ev) ev.stopPropagation();
   flashPill('btnMaster');
   if(!csInterface){ openAudio(); return; }
-  var short=SHORT_MODE;                                      // Short → replace the "Short Song" footage
-  toast(short?'Select the short song file…':'Select the song file…');
+  var short=SHORT_MODE;
+  // "2 por 1": desde Short, el mismo archivo (una sola vez se elige) reemplaza AMBAS —
+  // "Short Song" Y "Song" (video) — ajusta el rango de "Short" Y del video largo, y borra
+  // los SRT viejos en ambos lados. Antes solo tocaba el lado Short.
+  toast(short?'Select the song file (Short + Video)…':'Select the song file…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
     _evalDlg((short?'loadShortSongFile()':'loadSingleSongFile()'), function(txt){
       var r=_parseRes(txt, 'Song'); if(!r) return;
       if(!r.ok){ toast('Song: '+((r.msg||'')==='Cancelled'?'carga cancelada':(r.msg||'error')), 5000); return; }
       var ch=getActive();
-      if(ch && r.path){ _applySongTitle(ch, r.path, true); if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); } }
+      if(ch && r.path){
+        _applySongTitle(ch, r.path, true);   // aplica al par activo (Short si short, Video si no)
+        if(short){
+          // mismo archivo -> aplicar tambien al par de VIDEO, sin depender de SHORT_MODE.
+          var base=r.path.split(/[\\\/]/).pop(), meta=parseAudioMeta(base);
+          if(meta.artist) ch.artist=meta.artist;
+          if(meta.song) ch.song=meta.song;
+        }
+        if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); }
+      }
       renderChannels(); syncTitle(); tlRefresh();
-      var _sn=(r.path?String(r.path).replace(/^.*[\\\/]/,'').replace(/\.[^.]+$/,''):'');
-      toast('✓ '+(short?'Short song':'Cancion')+' cargada'+(_sn?(' · '+_sn):'')+' · rango ajustado'+(r.removed?(' · '+r.removed+' SRT borrados'):''), 6000);
-      // Auto-update the thumbnail with the new Artist/Song (same step the Thumbnail button does).
+      toast('✓ Cancion cargada'+(short?' (Short + Video)':'')+' · rango ajustado'+(r.removed?(' · '+r.removed+' SRT borrados'):''), 6000);
+      // Auto-update the thumbnail(s) with the new Artist/Song (same step the Thumbnail button does).
       if(ch && chArtist(ch) && chSong(ch)){ thumbnailAction(ch.id); }
     });
   });
@@ -987,9 +1066,11 @@ function toggleDetails(ev){ if(ev) ev.stopPropagation(); var lp=document.getElem
 function setDetailsOpen(open){
   var lp=document.getElementById('lyricsPanel'); if(!lp) return;
   if(open){
-    // Details panel width matches the first (controls) container; content shifts to re-centre.
+    // Details panel width matches the first (controls) container, with a comfortable floor —
+    // on web tlLeft only has Song+Details (no Import/Render), so its width alone was too
+    // narrow and squeezed the Artist/Song inputs + lyrics box (looked like "Arl"/"So").
     var tlLeft=document.getElementById('tlLeft'), panel=document.getElementById('detailsPanel');
-    var w=(tlLeft&&tlLeft.offsetWidth)?tlLeft.offsetWidth:224;
+    var w=Math.max((tlLeft&&tlLeft.offsetWidth)||224, 300);
     if(panel) panel.style.width=w+'px';
     lp.style.setProperty('--dp-shift', Math.round(w/2+6)+'px');
     renderChannels();
@@ -1046,7 +1127,7 @@ function stampGroupFrom(from){
 // Color by number of lines: 1=blue, 2=celeste, 3=magenta, 4=rosado.
 // n=1 (default) uses the theme accent; 2/3/4-line groups keep distinct indicator colours.
 // ACCENT_* mirror the CSS --accent so inline marker/karaoke colours match the theme.
-var ACCENT='#5762FA', ACCENT_DIM='rgba(87,98,250,.5)', ACCENT_HI='rgba(87,98,250,.18)';
+var ACCENT='#b8b8b8', ACCENT_DIM='rgba(255,255,255,.5)', ACCENT_HI='rgba(255,255,255,.18)';   // gris claro, sin llegar a blanco (paridad con Verso LMG)
 // Markers are ALWAYS indigo, regardless of how many lines the stamp groups.
 function lineColor(){ return ACCENT; }
 function lineColorDim(){ return ACCENT_DIM; }
@@ -1102,7 +1183,7 @@ try{ buildActionBar(); }catch(e){}
 if(IS_TOUCH){ try{ buildTouchTimelineControls(); }catch(e){} try{ buildHamburger(); }catch(e){} }
 // On open (panel already up while a project loads): auto-pull the song filename and fill
 // Artist/Song without needing a manual refresh.
-if(IN_AE){ ensureHost(function(ok){ if(ok) aeLoadSong(getActive(), false, true); }); }
+if(IN_AE){ _registerKeys(); setTimeout(_registerKeys, 800); setTimeout(_registerKeys, 2500); ensureHost(function(ok){ if(ok) aeLoadSong(getActive(), false, true); }); }   // re-registro con retraso: en Mac el registro inicial puede ocurrir antes de que el panel este listo
 // Auto-sync: while the panel stays open and the user opens/changes the project or loads a
 // new song, re-pull the filename and refresh Artist/Song — but ONLY when the on-disk file
 // actually changes, so it never clobbers titles the user typed by hand.
@@ -1143,7 +1224,7 @@ function buildTouchTimelineControls(){
   document.getElementById('ttcPlay').onclick=function(){ togglePlay(); touchSyncPlayIcon(); };
   document.getElementById('ttcStamp').onclick=function(){ doStamp(); };
   var _zs=document.getElementById('tlZoomSlider');
-  if(_zs) _zs.addEventListener('input', function(){ zoom=zoomTarget=Math.max(1,Math.min(20,parseFloat(this.value)||1)); tlRefresh(); syncZoomSlider(); });
+  if(_zs) _zs.addEventListener('input', function(){ zoom=zoomTarget=Math.max(1,Math.min(20,parseFloat(this.value)||1)); if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } scrollPct=clampScroll(scrollPct); scrollTarget=scrollPct; tlRefresh(); syncZoomSlider(); });
   document.getElementById('ttcRedo').onclick=function(){ redoAction(); };
   AEL.addEventListener('play', touchSyncPlayIcon);
   AEL.addEventListener('pause', touchSyncPlayIcon);
@@ -1251,7 +1332,10 @@ function _extBase(){
 }
 function probeHost(cb){ if(!csInterface){ cb(false); return; } csInterface.evalScript('(typeof importLyricsToComp==="function" && typeof _hostVersion==="function")?"1":"0"', function(r){ cb(r==='1'); }); }
 function loadHostViaXHR(done){
-  if(_hostSrc){ csInterface.evalScript(_hostSrc, function(){ done(); }); return; }
+  // SIEMPRE via red (nunca reusar _hostSrc en cache): durante desarrollo/pruebas el archivo
+  // cambia seguido y ExtendScript no relee solo porque el .jsx se edito en disco — reusar el
+  // texto ya cargado dejaba acciones corriendo con logica vieja aunque el archivo ya estuviera
+  // corregido. El costo (una peticion GET chica) es insignificante frente a la confiabilidad.
   try{
     var xhr=new XMLHttpRequest(); xhr.open('GET','jsx/host.jsx?ts='+Date.now(),true);
     xhr.onreadystatechange=function(){ if(xhr.readyState!==4) return;
@@ -1268,12 +1352,13 @@ function loadHostViaPath(done){
   var hp=(ext.replace(/[\/\\]+$/,'')+'/jsx/host.jsx').replace(/\\/g,'/');
   csInterface.evalScript('(function(){try{$.evalFile(new File("'+hp+'"));return "1";}catch(e){return "0";}})()', function(){ done(); });
 }
-// Run cb(true) once the CURRENT host.jsx is loaded. The ExtendScript engine persists
-// across panel reloads and may hold a stale version, so on the first call this session
-// we ALWAYS re-evaluate the fresh source (XHR) before trusting it — never skip on probe.
+// Run cb(true) once the CURRENT host.jsx is loaded. El motor de ExtendScript persiste
+// entre acciones del panel y NO relee el archivo solo porque cambio en disco — por eso
+// SIEMPRE re-evaluamos la fuente actual (XHR) en cada llamada, nunca nos quedamos con la
+// version ya cargada. Sin esto, una correccion en host.jsx no se reflejaba hasta cerrar y
+// reabrir el panel entero, dando la falsa impresion de que el fix "no funcionaba".
 function ensureHost(cb){
   if(!csInterface){ cb(false); return; }
-  if(_hostReady){ cb(true); return; }
   loadHostViaXHR(function(){
     probeHost(function(ok){
       if(ok){ _hostReady=true; cb(true); return; }
@@ -1475,34 +1560,29 @@ function updateLyricHighlight(t){
     if(t>=st && t<en){ activeStamp=stamps[k]; break; }
   }
   var activeIdxs=activeStamp?stampLineSet(activeStamp):[];
-  // Preview underline: the next group the next ENTER will stamp (1/2/3 lines).
-  var nextGrp=stampGroupFrom(curLine), nextSet={}; for(var g=0;g<nextGrp.length;g++) nextSet[nextGrp[g]]=true;
 
   var flow=document.getElementById('lyrFlow'), nodes=flow.children, centerNode=null;
   for(var n=0;n<nodes.length;n++){
-    var el=nodes[n]; if(el.classList.contains('section')){ el.classList.remove('nextgrp'); continue; }
+    var el=nodes[n]; if(el.classList.contains('section')) continue;
     var li=+el.dataset.i;
     // owning stamp (the one whose line-set includes this line)
     var owner=null, oi=-1; for(var j=0;j<stamps.length;j++){ if(stampLineSet(stamps[j]).indexOf(li)!==-1){ owner=stamps[j]; oi=j; break; } }
-    if(activeStamp && activeIdxs.indexOf(li)!==-1){ paintLine(el,'active',stampLineSet(activeStamp).length); if(!centerNode) centerNode=el; }
-    else if(owner){ var s2=owner.time, l2=(owner.len!=null)?owner.len:((oi+1<stamps.length)?(stamps[oi+1].time-s2):(dur?dur-s2:3)), e2=s2+Math.max(0.05,l2); paintLine(el,(t>=e2)?'past':'future',stampLineSet(owner).length); }
-    else paintLine(el,'future');
-    // subtle "next group" hint: faint indigo TEXT on the upcoming line(s) (respects lines-per-stamp)
-    var _isActive=(activeStamp && activeIdxs.indexOf(li)!==-1);
-    if(nextSet[li] && !_isActive && el.firstChild) el.firstChild.style.color=NEXT_COLOR;
-    el.classList.remove('nextgrp'); if(el.firstChild) el.firstChild.style.background='';
+    if(activeStamp && activeIdxs.indexOf(li)!==-1){ paintLine(el,'active'); if(!centerNode) centerNode=el; }
+    else if(owner){ var s2=owner.time, l2=(owner.len!=null)?owner.len:((oi+1<stamps.length)?(stamps[oi+1].time-s2):(dur?dur-s2:3)), e2=s2+Math.max(0.05,l2); paintLine(el,(t>=e2)?'past':'future'); }
+    else paintLine(el,'future');   // includes unmarked lines (e.g. right after deleting a marker)
   }
   if(lyrManualY!==null && (AEL.paused || Date.now()<lyrBrowseUntil)) return; // user is browsing the lyrics
   flow.classList.remove('nodrift');
   if(centerNode){ var stage=document.getElementById('lyrStage'); flow.style.transform='translateY('+(-(centerNode.offsetTop - stage.clientHeight/2 + centerNode.offsetHeight/2))+'px)'; }
 }
-// Line colouring by number of lines (1=blue,2=celeste,3=magenta,4=rosado).
-// Active line(s) simply lit in a subtle indigo (in the text — no underline/box).
-var ACCENT_LYRIC='rgba(87,98,250,.85)';
-var NEXT_COLOR='rgba(124,130,178,.5)';   // desaturated (muted) indigo — distinct from the vivid "past" indigo
-function paintLine(el, state, n){
+// Solo 2 estados visuales: activa = blanco pleno + semibold (destaca cual se esta cantando);
+// todo lo demas (previous/next/sin marcar) = 40% opacidad + peso regular, uniforme.
+var ACCENT_LYRIC='#fff';
+function paintLine(el, state){
   var lk=el.firstChild; if(!lk) return;
-  lk.style.color = state==='active' ? ACCENT_LYRIC : state==='past' ? ACCENT_DIM : 'rgba(255,255,255,.26)';
+  var active=(state==='active');
+  lk.style.color = active ? ACCENT_LYRIC : 'rgba(255,255,255,.25)';
+  lk.style.fontWeight = active ? '600' : '400';
 }
 function seekToLine(i){
   if(!dur){ toast('Load audio first'); return; }
@@ -1561,16 +1641,8 @@ function renderMarkers(){
     var el=document.createElement('div'); el.className='tl-marker'+(selStampSet.has(s.id)?' sel':''); el.style.left=x+'px'; el.style.width=w+'px'; el.style.background=lineColor(stampLineSet(s).length); el.dataset.sid=s.id; el.title='#'+(i+1)+'  '+fmtClock(s.time);
     el.addEventListener('mousemove', function(ev){ if(mkDrag||scrubbing) return; var r=el.getBoundingClientRect(), ox=ev.clientX-r.left; el.style.cursor=(ox<7||ox>r.width-7)?'ew-resize':'grab'; });
     el.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDrag(ev, s.id, el); });
-    // Selected marker: explicit resize handles near each end for finer length control.
-    if(selStampSet.has(s.id) && w>10){
-      (function(sid, mel){
-        var hl=document.createElement('div'); hl.className='tl-handle l';
-        var hr=document.createElement('div'); hr.className='tl-handle r';
-        hl.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDragMode(ev, sid, mel, 'l'); });
-        hr.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDragMode(ev, sid, mel, 'r'); });
-        mel.appendChild(hl); mel.appendChild(hr);
-      })(s.id, el);
-    }
+    // Sin manijas blancas: el redimensionado se hace arrastrando cerca de los bordes del
+    // marcador (startMarkerDrag detecta ox<7 / ox>width-7 y cambia el cursor a ew-resize).
     mk.appendChild(el);
   });
 }
@@ -1606,7 +1678,7 @@ function renderMini(){
 function miniSeek(cx){ var mini=document.getElementById('tlMini'), r=mini.getBoundingClientRect(); if(!r.width) return; var pct=(cx-r.left)/r.width; scrollPct=clampScroll(pct-(1/zoom)/2); scrollTarget=scrollPct; tlRefresh(); }
 function tlRefresh(){ tlDirty=true; renderTimeline(); }
 function clampScroll(s){ return Math.max(0,Math.min(1-1/zoom,s)); }
-function startTlEase(){ if(tlEaseId) return; (function step(){ var ds=scrollTarget-scrollPct, dz=zoomTarget-zoom; if(Math.abs(ds)<0.0006 && Math.abs(dz)<0.004){ zoom=zoomTarget; scrollPct=clampScroll(scrollTarget); tlRefresh(); tlEaseId=null; return; } zoom+=dz*0.22; scrollPct=clampScroll(scrollPct+ds*0.22); tlRefresh(); tlEaseId=requestAnimationFrame(step); })(); }
+function startTlEase(){ if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } (function step(){ var ds=scrollTarget-scrollPct, dz=zoomTarget-zoom; if(Math.abs(ds)<0.0006 && Math.abs(dz)<0.004){ zoom=zoomTarget; scrollPct=clampScroll(scrollTarget); tlRefresh(); tlEaseId=null; return; } zoom+=dz*0.22; scrollPct=clampScroll(scrollPct+ds*0.22); tlRefresh(); tlEaseId=requestAnimationFrame(step); })(); }
 
 function startMarkerDrag(ev, sid, el){
   var s=getStampById(sid); if(!s) return;
@@ -1636,7 +1708,7 @@ function doScrub(clientX){
   setTimer(t);
   AEL.currentTime=t; lyrManualY=null; updateLyricHighlight(t);
 }
-function showTip(timeSec, clientX){ var wrap=document.getElementById('tlWrap'), tip=document.getElementById('tlTip'), r=wrap.getBoundingClientRect(); tip.style.left=(clientX-r.left)+'px'; tip.style.display='block'; tip.textContent=fmtTip(timeSec); }
+function showTip(timeSec, clientX){ var wrap=document.getElementById('tlWrap'), tip=document.getElementById('tlTip'), r=wrap.getBoundingClientRect(); tip.style.left=clientX+'px'; tip.style.top=(r.top-20)+'px'; tip.style.display='block'; tip.textContent=fmtTip(timeSec); }
 function hideTip(){ document.getElementById('tlTip').style.display='none'; }
 function clearActive(){ if(!stamps.length){ toast('No timestamps'); return; } pushUndo(); stamps=[]; curLine=nextStampable(0); pendingId=null; selStampSet.clear(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Timestamps cleared'); }
 
@@ -1680,6 +1752,7 @@ function togglePlay(){
     return;
   }
   if(AEL.paused){ var _pp=AEL.play(); if(_pp&&_pp['catch']) _pp['catch'](function(err){ toast('No se pudo reproducir: '+((err&&err.name)||err)); }); } else AEL.pause();
+  if(IN_AE) setTimeout(reclaimFocus, 30);   // mantener el foco en el panel tras dar play (que Space siga en Verso)
 }
 function toggleRateMenu(ev){
   if(ev) ev.stopPropagation();
@@ -1753,6 +1826,27 @@ function dlText(text, name){
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fn; document.body.appendChild(a); a.click();
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 1500);
 }
+// Mueve cualquier "(feat. X)" / "ft. X" / "featuring X" del SONG al ARTIST. El Song queda
+// limpio sin featuring; el Artist lo lleva.
+function _splitFeat(artist, song){
+  artist=(artist||'').trim(); song=(song||'').trim(); var who=null, m;
+  m=song.match(/[\(\[]\s*(?:feat\.?|ft\.?|featuring)\s+([^)\]]+?)\s*[\)\]]/i);
+  if(m){ who=m[1]; song=song.replace(m[0],'').replace(/\s{2,}/g,' ').trim(); }
+  else { m=song.match(/\s+(?:feat\.?|ft\.?|featuring)\s+(.+)$/i); if(m){ who=m[1]; song=song.slice(0,m.index).trim(); } }
+  if(who){
+    who=who.replace(/^\s+|\s+$/g,'').replace(/[\(\)\[\]]/g,'').trim();
+    var baseA=artist.replace(/\s*(?:feat\.?|ft\.?|featuring)\s+.*$/i,'').trim();
+    artist = baseA ? (baseA+' feat. '+who) : ('feat. '+who);
+  }
+  return {artist:artist, song:song};
+}
+// Verso (un solo canal): sin numeracion — "Artist - Song" (sin ft/feat en el Song, que se
+// mueve al Artist). A diferencia de LMG/CM, aqui NO hay prefijo "NN " porque el target es
+// unico (una sola comp de cada cosa), no hace falta nomenclatura para que AE lo ubique.
+function _srtName(ch){
+  var r=_splitFeat(ch.artist||'', ch.song||''), a=r.artist, s=r.song;
+  return (a&&s) ? (a+' - '+s) : (s||a||ch.name||'subtitles');
+}
 // web/touch "All": export every channel that has timestamps, one .srt each.
 function exportAll(){
   saveWorkingSet();
@@ -1760,7 +1854,7 @@ function exportAll(){
   var n=0;
   channels.forEach(function(c){
     var srt=buildSRTFor(c, lpb); if(!srt.trim()) return;
-    dlText(srt, c.song||c.name); n++;
+    dlText(srt, _srtName(c)); n++;
   });
   toast(n?('✓ Exported '+n+' SRT files'):'No finished channels to export');
 }
@@ -1807,62 +1901,21 @@ function _initHostEvents(){
     });
   }catch(e){}
 }
-// El host vuelca el resultado a un archivo DENTRO de la carpeta de la extension (junto a
-// jsx/host.jsx). El panel lo lee con un XHR RELATIVO — el mismo origen con el que ya carga
-// jsx/host.jsx — asi la lectura SIEMPRE esta permitida y ademas NO pasa por el motor de
-// ExtendScript, que queda BLOQUEADO mientras el dialogo modal esta abierto. Antes, si el
-// retorno de evalScript se perdia por el dialogo, la accion se quedaba SIN ninguna leyenda.
-var _RESULT_FILE='verso_result.json';          // relativo a index.html
-function _resultDirFS(){
-  var b='';
-  try{ b=_extBase(); }catch(e){}               // carpeta de index.html = base del XHR relativo
-  if(!b){ try{ b=csInterface.getSystemPath(SystemPath.EXTENSION); }catch(e2){} }
-  b=String(b||''); var SEP=String.fromCharCode(92);
-  while(b.length && (b.charAt(b.length-1)==='/' || b.charAt(b.length-1)===SEP)) b=b.slice(0,-1);
-  return b;
-}
-function _readResultRel(cb){
-  try{
-    var xhr=new XMLHttpRequest(); xhr.open('GET', _RESULT_FILE+'?ts='+Date.now(), true);
-    xhr.onreadystatechange=function(){ if(xhr.readyState!==4) return;
-      var t=(xhr.responseText||'').replace(/^\uFEFF/,'').replace(/\s+$/,'');
-      cb((t && t.charAt(0)==='{' && t.charAt(t.length-1)==='}')?t:null);
-    };
-    xhr.onerror=function(){ cb(null); };
-    xhr.send();
-  }catch(e){ cb(null); }
-}
 function _evalDlg(script, cb){
   if(!csInterface){ cb(null); return; }
   _initHostEvents();
+  try{ startProgress(9000); }catch(e){}   // barra de progreso para todo proceso largo
   var done=false, tries=0, timer=null;
-  function finish(v){ if(done) return; done=true; _dlgPending=null; if(timer) clearInterval(timer); cb(v); }
-  function tryReads(){
+  function finish(v){ if(done) return; done=true; _dlgPending=null; if(timer) clearInterval(timer); try{ stopProgress(); }catch(e){} try{ reclaimFocus(); }catch(e){} cb(v); }   // tras importar (dialogo de AE) devolvemos el foco al panel
+  _dlgPending=finish;                       // 1) via evento (la fiable)
+  csInterface.evalScript(script, function(raw){ if(raw) finish(raw); });   // 2) retorno directo
+  // 3) respaldo: sondeo por temporizador del volcado temporal. Independiente de los
+  //    callbacks, que AE se traga mientras esta bloqueado por el dialogo.
+  timer=setInterval(function(){
     if(done) return;
-    _readResultRel(function(t){ if(t) finish(t); });                                     // XHR relativo (no se bloquea con el modal)
-    try{ csInterface.evalScript('(typeof _readResultText===\"function\")?_readResultText():\"\"', function(t){ if(t && String(t).indexOf('{')!==-1) finish(t); }); }catch(e){}
-  }
-  _dlgPending=finish;                          // via evento CSXS (respaldo)
-  // Fija el directorio de volcado DENTRO de la extension y limpia el resultado anterior, en
-  // UNA llamada corta no-modal (asi el XHR relativo nunca lee un resultado de una accion vieja).
-  var setup='(function(){try{'
-    +'if(typeof _setResultDir===\"function\")_setResultDir('+JSON.stringify(_resultDirFS())+');'
-    +'if(typeof _clearResult===\"function\")_clearResult();'
-    +'return \"1\";}catch(e){return \"0\";}})()';
-  csInterface.evalScript(setup, function(){
-    csInterface.evalScript(script, function(raw){
-      if(raw && String(raw).indexOf('{')!==-1){ finish(raw); return; }                   // el motor devolvio el JSON directo
-      // Este callback llega cuando la funcion (y su dialogo modal) YA termino: el motor esta
-      // libre, asi que leer el volcado AHORA es fiable aunque el retorno viniera vacio.
-      var n=0; (function drain(){ if(done) return; tryReads(); if(++n<25) setTimeout(drain, 150); })();
-    });
-    // Respaldo por temporizador (por si el callback de arriba no llega en algun AE).
-    timer=setInterval(function(){
-      if(done) return;
-      if(++tries>240){ finish(null); return; }
-      tryReads();
-    }, 300);
-  });
+    if(++tries>150){ finish(null); return; }   // ~60s de margen
+    try{ csInterface.evalScript('_readResultText()', function(t){ if(t) finish(t); }); }catch(e){}
+  }, 400);
 }
 // Parseo tolerante: JSON.parse(null) devuelve null SIN lanzar, y luego r.ok reventaba
 // dentro del callback dejando la accion SIN ninguna leyenda. Aqui siempre hay mensaje.
@@ -1873,17 +1926,16 @@ function _parseRes(txt, label){
   toast(label+': '+(txt?('respuesta inesperada -> '+String(txt).slice(0,120)):'sin respuesta de AE (reabre el panel)'), 8000);
   return null;
 }
-// Import SRT: usa el dialogo de After Effects (como antes). La leyenda muestra SOLO el
-// nombre del archivo importado; si el resultado no vuelve, no se pone leyenda (sin bloqueo).
 function srtBatchAction(){
   if(!csInterface){ toast('Solo dentro de After Effects'); return; }
+  toast('Selecciona los archivos .srt…', 30000);
   ensureHost(function(ok){
     if(!ok){ toast('No se pudo conectar con AE'); return; }
     _evalDlg('importSRTBatch()', function(txt){
-      var r=null; try{ r=JSON.parse(txt); }catch(e){}
-      if(r && r.ok && r.files && r.files.length){
-        toast('✓ '+r.files.slice(0,4).join(', ')+(r.files.length>4?(' +'+(r.files.length-4)):''), 6000);
-      }
+      var r=_parseRes(txt, 'SRT'); if(!r) return;
+      if(!r.ok){ toast('SRT: '+(r.msg==='Cancelado'?'importacion cancelada':(r.msg||'error')), 5000); return; }
+      if(!r.applied){ toast('SRT: no se aplico ninguno (0/'+r.total+')', 6000); return; }
+      toast('\u2713 SRT importado en '+r.applied+'/'+r.total+' comps \u00b7 '+r.layers+' capas', 6000);
     });
   });
 }
@@ -1924,7 +1976,7 @@ function doStamp(){
   stamps.push({id:++stampSeq,lineIdx:grp[0],idxs:grp,time:AEL.currentTime}); stamps.sort(function(a,b){ return a.time-b.time; });
   curLine=nextStampable(grp[grp.length-1]+1);
   saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
-  toast('timestamp at '+fmtClock(AEL.currentTime));
+  // Sin leyenda por marcador: la hora al colocar no es relevante y ensuciaba la barra.
 }
 
 // ─── UNDO / REDO ───
@@ -1935,10 +1987,70 @@ function redoAction(){ if(!redoStack.length){ toast('Nothing to redo'); return; 
 // ─── KEYBOARD ───
 function onKey(e){
   var tg=document.activeElement.tagName; if(tg==='TEXTAREA'||tg==='INPUT'||tg==='SELECT') return;
-  if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){ e.preventDefault(); if(e.shiftKey) redoAction(); else undoAction(); return; }
-  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
-  if(e.code==='Enter'){ e.preventDefault(); doStamp(); }
-  if((e.code==='Delete'||e.code==='Backspace') && selStampSet.size){ e.preventDefault(); pushUndo(); stamps=stamps.filter(function(s){ return !selStampSet.has(s.id); }); selStampSet.clear(); recomputeCurLine(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Marker(s) deleted'); }
+  // stop() evita que la tecla llegue a AE (en Mac CMD+Z disparaba el undo del proyecto y
+  // sacaba el foco a la timeline principal). registerKeyEventsInterest hace lo mismo a
+  // nivel CEP; esto lo refuerza en el lado del panel.
+  function stop(){ e.preventDefault(); if(e.stopPropagation) e.stopPropagation(); }
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){ stop(); if(e.shiftKey) redoAction(); else undoAction(); return; }
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyY'){ stop(); redoAction(); return; }   // CMD/CTRL+Y = redo
+  if(e.code==='Space'){ stop(); togglePlay(); return; }
+  if(e.code==='Enter'||e.code==='NumpadEnter'){ stop(); doStamp(); return; }
+  if((e.code==='Delete'||e.code==='Backspace') && selStampSet.size){ stop(); pushUndo(); stamps=stamps.filter(function(s){ return !selStampSet.has(s.id); }); selStampSet.clear(); recomputeCurLine(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Marker(s) deleted'); }
+}
+// CEP: reclamar estas combinaciones para que AE NO las procese (que no reproduzca su comp con
+// Space, no dispare el undo del proyecto con Cmd+Z, etc.) y las reciba el panel.
+// CLAVE: registerKeyEventsInterest usa el keyCode de JavaScript (Space=32, Enter=13, Z=90...),
+// el MISMO en Windows y Mac. El bug era usar en Mac los virtuales de macOS (Space=49): AE nunca
+// soltaba Space y reproducia su composicion. Ahora Mac usa 32 igual que Windows.
+function _registerKeys(){
+  try{
+    if(!csInterface || !csInterface.registerKeyEventsInterest){
+      if(IS_MAC && !_registerKeys._warned){ _registerKeys._warned=1; toast('⚠ registerKeyEventsInterest no disponible en este CEP — avisa a soporte', 6000); }
+      return;
+    }
+    var ev;
+    if(IS_MAC){
+      // MAC: formato minimo (solo el modificador que aplica) para combos SIN modificador
+      // (ya confirmado funcionando para Play). Para combos CON modificador (undo/redo) se usa
+      // el formato explicito de 4 banderas (K2, igual que Windows), reforzado con respaldos de
+      // virtual keycode de macOS por si esta build de CEP los matchea asi.
+      ev=[];
+      function m(code, mods){ var o={keyCode:code}; if(mods) for(var k in mods) o[k]=mods[k]; ev.push(o); }
+      // NO TOCAR: formato ya confirmado funcionando para Play en Mac.
+      m(32);                                            // Space (play)
+      m(13);                                            // Enter / NumpadEnter (stamp) — ambos son keyCode 13
+      m(8); m(46);                                      // Backspace / Delete (borrar)
+      function K2(code, ctrl, meta, shift){ return { keyCode:code, ctrlKey:!!ctrl, altKey:false, shiftKey:!!shift, metaKey:!!meta }; }
+      ev.push(K2(90,false,true,false), K2(90,false,true,true));   // Cmd+Z / Cmd+Shift+Z (undo/redo)
+      ev.push(K2(90,true,false,false), K2(90,true,false,true));   // Ctrl+Z / Ctrl+Shift+Z
+      ev.push(K2(89,false,true,false), K2(89,true,false,false));  // Cmd/Ctrl+Y (redo)
+      // Respaldo: mismos combos con los virtual keycodes de macOS (Z=6, Y=16)
+      m(90,{metaKey:true}); m(90,{metaKey:true,shiftKey:true});
+      m(90,{ctrlKey:true}); m(90,{ctrlKey:true,shiftKey:true});
+      m(89,{metaKey:true}); m(89,{ctrlKey:true});
+      m(6,{metaKey:true}); m(6,{metaKey:true,shiftKey:true}); m(6,{ctrlKey:true}); m(6,{ctrlKey:true,shiftKey:true});
+      m(16,{metaKey:true}); m(16,{ctrlKey:true});
+      // Respaldo generico: virtual keycodes de macOS para Enter/Delete
+      m(49); m(36); m(76); m(51); m(117);
+    } else {
+      // WINDOWS: formato que ya funciona perfecto — NO cambiar.
+      function K(code, ctrl, meta, shift){ return { keyCode:code, ctrlKey:!!ctrl, altKey:false, shiftKey:!!shift, metaKey:!!meta }; }
+      ev=[
+        K(90,true,false,false), K(90,false,true,false),   // Ctrl+Z / Cmd+Z  (undo)
+        K(90,true,false,true),  K(90,false,true,true),    // +Shift          (redo)
+        K(89,true,false,false), K(89,false,true,false),   // Ctrl/Cmd+Y      (redo)
+        K(32,false,false,false),                          // Space           (play)
+        K(13,false,false,false),                          // Enter           (stamp)
+        K(8,false,false,false), K(46,false,false,false)   // Backspace / Del (borrar)
+      ];
+    }
+    var _r=csInterface.registerKeyEventsInterest(JSON.stringify(ev));
+    // Diagnostico (una vez): confirma en vivo si el registro se ejecuto sin lanzar. No
+    // garantiza que AE lo honre, pero descarta que el bridge nativo este ausente o fallando.
+    if(IS_MAC && !_registerKeys._ok){ _registerKeys._ok=1; toast('Verso: teclas registradas ('+ev.length+')', 2500); }
+  }catch(e){
+    if(IS_MAC && !_registerKeys._err){ _registerKeys._err=1; toast('⚠ Verso: fallo registrando teclas — '+(e&&e.message||e), 6000); }
+  }
 }
 
 // ─── GLOBAL MOUSE ───
@@ -2009,15 +2121,16 @@ function buildSRT(lpb){
 }
 // Main control button: inside AE it imports straight into the comp; on the web it opens the export modal.
 function mainAction(){ if(csInterface) importStyleController(); else doExport(); }
+// Exporta directo (sin popup): descarga el .srt de una vez con el nombre "Artist - Song"
+// tal como aparece en los inputs del panel Details.
 function doExport(){
   if(!stamps.length){ toast('No timestamps yet'); return; }
-  var lpb=parseInt(document.getElementById('lpb').value)||1;
-  document.getElementById('srtout').value=buildSRT(lpb);
-  document.getElementById('eov').classList.add('open');
+  var lpbEl=document.getElementById('lpb'), lpb=lpbEl?(parseInt(lpbEl.value)||1):1;
+  var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to export'); return; }
+  var ch=getActive();
+  dlText(srt, ch?_srtName(ch):'subtitles');
+  toast('✓ SRT exported'+(ch?': '+_srtName(ch):''));
 }
-function closeExport(){ document.getElementById('eov').classList.remove('open'); }
-function copySRT(){ navigator.clipboard.writeText(document.getElementById('srtout').value).then(function(){ toast('Copied!'); }); }
-function dlSRT(){ dlText(document.getElementById('srtout').value, (getActive()&&getActive().song)?getActive().song:'subtitles'); }
 // Channels whose import auto-creates the AE comp (named like the channel) when no comp is selected.
 function chAutoCreatesComp(name){ return (name||'').trim().toLowerCase()==='nightclub nostalgia'; }
 
@@ -2205,15 +2318,14 @@ function renderAction(ev){
   if(ev) ev.stopPropagation();
   flashPill('btnRender');
   if(!csInterface){ toast('Render is only available inside After Effects'); return; }
-  var short=SHORT_MODE;                                      // Short → queue only the "Short" comp (H.264)
+  var short=SHORT_MODE;                                      // Short → TH + video + comp "Short"
   toast(short?'Render Short…':'Render…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
-    _evalDlg((short?'renderShortRun()':'renderRun()'), function(txt){
+    _evalDlg('renderRun('+(short?'true':'false')+')', function(txt){
       var r=_parseRes(txt, 'Render'); if(!r) return;
       if(!r.ok){ toast('Render: '+(r.msg||'error'), 6000); return; }
-      var m=short ? ('✓ Short "'+r.name+'" to Render Queue')
-                  : ('✓ '+r.added+' to Render Queue (TH '+r.thCount+' · Main '+r.mainCount+')');
+      var m='✓ '+r.added+' to Render Queue (TH '+r.thCount+' · Main '+r.mainCount+')';
       if(r.tmplWarning) m+=' ⚠ '+r.tmplWarning;
       toast(m);
     });
@@ -2224,13 +2336,14 @@ function renderAction(ev){
 function thumbnailAction(id){
   if(!csInterface){ toast('Only inside After Effects'); return; }
   var ch=id!=null?getChannel(id):getActive();
-  // Short mode targets the "Short" comp's "Short Artist" / "Short Song" text layers.
-  if(!SHORT_MODE && (!ch||!ch.th)){ toast('Channel has no TH comp'); return; }
+  if(!ch||!ch.th){ toast('Channel has no TH comp'); return; }
   toast('Updating thumbnail…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
+    // "2 por 1": desde Short se actualizan AMBAS — la TH de video (con los datos de video) Y
+    // la comp "Short" (con los datos de short). Desde Video, solo la TH.
     var call=SHORT_MODE
-      ? 'updateShortThumbnail('+JSON.stringify(chArtist(ch))+','+JSON.stringify(chSong(ch))+')'
+      ? 'updateThumbnailBoth('+JSON.stringify(ch.th)+','+JSON.stringify(ch.artist||'')+','+JSON.stringify(ch.song||'')+','+JSON.stringify(ch.shortArtist||'')+','+JSON.stringify(ch.shortSong||'')+')'
       : 'updateThumbnailComp('+JSON.stringify(ch.th)+','+JSON.stringify(chArtist(ch))+','+JSON.stringify(chSong(ch))+')';
     csInterface.evalScript(call, function(r){
       if(r&&r.indexOf('ok:')===0){ toast('✓ Miniatura actualizada · '+r.slice(3), 5000); loadThumbPreview(ch); }
@@ -2278,11 +2391,12 @@ function importToChannel(){
   var lpbEl=document.getElementById('lpb'), lpb=lpbEl?(parseInt(lpbEl.value)||1):1;
   var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to import'); return; }
   var opt={ styleLayerName:'Style Controler', fadeIn:0.3, fadeOut:0.3, lyricsBySuffix:true };
-  toast('Importing to '+(SHORT_MODE?'Short Lyrics':ch.lyr)+'…');
+  // "2 por 1": desde Short el SRT va a AMBAS (Lyrics + Short Lyrics); desde Video, solo a Lyrics.
+  toast('Importing to '+(SHORT_MODE?(ch.lyr+' + Short Lyrics'):ch.lyr)+'…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
     var call=SHORT_MODE
-      ? 'importLyricsToShort('+JSON.stringify(_srtSafe(srt))+','+JSON.stringify(JSON.stringify(opt))+')'
+      ? 'importLyricsToBoth('+JSON.stringify(ch.lyr)+','+JSON.stringify(_srtSafe(srt))+','+JSON.stringify(JSON.stringify(opt))+')'
       : 'importLyricsToComp('+JSON.stringify(ch.lyr)+','+JSON.stringify(_srtSafe(srt))+','+JSON.stringify(JSON.stringify(opt))+')';
     csInterface.evalScript(call, function(result){
       if(!result||result==='undefined'){ toast('No response from AE'); return; }
@@ -2384,22 +2498,26 @@ function openGenius(){
 }
 function closeGenius(){ document.getElementById('gov').classList.remove('open'); }
 function gStatus(msg,color){ var el=document.getElementById('g-status'); if(el){ el.textContent=msg; el.style.color=color||'var(--tx3)'; } }
+// Solo cuenta la ULTIMA carga pedida: si una anterior llega tarde, no pisa la letra nueva.
+var _gTok=0;
 function loadGenius(){
   var btn=document.getElementById('g-loadbtn');
-  var url=(document.getElementById('g-link-single').value||'').trim();
+  var url=_gLinkOf(document.getElementById('g-link-single').value);
   if(!url){ gStatus('Paste a Genius link first','#c66'); return; }
   var ch=getActive(); if(!ch){ gStatus('No channel','#c66'); return; }
   ch.geniusUrl=url;
+  var tok=++_gTok;
   btn.disabled=true; gStatus('Fetching…','var(--bl)');
-  fetchGeniusLyrics(url, function(err,lyr){
+  fetchGeniusLyrics(url, function(err,lyr,src){
+    if(tok!==_gTok) return;
     btn.disabled=false;
     if(err||!lyr){ gStatus('Error: '+(err||'no lyrics found'),'#c66'); toast('Genius: '+(err||'no lyrics')); return; }
     ch.lyricsText=lyr; ch.lines=deriveLines(lyr); ch.loaded=ch.lines.length>0;
     if(ch.id===activeId){ lines=ch.lines.slice(); pendingId=null; renderLyricsFlow(); }
     renderChannels(); syncTitle();
     var ta=document.querySelector('.channel[data-id="'+ch.id+'"] .ch-lyr'); if(ta){ ta.value=ch.lyricsText; ta.classList.add('filled'); }
-    gStatus('✓ Loaded','var(--bl)'); toast('✓ Genius lyrics loaded'); closeGenius();
-  }, function(p){ gStatus(_geniusProgMsg(p), 'var(--bl)'); });
+    gStatus('✓ Loaded'+(src==='lrclib'?' (LRCLIB — no [sections])':''),'var(--bl)'); toast('✓ Genius lyrics loaded'+(src==='lrclib'?' (LRCLIB)':'')); closeGenius();
+  }, function(p){ if(tok===_gTok) gStatus(_geniusProgMsg(p), 'var(--bl)'); });
 }
 // Verso 2: load lyrics from the INLINE Genius input (inside the Lyrics button).
 function loadGeniusInline(ev){
@@ -2423,13 +2541,16 @@ function _applyGeniusLyrics(ch, lyr){
 }
 function applyGeniusUrl(url){
   var ch=getActive(); if(!ch){ toast('No channel'); return; }
-  ch.geniusUrl=url; toast('Fetching lyrics…', 60000);
+  url=_gLinkOf(url); var tok=++_gTok;
+  ch.geniusUrl=url; toast('Fetching lyrics…', 60000); startProgress(6000);
   var btn=document.getElementById('dpLyrBtn'); if(btn) btn.classList.add('loading');
-  fetchGeniusLyrics(url, function(err,lyr){
+  fetchGeniusLyrics(url, function(err,lyr,src){
+    if(tok!==_gTok) return;   // llego tarde: ya se pidio otro link
+    stopProgress();
     if(btn) btn.classList.remove('loading');
     if(err||!lyr||!_applyGeniusLyrics(ch, lyr)){ toast('Genius: '+(err||'no lyrics found')); return; }
-    toast('✓ Lyrics loaded');
-  }, function(p){ toast(_geniusProgMsg(p), 60000); });
+    toast('✓ Lyrics loaded'+(src==='lrclib'?' (LRCLIB — no [sections])':''));
+  }, function(p){ if(tok!==_gTok) return; toast(_geniusProgMsg(p), 60000); if(p&&p.total) setProgress(Math.min(0.9,(p.done||0)/p.total)); });
 }
 // Load from the detected Genius tab: use the instantly-scraped lyrics if we got them,
 // otherwise fetch the URL through the proxy. Falls back to the paste input if neither.
@@ -2494,128 +2615,357 @@ function scanGeniusTab(){
   // No extension / no Genius tab → stay on the default paste flow (no auto action).
   setTimeout(function(){ if(!done){ window.removeEventListener('message', onMsg); GENIUS_TAB_URL=null; GENIUS_TAB_LYRICS=null; setGeniusFound(null); } }, 700);
 }
-// Discreet progress message for the import (small line under the timer / in the popup).
+// Discreet progress message for the import (small line — popup status / toast).
 function _geniusProgMsg(p){
   if(!p) return 'Fetching lyrics…';
   if(p.stage==='done')   return '✓ Lyrics loaded';
   if(p.stage==='deep')   return 'Fetching lyrics… (deep search)';
+  if(p.stage==='retry')  return 'Fetching lyrics… (retrying)';
   if(p.stage==='lrclib') return 'Fetching lyrics… (matching)';
   var n=Math.min((p.done|0)+1, p.total||1);
   return 'Fetching lyrics… ('+n+'/'+(p.total||1)+')';
 }
-// AE can fetch genius.com directly (no web security). On web/touch the browser blocks
-// cross-origin reads, so we go through CORS proxies that return the page.
-// FAST: all proxies race in parallel (8s cap each) AND LRCLIB fires alongside after a
-// short head-start — first source to yield lyrics wins. onProg(p) reports import status.
-function fetchGeniusLyrics(url, cb, onProg){
-  if(!/^https?:\/\//i.test(url)){ cb('invalid url', null); return; }
-  var enc=encodeURIComponent(url);
-  var sources=[
-    { u:'https://proxy.corsfix.com/?'+url,              json:false },
-    { u:'https://corsproxy.io/?url='+enc,               json:false },
-    { u:'https://api.allorigins.win/raw?url='+enc,      json:false },
-    { u:'https://api.codetabs.com/v1/proxy?quest='+enc, json:false },
-    { u:'https://thingproxy.freeboard.io/fetch/'+url,   json:false },
-    { u:'https://api.allorigins.win/get?url='+enc,      json:true  }  // JSON {contents:"..."}
-  ];
-  if(IN_AE) sources.unshift({ u:url, json:false });   // AE has no web security → direct
-  var done=false, pending=sources.length, tried=0, total=sources.length;
-  function report(stage){ if(onProg){ try{ onProg({stage:stage, done:tried, total:total}); }catch(e){} } }
-  report('start');
-  function finishNow(lyr, err){ if(done) return; done=true; if(lyr) report('done'); cb(lyr?null:(err||'no lyrics found'), lyr||null); }
-  // ALL page sources failed → no-proxy fallbacks: AE downloads the real page with the
-  // system curl; then LRCLIB (open lyrics API with CORS) searched by the URL slug.
-  function fallback(){
-    report('deep');
-    _aeCurlFetch(url, function(html){
-      var lyr=html?parseGeniusHTML(html):null;
-      if(lyr){ finishNow(lyr); return; }
-      _lrclibFetch(url, function(t){ finishNow(t||null, t?null:'no lyrics found'); });
-    });
-  }
-  function finish(err, lyr){
-    if(done) return;
-    tried++;
-    if(lyr){ finishNow(lyr); }
-    else{ report('progress'); if(--pending<=0){ fallback(); } }
-  }
-  sources.forEach(function(s){
-    var settled=false;
-    function settle(err, lyr){ if(settled||done) return; settled=true; finish(err, lyr); }
-    var ctrl = window.AbortController ? new AbortController() : null;
-    var to=setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } settle('timeout', null); }, 5500);
-    fetch(s.u, ctrl ? { signal:ctrl.signal } : undefined)
-      .then(function(r){ return r.text(); })
-      .then(function(txt){
-        clearTimeout(to);
-        if(s.json){ try{ var j=JSON.parse(txt); txt=j.contents||j.html||''; }catch(e){ txt=''; } }
-        var lyr = txt ? parseGeniusHTML(txt) : null;
-        settle(lyr ? null : 'no lyrics', lyr);
-      })
-      .catch(function(){ clearTimeout(to); settle('network error', null); });
-  });
-  // Fire LRCLIB in parallel after a short head-start so a Genius-accurate proxy result is
-  // preferred when quick, but we still get a fast answer if the proxies stall. Runs in AE
-  // too — there the proxy/curl path is the slowest, so this is the big win.
-  setTimeout(function(){ if(done) return; _lrclibFetch(url, function(t){ if(t){ report('lrclib'); finishNow(t); } }); }, 700);
+
+// ─── GENIUS FETCH ENGINE ───
+// UNA peticion = UN link. Nada se comparte entre peticiones (en AE cada descarga con curl
+// usa su PROPIO archivo temporal) y cada resultado se verifica contra la URL canonica de
+// su link → cada canal recibe SIEMPRE la letra de SU link, en el orden de los links.
+// Rutas (gana la primera letra verificada):
+//  · embed  — genius.com/songs/<id>/embed.js: CORS abierto (*), ~6 KB, trae las [Secciones].
+//             El <id> sale de la API de busqueda (match EXACTO del link) y queda en cache.
+//  · pagina — HTML de Genius: directo en AE; via proxies CORS en web (los proxies gratis
+//             fallan seguido — ya no son la unica via, y se piden datos chicos primero).
+//  · curl   — solo AE: curl del sistema, en cola (uno a la vez), archivo temporal unico.
+//  · LRCLIB — ultimo recurso (sin [Secciones]) y solo si coincide artista+titulo del link.
+// Si nada responde, se reintenta una vez (los proxies se recuperan de rate-limits).
+// OPCIONAL — web 100% confiable: token GRATIS de la API oficial de Genius (tiene CORS
+// abierto). En https://genius.com/api-clients crea un "API Client" y pulsa "Generate
+// Access Token"; pega aqui el "Client Access Token" (o en la consola del navegador:
+// localStorage.setItem('verso_genius_token','<token>')). Con el token, cada link se
+// resuelve a su id sin proxies y la letra sale del embed. Sin token todo sigue igual.
+var GENIUS_API_TOKEN='';
+function _gToken(){ if(GENIUS_API_TOKEN) return GENIUS_API_TOKEN; try{ return localStorage.getItem('verso_genius_token')||''; }catch(e){ return ''; } }
+var _G_PROXIES=[
+  { n:'corsfix',         w:function(u){ return 'https://proxy.corsfix.com/?'+u; } },   // localhost / dominio registrado
+  { n:'allorigins',      w:function(u){ return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u); } },
+  { n:'codetabs',        w:function(u){ return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u); } },
+  { n:'corslol',         w:function(u){ return 'https://api.cors.lol/?url='+encodeURIComponent(u); } },
+  { n:'allorigins-json', w:function(u){ return 'https://api.allorigins.win/get?url='+encodeURIComponent(u); }, json:true }
+];
+var _gMem={};   // link normalizado -> {lyr, src}: letras verificadas de esta sesion
+var _gIds={};   // link normalizado -> id de la cancion en Genius (persistente: la proxima vez va directo al embed)
+try{ _gIds=JSON.parse(localStorage.getItem('verso_genius_ids')||'{}')||{}; }catch(e){ _gIds={}; }
+function _gRememberId(k, id){
+  id=parseInt(id,10); if(!k||!(id>0)||_gIds[k]===id) return;
+  _gIds[k]=id;
+  try{ var ks=Object.keys(_gIds); while(ks.length>500) delete _gIds[ks.shift()]; localStorage.setItem('verso_genius_ids', JSON.stringify(_gIds)); }catch(e){}
 }
-// Fallback #1 (AE only): download the Genius page with the SYSTEM curl (Windows 10+
-// ships it) via ExtendScript — real TLS + browser UA, immune to CEP CORS/Cloudflare.
-// The panel then reads the temp file (cep.fs) and parses it like any other source.
-function _aeCurlFetch(url, cb){
-  if(!IN_AE||!csInterface||!window.cep||!window.cep.fs){ cb(null); return; }
-  ensureHost(function(ok){
-    if(!ok){ cb(null); return; }
-    csInterface.evalScript('(typeof fetchGeniusToTemp==="function")?"1":"0"', function(has){
-      function go(){
-        csInterface.evalScript('fetchGeniusToTemp('+JSON.stringify(url)+')', function(r){
-          if(!r||r.indexOf('ok:')!==0){ cb(null); return; }
-          try{
-            var res=window.cep.fs.readFile(r.slice(3), window.cep.encoding.UTF8);
-            cb(res&&res.err===0?res.data:null);
-          }catch(e){ cb(null); }
-        });
-      }
-      if(has==='1'){ go(); } else { _hostSrc=null; loadHostViaXHR(go); }
+// Salud de cada proxy (no perder tiempo en uno caido): 2 fallas seguidas = 60 s en pausa
+// (el reintento la ignora: timeouts/429 suelen ser pasajeros); 400/401/403 = pide cuenta,
+// API key u origen registrado → 10 min fuera, ni siquiera en el reintento.
+var _gHealth={};
+function _gUp(n, force){ var h=_gHealth[n], now=Date.now(); return !h || (now>=h.dead && (force || now>=h.until)); }
+function _gMark(n, ok, err){
+  var h=_gHealth[n]||(_gHealth[n]={fail:0, until:0, dead:0});
+  if(ok){ h.fail=0; h.until=0; h.dead=0; return; }
+  if(/^HTTP 40[013]$/.test(err||'')){ h.dead=Date.now()+600000; return; }
+  if(++h.fail>=2){ h.fail=0; h.until=Date.now()+60000; }
+}
+// "https://www.Genius.com/Bad-bunny-dtmf-lyrics?x#y" → "genius.com/bad-bunny-dtmf-lyrics"
+function _gNorm(u){
+  u=String(u||'').trim(); try{ u=decodeURIComponent(u); }catch(e){}
+  return u.replace(/^[a-z]+:\/\//i,'').replace(/^(?:www|m)\./i,'').replace(/[?#].*$/,'').replace(/\/amp\//i,'/').replace(/\/+$/,'').toLowerCase();
+}
+function _gIsGenius(u){ return /^https?:\/\/(?:www\.|m\.)?genius\.com\/\S+/i.test(String(u||'')); }
+// El link dentro de lo pegado ("1. Artista - Cancion https://genius.com/…" → solo la URL).
+function _gLinkOf(s){ s=String(s||'').trim(); var m=s.match(/https?:\/\/[^\s"'<>]+/i); return m?m[0]:s; }
+// Palabras de busqueda desde el slug del link: ".../Bad-bunny-dtmf-lyrics" → "Bad bunny dtmf"
+function _gQuery(u){
+  var m=String(u||'').match(/genius\.com\/(?:amp\/)?([^?#\s]+)/i), s=m?m[1]:'';
+  try{ s=decodeURIComponent(s); }catch(e){}
+  return s.replace(/\/+$/,'').replace(/-(?:lyrics|annotated)$/i,'').replace(/[-_\/]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function _gCanon(html){
+  html=String(html||'');
+  var m=/<link\b[^>]*\brel=["']?canonical["']?[^>]*>/i.exec(html), h=m&&/\bhref=["']([^"']+)["']/i.exec(m[0]);
+  if(h) return h[1];
+  m=/<meta\b[^>]*\bproperty=["']og:url["'][^>]*>/i.exec(html); h=m&&/\bcontent=["']([^"']+)["']/i.exec(m[0]);
+  return h?h[1]:'';
+}
+// 'ok' = es la pagina del link · 'redirect' = Genius redirigio el link a su slug actual ·
+// 'other' = otra URL sin redireccion confirmada → solo se usa si ninguna ruta trae algo mejor.
+function _gVerify(canon, key, finalUrl){
+  if(!canon) return 'ok';
+  var c=_gNorm(canon);
+  if(c===key) return 'ok';
+  if(finalUrl && _gNorm(finalUrl)===c) return 'redirect';
+  return 'other';
+}
+function _gIdFromHtml(html){ html=String(html||''); var m=/genius:\/\/songs\/(\d+)/.exec(html)||/"song_id"\s*:\s*(\d+)/.exec(html); return m?parseInt(m[1],10):0; }
+// Busca en la respuesta de busqueda (genius.com/api/search/song o api.genius.com/search)
+// el resultado cuya URL es EXACTAMENTE el link.
+// → {id, n}: id (0 si no esta) y cuantos resultados trajo (10 = puede haber otra pagina).
+function _gPickId(j, key){
+  var resp=(j&&j.response)||{}, secs=resp.sections||[{ hits:resp.hits||[] }], i, k, hits, r, n=0;
+  for(i=0;i<secs.length;i++){ hits=(secs[i]&&secs[i].hits)||[]; n+=hits.length; for(k=0;k<hits.length;k++){ r=hits[k]&&hits[k].result; if(r&&r.id&&r.url&&_gNorm(r.url)===key) return { id:r.id, n:n }; } }
+  return { id:0, n:n };
+}
+// GET con tiempo limite. cb(err, texto, urlFinal) se llama UNA sola vez. Devuelve {abort}.
+function _gGet(u, ms, cb){
+  var fin=false, ctrl=window.AbortController?new window.AbortController():null;
+  function end(err, t, fu){ if(fin) return; fin=true; clearTimeout(to); cb(err, t||'', fu||''); }
+  var to=setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } end('timeout'); }, ms);
+  try{
+    fetch(u, ctrl?{ signal:ctrl.signal }:undefined)
+      .then(function(r){ var fu=r.url||''; return r.text().then(function(t){ end(r.ok?null:('HTTP '+r.status), t, fu); }); })
+      .catch(function(){ end('network error'); });
+  }catch(e){ end('network error'); }
+  return { abort:function(){ if(fin) return; fin=true; clearTimeout(to); if(ctrl){ try{ ctrl.abort(); }catch(e){} } } };
+}
+// embed.js = document.write(JSON.parse('<HTML del embed como literal JS>')) → {lyr, canon}
+function _gUnescapeJS(s){
+  return String(s).replace(/\\(u[0-9a-fA-F]{4}|x[0-9a-fA-F]{2}|[\s\S])/g, function(m, c){
+    if(c.length>1) return String.fromCharCode(parseInt(c.slice(1),16));
+    return c==='n'?'\n':c==='r'?'\r':c==='t'?'\t':c==='b'?'\b':c==='f'?'\f':c==='v'?'\v':c==='0'?'\0':(c==='\n'||c==='\r')?'':c;
+  });
+}
+function _gParseEmbed(js){
+  var m=/JSON\.parse\('((?:[^'\\]|\\[\s\S])*)'\)/.exec(String(js||'')); if(!m) return null;
+  var html=''; try{ html=String(JSON.parse(_gUnescapeJS(m[1]))||''); }catch(e){ return null; }
+  // Los saltos de la letra son <br>; los \n literales del HTML del embed son solo formato.
+  html=html.replace(/<br\s*\/?>\s*/gi,'<br>').replace(/\s*\n\s*/g,' ');
+  var doc=new DOMParser().parseFromString(html, 'text/html');
+  var body=doc.querySelector('.rg_embed_body'); if(!body) return null;
+  var a=doc.querySelector('a.rg_embed_logo[href]')||doc.querySelector('.rg_embed_footer a[href]');
+  var t=_cleanGeniusText(_geniusNodeText(body));
+  return t ? { lyr:t, canon:a?a.getAttribute('href'):'' } : null;
+}
+// AE: descarga la pagina con el curl del SISTEMA (via host.jsx) — TLS real + UA de navegador,
+// inmune a CORS/Cloudflare del CEF. UNA descarga a la vez y cada una a SU archivo temporal:
+// antes todas escribian verso_genius.html y, en Mac, los callbacks de evalScript llegaban
+// cuando la cola ya habia terminado → todos los canales leian el ultimo archivo (misma letra).
+var _gCurlQ=[], _gCurlBusy=false, _gCurlHostAt=0, _gCurlSeq=0;
+function _aeCurlFetch(url, cb){   // cb(html|null, urlFinal) · devuelve {abort} (lo saca de la cola)
+  var job={ url:url, cb:cb, dead:false };
+  if(!IN_AE||!csInterface||!window.cep||!window.cep.fs){ setTimeout(function(){ cb(null, ''); }, 0); return { abort:function(){} }; }
+  _gCurlQ.push(job); _gCurlPump();
+  return { abort:function(){ job.dead=true; } };
+}
+function _gCurlPump(){
+  if(_gCurlBusy) return;
+  var job=null; while(_gCurlQ.length && !job){ var j=_gCurlQ.shift(); if(!j.dead) job=j; }
+  if(!job) return;
+  _gCurlBusy=true;
+  var fired=false, safety=setTimeout(function(){ out(null, ''); }, 30000);   // si AE nunca contesta, la cola sigue
+  function out(html, fu){ if(fired) return; fired=true; clearTimeout(safety); _gCurlBusy=false; if(!job.dead){ try{ job.cb(html||null, fu||''); }catch(e){} } _gCurlPump(); }
+  _gCurlHostReady(function(ok){
+    if(!ok){ out(null, ''); return; }
+    var tag=Date.now()+'_'+(++_gCurlSeq)+'_'+Math.floor(Math.random()*1e6);
+    csInterface.evalScript('fetchGeniusToFile('+JSON.stringify(job.url)+','+JSON.stringify(tag)+')', function(r){
+      r=String(r||'');
+      if(r.indexOf('ok:')!==0){ if(r.indexOf('EvalScript error')===0) _gCurlHostAt=0; out(null, ''); return; }
+      var nl=r.indexOf('\n'), path=nl>=0?r.slice(3,nl):r.slice(3), fu=nl>=0?r.slice(nl+1):'', html=null;
+      try{ var res=window.cep.fs.readFile(path, window.cep.encoding.UTF8); if(res&&res.err===0) html=res.data; }catch(e){}
+      try{ if(window.cep.fs.deleteFile) window.cep.fs.deleteFile(path); }catch(e){}
+      out(html, fu);
     });
   });
 }
-// Fallback #2 (web + AE): LRCLIB, an open lyrics API with permissive CORS (no proxy,
-// no key). Searches "artist song" derived from the genius URL slug.
+// host.jsx con fetchGeniusToFile cargado? Se verifica con un typeof barato (antes se recargaba
+// el host.jsx completo por CADA cancion) y solo si falta se recarga con ensureHost.
+function _gCurlHostReady(cb){
+  if(Date.now()-_gCurlHostAt<120000){ cb(true); return; }
+  csInterface.evalScript('(typeof fetchGeniusToFile==="function")?"1":"0"', function(has){
+    if(has==='1'){ _gCurlHostAt=Date.now(); cb(true); return; }
+    ensureHost(function(){
+      csInterface.evalScript('(typeof fetchGeniusToFile==="function")?"1":"0"', function(h2){ if(h2==='1') _gCurlHostAt=Date.now(); cb(h2==='1'); });
+    });
+  });
+}
+// Ultimo recurso (web + AE): LRCLIB (API abierta con CORS) buscando "artista titulo" del slug.
+// Solo acepta un resultado cuyo artista+titulo cubra el slug (>=75% de sus palabras):
+// antes tomaba el PRIMER resultado y podia meter la letra de otra cancion.
+function _gTokens(s){
+  s=String(s||'').toLowerCase(); try{ s=s.normalize('NFD').replace(/[\u0300-\u036F]/g,''); }catch(e){}
+  var stop={ and:1, feat:1, ft:1, featuring:1, with:1, x:1, y:1, lyrics:1 }, out=[], w=s.split(/[^a-z0-9]+/);
+  for(var i=0;i<w.length;i++){ if(w[i] && !stop[w[i]]) out.push(w[i]); }
+  return out;
+}
 function _lrclibFetch(url, cb){
-  var m=url.match(/genius\.com\/([^\/?#]+?)(?:-lyrics)?(?:[\/?#]|$)/i);
-  var q=m?m[1].replace(/-+/g,' ').replace(/\s+/g,' ').trim():'';
-  if(!q){ cb(null); return; }
-  var ctrl=window.AbortController?new AbortController():null;
-  var to=setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } }, 5000);
-  fetch('https://lrclib.net/api/search?q='+encodeURIComponent(q), ctrl?{signal:ctrl.signal}:undefined)
-    .then(function(r){ return r.json(); })
-    .then(function(list){
-      clearTimeout(to);
-      var best=null;
-      for(var i=0;i<(list||[]).length;i++){ var it=list[i]; if(it&&it.plainLyrics){ best=it; break; } }
-      cb(best?_cleanGeniusText(best.plainLyrics):null);
-    })
-    .catch(function(){ clearTimeout(to); cb(null); });
+  var want=_gTokens(_gQuery(url));
+  if(!want.length){ setTimeout(function(){ cb(null); }, 0); return { abort:function(){} }; }
+  // Sin conectores ("and", "feat"…): LRCLIB devuelve 0 resultados si la busqueda los incluye.
+  return _gGet('https://lrclib.net/api/search?q='+encodeURIComponent(want.join(' ')), 8000, function(err, txt){
+    var list=null; if(!err){ try{ list=JSON.parse(txt); }catch(e){} }
+    var best=null, bestSc=0, bestExtra=1e9, i, k;
+    for(i=0;i<((list&&list.length)||0);i++){
+      var it=list[i]; if(!it||!it.plainLyrics) continue;
+      var have=_gTokens((it.artistName||'')+' '+(it.trackName||'')), hs={}, hit=0;
+      for(k=0;k<have.length;k++) hs[have[k]]=1;
+      for(k=0;k<want.length;k++) if(hs[want[k]]) hit++;
+      var sc=hit/want.length, extra=have.length-hit;   // empate → el titulo mas limpio (sin "Official Video"…)
+      if(sc>bestSc || (sc===bestSc && extra<bestExtra)){ bestSc=sc; bestExtra=extra; best=it; }
+    }
+    cb(best&&bestSc>=0.75?_cleanGeniusText(best.plainLyrics):null);
+  });
 }
-// Parse Genius HTML reliably via the DOM (handles nested spans/links + <br>).
+// cb(err, letra, fuente) · fuente: 'embed' | 'page' | 'curl' | 'lrclib'. onProg(p) = estado.
+function fetchGeniusLyrics(url, cb, onProg){
+  url=String(url||'').trim();
+  if(!/^https?:\/\//i.test(url)){ cb('invalid url', null); return; }
+  var key=_gNorm(url), isG=_gIsGenius(url);
+  if(_gMem[key]){ var mc=_gMem[key]; setTimeout(function(){ if(onProg){ try{ onProg({stage:'done', done:1, total:1}); }catch(e){} } cb(null, mc.lyr, mc.src); }, 0); return; }
+  var S={ over:false, cand:null, live:[], timers:[], tried:0, total:0, round:1, notFound:false };
+  function prog(stage){ if(onProg){ try{ onProg({stage:stage, done:S.tried, total:Math.max(1,S.total)}); }catch(e){} } }
+  function stopAll(){ var i; for(i=0;i<S.timers.length;i++) clearTimeout(S.timers[i]); for(i=0;i<S.live.length;i++){ try{ S.live[i].abort(); }catch(e){} } S.timers=[]; S.live=[]; }
+  function win(lyr, src, keep){ if(S.over) return; S.over=true; stopAll(); if(keep) _gMem[key]={lyr:lyr, src:src}; prog('done'); cb(null, lyr, src); }
+  function lose(err){ if(S.over) return; S.over=true; stopAll(); cb(err||'no lyrics found', null); }
+  function offer(lyr, src, verdict){
+    if(!lyr||S.over) return false;
+    if(verdict==='other'){ if(!S.cand) S.cand={ lyr:lyr, src:src }; return false; }   // no es el link exacto: solo si nada mejor aparece
+    win(lyr, src, true); return true;
+  }
+  function tEmbed(id){ return { delay:0, run:function(done){
+    S.live.push(_gGet('https://genius.com/songs/'+id+'/embed.js', 9000, function(err, txt){
+      if(S.over) return;
+      var e=(!err&&txt)?_gParseEmbed(txt):null;
+      if(e && offer(e.lyr, 'embed', 'ok')) return;   // id = match exacto del link (busqueda o cache)
+      done();
+    }));
+  }}; }
+  function tSearch(px, delay, force){ return { delay:delay, run:function(done){
+    if(px && !_gUp(px.n, force)){ done(); return; }
+    var q=encodeURIComponent(_gQuery(url));
+    (function page(pg){
+      var su='https://genius.com/api/search/song?per_page=10&page='+pg+'&q='+q;
+      S.live.push(_gGet(px?px.w(su):su, px?7000:8000, function(err, txt){
+        if(S.over) return;
+        var j=null; if(!err){ try{ j=JSON.parse(txt); if(px&&px.json) j=JSON.parse(j.contents||'null'); }catch(e){ j=null; } }
+        if(px) _gMark(px.n, !!(j&&j.response), err);
+        var r=j?_gPickId(j, key):{ id:0, n:0 };
+        if(!r.id){ if(pg===1 && r.n>=10){ page(2); return; } done(); return; }   // no esta en la 1a pagina → 2a
+        _gRememberId(key, r.id);
+        tEmbed(r.id).run(done);
+      }));
+    })(1);
+  }}; }
+  function tApi(tok){ return { delay:0, run:function(done){   // API oficial (token opcional): CORS abierto, sin proxy
+    S.live.push(_gGet('https://api.genius.com/search?per_page=20&q='+encodeURIComponent(_gQuery(url))+'&access_token='+encodeURIComponent(tok), 8000, function(err, txt){
+      if(S.over) return;
+      var j=null; if(!err){ try{ j=JSON.parse(txt); }catch(e){} }
+      var r=j?_gPickId(j, key):{ id:0 };
+      if(!r.id){ done(); return; }
+      _gRememberId(key, r.id);
+      tEmbed(r.id).run(done);
+    }));
+  }}; }
+  function tPage(px, delay, force){ return { delay:delay, run:function(done){
+    if(px && !_gUp(px.n, force)){ done(); return; }
+    S.live.push(_gGet(px?px.w(url):url, 10000, function(err, txt, fu){
+      if(S.over) return;
+      if(!px && err==='HTTP 404') S.notFound=true;
+      if(!err && px && px.json){ try{ txt=JSON.parse(txt).contents||''; }catch(e){ txt=''; } }
+      if(px) fu='';                                     // la URL final seria la del proxy, no la de Genius
+      var lyr=(!err&&txt)?parseGeniusHTML(txt):null;
+      if(px) _gMark(px.n, !!lyr, err);
+      if(lyr){ var v=_gVerify(_gCanon(txt), key, fu), id=_gIdFromHtml(txt); if(id&&v!=='other') _gRememberId(key, id); if(offer(lyr, 'page', v)) return; }
+      done();
+    }));
+  }}; }
+  function tCurl(){ return { delay:0, run:function(done){
+    S.live.push(_aeCurlFetch(url, function(html, fu){
+      if(S.over) return;
+      var lyr=html?parseGeniusHTML(html):null;
+      if(lyr){ var v=_gVerify(_gCanon(html), key, fu), id=_gIdFromHtml(html); if(id&&v!=='other') _gRememberId(key, id); if(offer(lyr, 'curl', v)) return; }
+      done();
+    }));
+  }}; }
+  // Niveles: si TODO un nivel falla (o pasa su "wait" sin ganador) arranca el siguiente.
+  //  AE:  [embed cacheado + API con token + pagina directa + busqueda directa] → [curl] → [proxies]
+  //  web: [embed cacheado + API con token] → [proxies: busquedas (livianas) y luego paginas]
+  function plan(force){
+    var A=[], B=[], C=[], d=0, i, cid=_gIds[key], tok=isG?_gToken():'';
+    if(cid) A.push(tEmbed(cid));
+    if(tok) A.push(tApi(tok));
+    if(IN_AE){ A.push(tPage(null, 0, force)); if(isG) A.push(tSearch(null, 200, force)); B.push(tCurl()); }
+    if(isG) for(i=0;i<_G_PROXIES.length;i++){ C.push(tSearch(_G_PROXIES[i], d, force)); d+=300; }
+    for(i=0;i<_G_PROXIES.length;i++){ C.push(tPage(_G_PROXIES[i], d, force)); d+=400; }
+    return [ { tasks:A, wait:IN_AE?6000:3500 }, { tasks:B, wait:9000, stage:'deep' }, { tasks:C, wait:0, stage:IN_AE?'deep':'' } ];
+  }
+  function runRound(){
+    var T=plan(S.round>1), ti=0, out=0, allIn=false;
+    for(var k=0;k<T.length;k++) S.total+=T[k].tasks.length;   // total del intento desde el inicio → progreso sin saltos atras
+    function check(){ if(!S.over && allIn && out<=0) endRound(); }
+    function launch(){
+      if(S.over) return;
+      if(ti>=T.length){ allIn=true; check(); return; }
+      var tier=T[ti++], left=tier.tasks.length, moved=false;
+      function adv(){ if(moved) return; moved=true; launch(); }
+      if(!left){ adv(); return; }
+      out+=left; if(tier.stage) prog(tier.stage);
+      if(tier.wait) S.timers.push(setTimeout(adv, tier.wait));
+      tier.tasks.forEach(function(t){
+        S.timers.push(setTimeout(function(){
+          if(S.over) return;
+          var called=false;
+          t.run(function(){ if(called) return; called=true; S.tried++; out--; if(S.over) return; prog('progress'); if(--left<=0) adv(); check(); });
+        }, t.delay||0));
+      });
+    }
+    launch();
+  }
+  function endRound(){
+    if(S.over) return;
+    if(S.cand){ win(S.cand.lyr, S.cand.src, false); return; }
+    if(S.notFound){ lose('link not found on Genius (404)'); return; }
+    if(S.round<2){ S.round++; prog('retry'); S.timers.push(setTimeout(runRound, 1200)); return; }
+    if(!isG){ lose('no lyrics found'); return; }
+    prog('lrclib');
+    S.live.push(_lrclibFetch(url, function(t){ if(S.over) return; if(t) win(t, 'lrclib', false); else lose('no lyrics found'); }));
+  }
+  prog('start');
+  runRound();
+}
+// Texto de un nodo de letra: <br> = salto de linea. Fuera el encabezado de Genius
+// (contribuidores / traducciones / descripcion "Read More") y los anuncios que van DENTRO
+// del contenedor de la letra (Genius los marca con data-exclude-from-selection).
 function _geniusNodeText(el){
-  var clone=el.cloneNode(true);
+  var clone=el.cloneNode(true), doc=clone.ownerDocument||document, i;
+  var ex=clone.querySelectorAll('[data-exclude-from-selection="true"]');
+  for(i=0;i<ex.length;i++){ if(ex[i].parentNode) ex[i].parentNode.removeChild(ex[i]); }
   var brs=clone.querySelectorAll('br');
-  for(var i=0;i<brs.length;i++){ brs[i].parentNode.replaceChild(document.createTextNode('\n'), brs[i]); }
+  for(i=0;i<brs.length;i++){ if(brs[i].parentNode) brs[i].parentNode.replaceChild(doc.createTextNode('\n'), brs[i]); }
   return clone.textContent||'';
 }
+// Marcas de agua de Genius en la letra de la pagina: letras cirilicas/griegas identicas a
+// las latinas ("е" U+0435 en vez de "e") y espacios raros (U+2005, U+205F…). En AE salen
+// con otra fuente o como glifo faltante → se pasan a sus equivalentes normales. Solo en
+// palabras que YA tienen letras latinas: una letra realmente en ruso/griego no se toca.
+var _G_HOMO={'\u0430':'a','\u0435':'e','\u043E':'o','\u0440':'p','\u0441':'c','\u0443':'y','\u0445':'x','\u0456':'i','\u0458':'j','\u0455':'s','\u0501':'d','\u051B':'q','\u051D':'w','\u04BB':'h','\u04CF':'l',
+  '\u0410':'A','\u0412':'B','\u0415':'E','\u041A':'K','\u041C':'M','\u041D':'H','\u041E':'O','\u0420':'P','\u0421':'C','\u0422':'T','\u0425':'X','\u0423':'Y','\u0406':'I','\u0408':'J','\u0405':'S','\u051A':'Q','\u051C':'W',
+  '\u03BF':'o','\u03BD':'v','\u03C1':'p','\u0391':'A','\u0392':'B','\u0395':'E','\u0396':'Z','\u0397':'H','\u0399':'I','\u039A':'K','\u039C':'M','\u039D':'N','\u039F':'O','\u03A1':'P','\u03A4':'T','\u03A5':'Y','\u03A7':'X'};
+function _gTidy(t){
+  return String(t||'')
+    .replace(/[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g,' ')
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g,'')
+    .replace(/[^\s]+/g, function(w){
+      if(!/[\u0370-\u03FF\u0400-\u04FF\u0500-\u052F]/.test(w) || !/[A-Za-z\u00C0-\u024F]/.test(w)) return w;
+      return w.replace(/[\u0370-\u03FF\u0400-\u04FF\u0500-\u052F]/g, function(c){ return _G_HOMO[c]||c; });
+    });
+}
 function _cleanGeniusText(t){
+  t=_gTidy(String(t||'').replace(/\r\n?/g,'\n'));
+  // Descripcion de Genius ("… Read More") ANTES de la primera [Seccion] → fuera. Solo antes
+  // de la primera seccion: nunca recorta una letra que diga "Read More".
+  var sec=t.search(/\[[^\]\n]{1,60}\]/), rm=t.indexOf('Read More');
+  if(rm>=0 && (sec<0 || rm<sec)) t=t.slice(rm+9);
+  // Respaldo: encabezado "N Contributors · Translations · <Titulo> Lyrics" sin descripcion.
+  t=t.replace(/^\s*\d+\s*Contributors?[\s\S]*?Lyrics\s*/, function(m){ return /\[[^\]\n]{1,60}\]/.test(m)?m:''; });
   return t
-          // Strip Genius' leading song-description block (ends with "Read More"), which sits
-          // between the title and the first [section] — covers contributors/translations too.
-          .replace(/^[\s\S]*?Read More\s*/,'')
-          // Fallback header strip: "N Contributors · Translations · <Title> Lyrics" (no description)
-          .replace(/^\s*\d+\s*Contributor(?:s)?[\s\S]*?Lyrics\s*/,'')
-          // Strip trailing "…Embed" counter Genius appends after the last line
-          .replace(/\d*Embed\s*$/,'')
+          .replace(/\d*Embed\s*$/,'')                                 // contador "…Embed" final
           .replace(/\[[^\]\n]{0,60}\]/g,function(m){return '\n'+m+'\n';})
-          .replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').replace(/^\s+|\s+$/g,'');
+          .replace(/[ \t]+\n/g,'\n').replace(/\n[ \t]+/g,'\n')
+          .replace(/\n{3,}/g,'\n\n').replace(/^\s+|\s+$/g,'');
 }
 function parseGeniusHTML(html){
   if(!html) return null;
@@ -2659,23 +3009,16 @@ function toSRT(s){ var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.f
 function p2(n){ return String(Math.floor(n)).padStart(2,'0'); }
 function p3(n){ return String(n).padStart(3,'0'); }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-// Static base legend: which channel/song I'm working on. It stays fixed in the status
-// line while no transient toast is showing; toasts temporarily replace it and then it
-// comes back. Keeps the user oriented without an extra UI element.
-var _legendBase='';
-function _showBase(st){ st._tmp=false; st.textContent=_legendBase; st.classList.toggle('base', !!_legendBase); st.classList.toggle('on', !!_legendBase); }
-function setLegend(msg){
-  _legendBase=(msg||'').trim();
-  var st=document.getElementById('tStatus'); if(!st) return;
-  if(!st._tmp) _showBase(st);   // only refresh now if no toast is currently on screen
-}
-// Inside AE the update legends appear in the small status line under the timer.
-// On the web they use the floating toast.
+// Igual que LMG: la leyenda fija (cancion actual) va DEBAJO del timer (#tChannel); los
+// avisos temporales salen ARRIBA (#tStatus) y se desvanecen. Nunca el toast flotante de
+// abajo (tapaba la timeline), salvo que la barra aun no exista.
+// (Se declara al final del script: conserva lo que setLegend ya guardo durante el arranque.)
+var _legendBase=(typeof _legendBase==='string')?_legendBase:'';
+function setLegend(msg){ _legendBase=(msg||'').trim(); var c=document.getElementById('tChannel'); if(c) c.textContent=_legendBase; }
 function toast(msg,ms){
-  // legends appear in the subtle status line above the timer (web AND AE)
   var st=document.getElementById('tStatus');
-  if(st){ st._tmp=true; st.textContent=msg; st.classList.remove('base'); st.classList.add('on'); clearTimeout(st._t); st._t=setTimeout(function(){ _showBase(st); }, ms||4000); return; }
-  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },ms||2200);
+  if(st){ st.textContent=msg; st.classList.add('on'); clearTimeout(st._t); st._t=setTimeout(function(){ st.classList.remove('on'); st.textContent=''; }, ms||4000); return; }
+  var t=document.getElementById('toast'); if(t){ t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },ms||2200); }
 }
 </script>
 </body>

@@ -13,7 +13,7 @@ function _isWin() { try { return String($.os).indexOf("Windows") !== -1; } catch
 function _dlgFilter(winFilter, exts) { return _isWin() ? winFilter : undefined; }
 // Sentinela de version del host: el panel comprueba que ESTA funcion exista para saber
 // si AE tiene cargada una copia vieja del jsx y forzar su recarga.
-function _hostVersion() { return 'verso-2025-06'; }
+function _hostVersion() { return 'verso-2026-10'; }
 function _AUDIO_FILTER() { return _dlgFilter('Audio:*.mp3,*.wav,*.aac,*.aif,*.aiff,*.ogg,*.m4a,*.flac,*.wma,*.caf', ["mp3","wav","aac","aif","aiff","ogg","m4a","flac","wma","caf"]); }
 function _SRT_FILTER()   { return _dlgFilter('SRT:*.srt,All files:*', ["srt","txt"]); }
 function saveSRTFile(srtContent, suggestedName) {
@@ -367,11 +367,6 @@ function importViaStyleController(srtContent, optionsJSON) {
     if (!styleLayer) {
       styleLayer = _createDefaultStyleLayer(comp, styleName);
       createdStyle = true;
-    }
-    // Reemplazar: quitar las capas SRT generadas antes (incl. "SRT Frame"), desbloqueandolas
-    // por si quedaron locked, para que al reimportar NO se dupliquen. No toca la plantilla.
-    for (var _rl = comp.numLayers; _rl >= 1; _rl--) {
-      try { var _rL = comp.layer(_rl); if (_rL !== styleLayer && /^SRT/i.test(_rL.name)) { try { _rL.locked = false; } catch (eL) {} _rL.remove(); } } catch (eR) {}
     }
 
     var useStyleAnim  = !createdStyle && _hasTextAnimatorKeyframes(styleLayer);
@@ -1022,12 +1017,15 @@ function _allTHComps() {
   return out;
 }
 
-// Todos los footage "Song" en orden de panel.
+// Todos los footage "Song" en orden de panel. Excluye "Short Song": este listado alimenta
+// SIEMPRE el Master de video (Short tiene su propio loadShortSongFile/_findShortSongFootage);
+// sin la exclusion, si "Short Song" aparecia antes que "Song" en el panel, el audio nuevo se
+// cargaba ahi y la Song normal nunca se actualizaba.
 function getSongItems() {
   var items = [];
   for (var i = 1; i <= app.project.numItems; i++) {
     var item = app.project.item(i);
-    if (item instanceof FootageItem && item.name.toLowerCase().indexOf('song') !== -1) {
+    if (item instanceof FootageItem && item.name.toLowerCase().indexOf('song') !== -1 && !/\bshort\b/i.test(item.name)) {
       items.push({ footage: item, idx: i });
     }
   }
@@ -1065,7 +1063,7 @@ function getRelatedLyricsComps(selectedGeneralComps) {
 function getSongItemInComp(comp) {
   for (var i = 1; i <= comp.numLayers; i++) {
     var src = comp.layer(i).source;
-    if (src instanceof FootageItem && src.name.toLowerCase().indexOf('song') !== -1) return src;
+    if (src instanceof FootageItem && src.name.toLowerCase().indexOf('song') !== -1 && !/\bshort\b/i.test(src.name)) return src;
   }
   return null;
 }
@@ -1271,7 +1269,7 @@ function getAllSelectedCompsByPanelOrder() {
   return comps;
 }
 
-function doRenderOrQueue(sendToAME) {
+function doRenderOrQueue(sendToAME, isShort) {
   try {
     _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     var downloads = new Folder('~/Downloads');
@@ -1284,16 +1282,30 @@ function doRenderOrQueue(sendToAME) {
     var thComps = [], mainComps = [];
     if (selected.length > 0) {
       for (var i = 0; i < selected.length; i++) { if (isTHComp(selected[i])) thComps.push(selected[i]); else mainComps.push(selected[i]); }
-    } else {
+    } else if (!isShort) {
+      // VIDEO: TH roja + main naranja. Nunca Lyrics.
       for (var i2 = 1; i2 <= app.project.numItems; i2++) {
         var item = app.project.item(i2);
         if (!(item instanceof CompItem)) continue;
+        if (item.name.toLowerCase().indexOf('lyrics') !== -1) continue;   // nunca a render
         if (isTHComp(item)) thComps.push(item);
         else if (item.label === 9 || item.label === 11) mainComps.push(item);
       }
+    } else {
+      // SHORT: TH roja (se reusa la de video, no hay "Short TH") + main naranja de video +
+      // la comp "Short" (amarilla). Antes solo se mandaba el Short — faltaban TH y video.
+      for (var i3 = 1; i3 <= app.project.numItems; i3++) {
+        var it3 = app.project.item(i3);
+        if (!(it3 instanceof CompItem)) continue;
+        if (it3.name.toLowerCase().indexOf('lyrics') !== -1) continue;
+        if (isTHComp(it3)) thComps.push(it3);
+        else if (it3.label === 9 || it3.label === 11) mainComps.push(it3);
+      }
+      var shortComp = _shortComp();
+      if (shortComp) mainComps.push(shortComp);
     }
     if (thComps.length === 0 && mainComps.length === 0)
-      return _writeResult({ ok: false, msg: 'No compositions detected.\nSelect comps in the panel\nor use a red (TH) / orange (main) label.' });
+      return _writeResult({ ok: false, msg: 'No ' + (isShort ? 'Short ' : '') + 'compositions detected.\nSelect comps in the panel\nor use a red (TH) / orange (main) / yellow (Short) label.' });
 
     var allComps = thComps.concat(mainComps);
     var rq = app.project.renderQueue, jpegTplName = null, h264TplName = null;
@@ -1336,51 +1348,8 @@ function doRenderOrQueue(sendToAME) {
   }
 }
 
-function renderRun() { return doRenderOrQueue(false); }
-function queueRun()  { return doRenderOrQueue(true);  }
-
-// Verso 2 — Render "Do Short": encola SOLO la comp "Short" en H.264 (como el render
-// normal, que solo agrega a la cola sin lanzarla).
-function renderShortRun() {
-  try {
-    var comp = _shortComp();
-    if (!comp) return JSON.stringify({ ok: false, msg: 'No "Short" composition found.' });
-
-    var downloads = new Folder('~/Downloads');
-    if (downloads.exists) Folder.current = downloads;
-    var outputFolder = Folder.selectDialog('Select the output folder for the Short render');
-    if (!outputFolder) return JSON.stringify({ ok: false, msg: 'Cancelled' });
-    if (!outputFolder.exists) outputFolder.create();
-
-    var rq = app.project.renderQueue, h264TplName = null;
-    try {
-      var probeItem = rq.items.add(comp);
-      var tplArr = probeItem.outputModules[1].templates;
-      probeItem.remove();
-      for (var t = 0; t < tplArr.length; t++) {
-        var tl = (tplArr[t] + '').toLowerCase();
-        if (tl.indexOf('264') !== -1 || tl.indexOf('avc') !== -1) {
-          if (!h264TplName) h264TplName = tplArr[t];
-          if (tl.indexOf('15') !== -1) h264TplName = tplArr[t];
-        }
-      }
-    } catch (e) {}
-    if (!h264TplName) h264TplName = 'H.264';
-
-    var tmplWarning = '';
-    try {
-      var rqItem = rq.items.add(comp);
-      var om = rqItem.outputModules[1];
-      try { om.applyTemplate(h264TplName); } catch (e2) { tmplWarning = 'H.264 "' + h264TplName + '" not found'; }
-      om.file = new File(outputFolder.fsName + '/' + comp.name);
-    } catch (e3) {
-      return JSON.stringify({ ok: false, msg: 'Could not add "Short" to the queue: ' + e3.toString() });
-    }
-    return JSON.stringify({ ok: true, added: 1, name: comp.name, tmplWarning: tmplWarning });
-  } catch (e) {
-    return JSON.stringify({ ok: false, msg: e.toString() });
-  }
-}
+function renderRun(isShort) { return doRenderOrQueue(false, isShort); }
+function queueRun(isShort)  { return doRenderOrQueue(true, isShort);  }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // CANALES DESDE EL PROYECTO
@@ -1681,6 +1650,19 @@ function _shortLyricsComp() {
   }
   return null;
 }
+// La comp "Short TH" (miniatura propia del short, separada de "Short"). _shortComp()
+// NUNCA la encuentra: como existe una comp exacta "Short", devuelve esa de inmediato y
+// jamas mira "Short TH". Aqui buscamos especificamente una TH (isTHComp) con "short" en
+// el nombre.
+function _shortTHComp() {
+  var exact = _findCompByNameCI('Short TH');
+  if (exact) return exact;
+  for (var i = 1; i <= app.project.numItems; i++) {
+    var it = app.project.item(i);
+    if (it instanceof CompItem && isTHComp(it) && /\bshort\b/i.test(it.name)) return it;
+  }
+  return null;
+}
 // La footage "Short Song": preferir el nombre exacto; si no, la primera footage
 // cuyo nombre contiene "short" y "song".
 function _findShortSongFootage() {
@@ -1700,32 +1682,33 @@ function _findShortSongFootage() {
 // "Short Song" (o la importa si no existe). Ademas ajusta el rango de la comp
 // "Short" a la nueva cancion y elimina sus capas SRT previas. Espejo de
 // loadSingleSongFile pero apuntando al par Short Song / comp "Short".
+// "2 por 1": la seccion de Short SIEMPRE actualiza tambien el lado de video con el MISMO
+// archivo elegido (una sola vez se pide el archivo) — antes solo tocaba "Short Song"/"Short",
+// dejando "Song"/el video largo sin actualizar cuando se trabajaba desde la seccion Short.
 function loadShortSongFile() {
   try {
     _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
     Folder.current = Folder.desktop;
-    var f = File.openDialog('Select the SHORT song audio file',
+    var f = File.openDialog('Select the song audio file',
       _AUDIO_FILTER(), false);
     if (!f) return _writeResult({ ok: false, msg: 'Cancelled' });
 
-    var song = _findShortSongFootage();
+    app.beginUndoGroup('Verso: Load song (Short + Video)');
 
-    app.beginUndoGroup('Verso: Load short song');
+    // ── Lado SHORT ──
+    var song = _findShortSongFootage();
     if (song) {
       try { song.replace(f); }
-      catch (e) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo reemplazar: ' + e.toString() }); }
+      catch (e) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo reemplazar (Short): ' + e.toString() }); }
     } else {
-      // No hay footage "Short Song": importar el archivo como footage nueva.
       try {
         var io = new ImportOptions(f);
         song = app.project.importFile(io);
         try { song.name = 'Short Song'; } catch (e2) {}
-      } catch (e3) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo importar: ' + e3.toString() }); }
+      } catch (e3) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo importar (Short): ' + e3.toString() }); }
     }
 
     var shortComp = _shortComp();
-
-    // 1) Ajustar el rango de la comp "Short" a la nueva cancion + alinear el Outro.
     var rangeUpdated = 0;
     if (shortComp) {
       for (var al = 1; al <= shortComp.numLayers; al++) {
@@ -1738,9 +1721,37 @@ function loadShortSongFile() {
       if (adjustRangeComp(shortComp)) rangeUpdated++;
     }
 
-    // 2) Eliminar las capas SRT que ya existian (comp "Short" y "Short Lyrics").
     var removed = 0;
     var srtComps = [shortComp, _shortLyricsComp()];
+
+    // ── Lado VIDEO (mismo archivo f) ──
+    var videoSong = _pickSongFootage(null);
+    if (videoSong) {
+      try { videoSong.replace(f); } catch (eV) {}
+    } else {
+      try {
+        var io2 = new ImportOptions(f);
+        videoSong = app.project.importFile(io2);
+        try { videoSong.name = 'Song'; } catch (e2b) {}
+      } catch (e3b) {}
+    }
+    var gcomps = getGeneralComps();
+    for (var g = 0; g < gcomps.length; g++) {
+      var gc = gcomps[g];
+      for (var alv = 1; alv <= gc.numLayers; alv++) {
+        var Lv = gc.layer(alv);
+        if (Lv.hasAudio && Lv.source instanceof FootageItem) {
+          try { Lv.outPoint = Lv.startTime + Lv.source.duration; } catch (eXv) {}
+          break;
+        }
+      }
+      if (adjustRangeComp(gc)) rangeUpdated++;
+      srtComps.push(gc);
+    }
+    var vLyrics = _anyCompBySuffix('lyrics');
+    if (vLyrics && !/\bshort\b/i.test(vLyrics.name)) srtComps.push(vLyrics);
+
+    // ── Eliminar SRT viejos en ambos lados ──
     for (var sc = 0; sc < srtComps.length; sc++) {
       var scomp = srtComps[sc];
       if (!scomp) continue;
@@ -1777,7 +1788,8 @@ function importSrtFileToComp(lyrCompName, optionsJSON, isShort) {
     var content = f.read();
     f.close();
     if (!content) return _writeRaw('err:Archivo vacio');
-    if (isShort === true || isShort === 'true') return _writeRaw(importLyricsToShort(content, optionsJSON));
+    // "2 por 1": desde Short el .srt va a AMBAS (Lyrics + Short Lyrics); desde Video, solo Lyrics.
+    if (isShort === true || isShort === 'true') return _writeRaw(importLyricsToBoth(lyrCompName, content, optionsJSON));
     return _writeRaw(importLyricsToComp(lyrCompName, content, optionsJSON));
   } catch (e) {
     return _writeRaw('err:' + e.toString());
@@ -1972,12 +1984,6 @@ function _buildStyleFrame(comp, entries, frameLayer, doCenter) {
 
 function _buildLyricLayers(comp, entries, fadeIn, fadeOut, styleName, doCenter, doExtend) {
   try { _SNAP_FD = comp.frameDuration; } catch (e) {}   // snap keyframes a frames del comp
-  // Reemplazar: quitar las capas SRT generadas antes (incl. "SRT Frame"), desbloqueandolas
-  // por si quedaron locked, para que al reimportar NO se dupliquen ni se sobrepongan. NUNCA
-  // toca la plantilla "Style Frame"/"Style Controler" (esas no empiezan por "SRT").
-  for (var rl = comp.numLayers; rl >= 1; rl--) {
-    try { var _rlL = comp.layer(rl); if (/^SRT\b/i.test(_rlL.name)) { try { _rlL.locked = false; } catch (eL) {} _rlL.remove(); } } catch (e) {}
-  }
   var lastEnd = 0;
   for (var q = 0; q < entries.length; q++) if (entries[q].endSec > lastEnd) lastEnd = entries[q].endSec;
   if (doExtend && (lastEnd + 0.5) > comp.duration) { try { comp.duration = lastEnd + 0.5; } catch (e) {} }
@@ -2297,15 +2303,27 @@ function importLyricsToComp(lyrCompName, srtContent, optionsJSON) {
     var styleName = opt.styleLayerName || 'Style Controler';
 
     var comp = _findCompByNameCI(lyrCompName);
-    if (!comp) comp = _lyricsCompByNum(_leadNum(lyrCompName));
+    // _lyricsCompByNum solo tiene sentido con un numero real — con null matcheaba por
+    // coincidencia (null===null) la primera lyrics sin numero, que podia ser la Short.
+    if (!comp && _leadNum(lyrCompName) != null) comp = _lyricsCompByNum(_leadNum(lyrCompName));
     if (!comp && opt.lyricsBySuffix) {
-      // Verso 2: respetar la comp seleccionada en el panel de Proyecto.
+      // Verso 2: respetar la comp seleccionada en el panel de Proyecto — pero NUNCA la
+      // "Short Lyrics". Esta funcion es SIEMPRE para el Lyrics normal (Short usa
+      // importLyricsToShort/_shortLyricsComp por separado); si el fallback aterrizaba en
+      // "Short Lyrics" (por seleccion o por ser la primera "…lyrics…" del panel), el SRT
+      // nunca llegaba a la comp de video.
       var sc = _selComp();
-      if (sc) {
+      if (sc && !/\bshort\b/i.test(sc.name)) {
         if (sc.name.toLowerCase().indexOf('lyrics') !== -1) comp = sc;             // la lyrics seleccionada
         else { var sn = _leadNum(sc.name); if (sn != null) comp = _lyricsCompByNum(sn); }  // su lyrics por numero
       }
-      if (!comp) comp = _anyCompBySuffix('lyrics');   // fallback: la primera lyrics
+      if (!comp) {
+        // fallback: la primera "…lyrics…" del panel que NO sea Short.
+        for (var li = 1; li <= app.project.numItems; li++) {
+          var lit = app.project.item(li);
+          if (lit instanceof CompItem && lit.name.toLowerCase().indexOf('lyrics') !== -1 && !/\bshort\b/i.test(lit.name)) { comp = lit; break; }
+        }
+      }
     }
     if (!comp) {
       app.endUndoGroup();
@@ -2357,6 +2375,17 @@ function importLyricsToShort(srtContent, optionsJSON) {
   }
 }
 
+// "2 por 1": desde la seccion Short, el mismo SRT va a AMBAS — "Lyrics" (video) Y "Short
+// Lyrics" — no solo a Short. Antes el import en modo Short dejaba el Lyrics normal intacto.
+function importLyricsToBoth(lyrCompName, srtContent, optionsJSON) {
+  var r1 = importLyricsToComp(lyrCompName, srtContent, optionsJSON);
+  var r2 = importLyricsToShort(srtContent, optionsJSON);
+  var okc = 0, parts = [];
+  if (String(r1).indexOf('ok:') === 0) { okc++; parts.push(String(r1).slice(3)); } else parts.push('Lyrics: ' + String(r1).replace(/^err:/, ''));
+  if (String(r2).indexOf('ok:') === 0) { okc++; parts.push(String(r2).slice(3)); } else parts.push('Short Lyrics: ' + String(r2).replace(/^err:/, ''));
+  return okc ? ('ok:' + parts.join('  ·  ')) : ('err:' + parts.join('  ·  '));
+}
+
 // Borra las capas de letra previas (nombre con "SRT") en la comp Lyrics indicada.
 function clearLyricLayers(lyrCompName) {
   try {
@@ -2402,28 +2431,29 @@ function _readFile(f) {
 // (el panel recibia cadena vacia -> "sin respuesta de AE"). Por eso el resultado se
 // vuelca ademas a un archivo temporal que el panel lee con cep.fs, igual que ya se hace
 // con fetchGeniusToTemp. _resultPath() devuelve la ruta para que el panel sepa donde leer.
-var _RESULT_DIR = null;                       // carpeta donde el panel leera el volcado (dentro de la extension)
-function _setResultDir(d) { try { d = d ? String(d) : ''; var SEP = String.fromCharCode(92); while (d.length && (d.charAt(d.length-1)==='/' || d.charAt(d.length-1)===SEP)) d = d.slice(0, -1); _RESULT_DIR = d ? d : null; } catch (e) { _RESULT_DIR = null; } return 'ok'; }
-function _resultTempPath() { return Folder.temp.fsName + '/verso_result.json'; }
-// Ruta PRIMARIA del volcado: dentro de la extension. El panel la lee con XHR RELATIVO
-// (mismo origen que index.html => siempre permitido y sin pasar por el motor bloqueado).
-// Si el panel no fijo carpeta, cae al temporal del sistema.
-function _resultPath() { return _RESULT_DIR ? (_RESULT_DIR + '/verso_result.json') : _resultTempPath(); }
-function _writeFileUTF8(path, s) { try { var f = new File(path); f.encoding = 'UTF-8'; if (f.open('w')) { f.write(s); f.close(); return true; } } catch (e) {} return false; }
-function _removeFileSilently(path) { try { var f = new File(path); if (f.exists) f.remove(); } catch (e) {} }
-// Borra el volcado (primario y temporal) para que el panel no lea un resultado viejo.
-function _clearResult() { _removeFileSilently(_resultPath()); _removeFileSilently(_resultTempPath()); return 'ok'; }
+function _resultPath() { return Folder.temp.fsName + '/verso_result.json'; }
+// Lectura del volcado temporal en una segunda llamada CORTA: al no abrir ningun dialogo,
+// evalScript SI devuelve el valor. Asi el panel recupera el resultado que se perdio.
+// Borra el volcado anterior. El panel lo llama ANTES de cada accion para no leer un
+// resultado viejo y para poder detectar cuando aparece el nuevo.
+function _clearResult() {
+  try { var f = new File(_resultPath()); if (f.exists) f.remove(); } catch (e) {}
+  return 'ok';
+}
 function _readResultText() {
   try {
     var f = new File(_resultPath());
-    if (!f.exists) { f = new File(_resultTempPath()); if (!f.exists) return ''; }
+    if (!f.exists) return '';
     f.encoding = 'UTF-8';
     if (!f.open('r')) return '';
     var c = f.read(); f.close();
     return c || '';
   } catch (e) { return ''; }
 }
-// EMPUJA el resultado al panel con CSXSEvent (respaldo del sondeo por archivo).
+// Igual que _writeResult pero para las funciones que devuelven texto plano ("ok:"/"err:").
+// EMPUJA el resultado al panel con CSXSEvent. Es el mecanismo estandar de CEP para
+// ExtendScript -> panel y NO depende del valor de retorno de evalScript, que se pierde
+// cuando la funcion abrio un dialogo modal (causa de que las leyendas no aparecieran).
 var _xLib = null;
 function _notify(s) {
   try {
@@ -2434,22 +2464,25 @@ function _notify(s) {
     ev.dispatch();
   } catch (err) {}
 }
-// Escribe el volcado en la carpeta de la extension (para el XHR relativo) Y en el temporal
-// (respaldo para _readResultText), y ademas lo empuja por evento.
-function _writeRaw(s) { s = String(s); _writeFileUTF8(_resultPath(), s); _writeFileUTF8(_resultTempPath(), s); _notify(s); return s; }
-function _writeResult(obj) { return _writeRaw(JSON.stringify(obj)); }
-// Diagnostico (solo se llama si la leyenda no llego a tiempo): informa si la carpeta de
-// volcado es escribible y si los archivos existen, para saber por que no se entrego.
-function _diagResult() {
-  var o = { dir: (_RESULT_DIR || '(temp)') };
-  try { o.primaryExists = (new File(_resultPath())).exists ? 1 : 0; } catch (e) { o.primaryExists = -1; }
-  try { o.tempExists = (new File(_resultTempPath())).exists ? 1 : 0; } catch (e) { o.tempExists = -1; }
+function _writeRaw(s) {
+  s = String(s);
   try {
-    var probe = new File((_RESULT_DIR || Folder.temp.fsName) + '/verso_probe.txt');
-    if (probe.open('w')) { probe.write('ok'); probe.close(); o.dirWritable = 1; try { probe.remove(); } catch (e2) {} }
-    else o.dirWritable = 0;
-  } catch (e) { o.dirWritable = 0; }
-  return JSON.stringify(o);
+    var f = new File(_resultPath());
+    f.encoding = 'UTF-8';
+    if (f.open('w')) { f.write(s); f.close(); }
+  } catch (e) {}
+  _notify(s);
+  return s;
+}
+function _writeResult(obj) {
+  var s = JSON.stringify(obj);
+  try {
+    var f = new File(_resultPath());
+    f.encoding = 'UTF-8';
+    if (f.open('w')) { f.write(s); f.close(); }
+  } catch (e) {}
+  _notify(s);
+  return s;
 }
 function importSRTBatch() {
   try {
@@ -2478,7 +2511,7 @@ function importSRTBatch() {
     }
 
     app.beginUndoGroup('Lyricator: Import SRT batch');
-    var count = Math.min(targets.length, files.length), applied = 0, totalLayers = 0, firstComp = null, names = [], fileNames = [];
+    var count = Math.min(targets.length, files.length), applied = 0, totalLayers = 0, firstComp = null;
     for (var j = 0; j < count; j++) {
       var content = _readFile(files[j]);
       if (content === null) continue;
@@ -2486,14 +2519,12 @@ function importSRTBatch() {
       if (!entries.length) continue;
       var res = _buildLyricLayers(targets[j], entries, 0.3, 0.3, 'Style Controler', true, true);
       totalLayers += res.count; applied++;
-      names.push(targets[j].name);
-      var _fn = String(files[j].name); var _dot = _fn.lastIndexOf('.'); if (_dot > 0) _fn = _fn.substring(0, _dot); fileNames.push(_fn);
       if (!firstComp) firstComp = targets[j];
     }
     app.endUndoGroup();
     // Abrir la comp donde se importo, para quedar parado ahi.
     try { if (firstComp) { firstComp.openInViewer(); app.project.activeItem; } } catch (eV) {}
-    return _writeResult({ ok: true, applied: applied, total: count, layers: totalLayers, names: names, files: fileNames });
+    return _writeResult({ ok: true, applied: applied, total: count, layers: totalLayers });
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
     return _writeResult({ ok: false, msg: e.toString() });
@@ -2527,7 +2558,11 @@ function clearAllLyricLayers() {
 function updateThumbnailComp(thCompName, artist, song) {
   try {
     var comp = _findCompByNameCI(thCompName);
-    if (!comp) comp = _thCompByNum(_leadNum(thCompName));
+    // _thCompByNum solo tiene sentido si thCompName trae un numero real — con null
+    // matcheaba por coincidencia (null===null) la primera TH sin numero del proyecto,
+    // que no necesariamente es la correcta. Si no hay numero, ir directo al fallback
+    // explicito de canal unico.
+    if (!comp && _leadNum(thCompName) != null) comp = _thCompByNum(_leadNum(thCompName));
     if (!comp) comp = _anyTHComp();   // Verso single-channel: la unica comp TH
     if (!comp) return _writeRaw('err:TH comp "' + thCompName + '" not found.');
     app.beginUndoGroup('Lyricator: Update thumbnail');
@@ -2589,7 +2624,7 @@ function _setTextLayer(comp, layerName, text) {
 function getThumbnailPreviewComp(thCompName) {
   try {
     var comp = _findCompByNameCI(thCompName);
-    if (!comp) comp = _thCompByNum(_leadNum(thCompName));
+    if (!comp && _leadNum(thCompName) != null) comp = _thCompByNum(_leadNum(thCompName));
     if (!comp) comp = _anyTHComp();   // Verso single-channel: la unica comp TH
     if (!comp) return JSON.stringify({ ok: false, msg: 'Sin TH' });
     var out = new File(Folder.temp.fsName + '/lyricator_th_' + (new Date()).getTime() + '.png');
@@ -2619,6 +2654,39 @@ function updateShortThumbnail(artist, song) {
     return 'err:' + e.message;
   }
 }
+// Actualiza "Short TH" (miniatura propia del short, si existe) con las capas "Artist" /
+// "Song" — mismo nombre de capa que la TH de video, NO "Short Artist"/"Short Song".
+// Opcional: si el proyecto no tiene "Short TH", simplemente no hay nada que hacer (no es error).
+function updateShortTHComp(artist, song) {
+  var comp = _shortTHComp();
+  if (!comp) return 'skip:sin comp "Short TH"';
+  try {
+    app.beginUndoGroup('Lyricator: Update short TH');
+    var setA = _setTextLayer(comp, 'Artist', artist);
+    var setS = _setTextLayer(comp, 'Song', song);
+    app.endUndoGroup();
+    if (!setA && !setS) return 'err:No "Artist" / "Song" text layers in "' + comp.name + '".';
+    return 'ok:' + comp.name;
+  } catch (e) {
+    try { app.endUndoGroup(); } catch (x) {}
+    return 'err:' + e.message;
+  }
+}
+// "2 por 1": desde la seccion Short, el boton de miniatura actualiza TODAS — la TH de video
+// (Artist/Song con los datos de video), la comp "Short" (Short Artist/Short Song) Y "Short
+// TH" si existe (Artist/Song, con los datos de short) — antes solo tocaba "Short" y la TH
+// del video largo, dejando "Short TH" sin actualizar.
+function updateThumbnailBoth(thCompName, videoArtist, videoSong, shortArtist, shortSong) {
+  var r1 = updateThumbnailComp(thCompName, videoArtist, videoSong);
+  var r2 = updateShortThumbnail(shortArtist, shortSong);
+  var r3 = updateShortTHComp(shortArtist, shortSong);
+  var okc = 0, parts = [];
+  if (String(r1).indexOf('ok:') === 0) { okc++; parts.push(String(r1).slice(3)); } else parts.push('TH: ' + String(r1).replace(/^err:/, ''));
+  if (String(r2).indexOf('ok:') === 0) { okc++; parts.push(String(r2).slice(3)); } else parts.push('Short: ' + String(r2).replace(/^err:/, ''));
+  if (String(r3).indexOf('ok:') === 0) { okc++; parts.push(String(r3).slice(3)); }
+  else if (String(r3).indexOf('skip:') !== 0) parts.push('Short TH: ' + String(r3).replace(/^err:/, ''));   // "skip" (no existe) no cuenta como fallo
+  return okc ? ('ok:' + parts.join('  ·  ')) : ('err:' + parts.join('  ·  '));
+}
 
 // Verso 2 — genera una previa PNG del frame de la comp "Short".
 function getShortThumbnailPreview() {
@@ -2635,20 +2703,30 @@ function getShortThumbnailPreview() {
   }
 }
 
-// Descarga una URL con el curl del SISTEMA (Windows 10+ lo trae) a un archivo temporal
-// y devuelve 'ok:<ruta>'. Fallback de red del panel cuando fetch/proxies fallan en CEP:
-// curl usa el TLS real de Windows + user-agent de navegador (pasa Cloudflare).
-function fetchGeniusToTemp(url) {
+// Descarga una URL con el curl del SISTEMA (Windows 10+ y macOS lo traen) a un archivo
+// temporal PROPIO de esta peticion y devuelve 'ok:<ruta>' (+ '\n<url final>' en Mac).
+// Fallback de red del panel cuando fetch/proxies fallan en CEP: curl usa el TLS real del
+// sistema + user-agent de navegador (pasa Cloudflare).
+// CADA llamada escribe a SU archivo (tag unico que manda el panel). Antes todas usaban
+// 'verso_genius.html': con varios canales en cola, en Mac los callbacks de evalScript
+// llegaban cuando la cola ya habia terminado y TODOS los canales leian el ultimo archivo
+// descargado (= la misma letra en todos los canales).
+function fetchGeniusToFile(url, tag) {
   try {
-    if (!/^https?:\/\//.test(url)) return 'err:bad url';
-    var f = new File(Folder.temp.fsName + '/verso_genius.html');
+    url = String(url || '');
+    if (!/^https?:\/\/[^\s"`$\\]+$/.test(url)) return 'err:bad url';
+    tag = String(tag || '').replace(/[^A-Za-z0-9_\-]/g, '');
+    if (!tag) tag = (new Date()).getTime() + '_' + Math.floor(Math.random() * 1000000);
+    _cleanGeniusTemp();
+    var f = new File(Folder.temp.fsName + '/verso_genius_' + tag + '.html');
     try { if (f.exists) f.remove(); } catch (e0) {}
-    var ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
-    var cmd = 'curl -s -L --max-time 10 -A "' + ua + '" -o "' + f.fsName + '" "' + url + '"';
-    if ($.os.indexOf('Windows') !== -1) {
+    var eff = '';
+    if (_isWin()) {
+      var ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+      var cmd = 'curl -s -L --max-time 10 -A "' + ua + '" -o "' + f.fsName + '" "' + url + '"';
       // Ejecutar curl OCULTO: 'cmd.exe /c' abre una ventana de consola por cada llamada
       // (molesto en bulk). WScript.Shell.Run(cmd, 0, True) = ventana oculta + espera.
-      var vbs = new File(Folder.temp.fsName + '/verso_fetch.vbs');
+      var vbs = new File(Folder.temp.fsName + '/verso_fetch_' + tag + '.vbs');
       vbs.encoding = 'UTF-8';
       if (vbs.open('w')) {
         vbs.write('CreateObject("WScript.Shell").Run "cmd /c ' + cmd.replace(/"/g, '""') + '", 0, True');
@@ -2659,9 +2737,35 @@ function fetchGeniusToTemp(url) {
         system.callSystem('cmd.exe /c ' + cmd);   // si no se puede escribir el shim, modo normal
       }
     } else {
-      system.callSystem(cmd);
+      // macOS: /usr/bin/curl siempre existe (no depende del PATH de AE); --compressed baja
+      // ~5x menos datos. Con -s y -o, stdout = solo la URL final (-w): el panel la usa para
+      // aceptar redirecciones de Genius (link viejo → slug actual).
+      var bin = (new File('/usr/bin/curl')).exists ? '/usr/bin/curl' : 'curl';
+      var uaM = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+      eff = String(system.callSystem(bin + ' -s -L --compressed --max-time 12 -A "' + uaM + '"' +
+        ' -H "Accept: text/html,application/xhtml+xml" -H "Accept-Language: en-US,en;q=0.9"' +
+        ' -o "' + f.fsName + '" -w "%{url_effective}" "' + url + '"') || '').replace(/^\s+|\s+$/g, '');
+      if (!/^https?:\/\//.test(eff)) eff = '';
     }
-    if (!f.exists || f.length < 500) return 'err:curl produced no output';
-    return 'ok:' + f.fsName;
+    if (!f.exists || f.length < 500) {
+      try { if (f.exists) f.remove(); } catch (e1) {}
+      return 'err:curl produced no output';
+    }
+    return 'ok:' + f.fsName + (eff ? '\n' + eff : '');
   } catch (e) { return 'err:' + e.toString(); }
+}
+// Compatibilidad con paneles anteriores: misma descarga (archivo unico), devuelve solo la ruta.
+function fetchGeniusToTemp(url) {
+  var r = fetchGeniusToFile(url, '');
+  var nl = r.indexOf('\n');
+  return nl >= 0 ? r.substring(0, nl) : r;
+}
+// Borra descargas de Genius de mas de 10 min que el panel no alcanzo a borrar.
+function _cleanGeniusTemp() {
+  try {
+    var old = Folder.temp.getFiles('verso_genius_*.html'), now = (new Date()).getTime();
+    for (var i = 0; i < old.length; i++) {
+      try { if (old[i] instanceof File && now - old[i].modified.getTime() > 600000) old[i].remove(); } catch (e) {}
+    }
+  } catch (e2) {}
 }

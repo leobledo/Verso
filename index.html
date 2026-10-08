@@ -2541,7 +2541,7 @@ function _applyGeniusLyrics(ch, lyr){
 }
 function applyGeniusUrl(url){
   var ch=getActive(); if(!ch){ toast('No channel'); return; }
-  url=_gLinkOf(url); var tok=++_gTok;
+  url=_gLinkOf(url); var tok=++_gTok; _gExtReset();
   ch.geniusUrl=url; toast('Fetching lyrics…', 60000); startProgress(6000);
   var btn=document.getElementById('dpLyrBtn'); if(btn) btn.classList.add('loading');
   fetchGeniusLyrics(url, function(err,lyr,src){
@@ -2549,7 +2549,7 @@ function applyGeniusUrl(url){
     stopProgress();
     if(btn) btn.classList.remove('loading');
     if(err||!lyr||!_applyGeniusLyrics(ch, lyr)){ toast('Genius: '+(err||'no lyrics found')); return; }
-    toast('✓ Lyrics loaded'+(src==='lrclib'?' (LRCLIB — no [sections])':''));
+    toast('✓ Lyrics loaded'+(src==='lrclib'?(' (LRCLIB — no [sections])'+(_gExtHint()?(' · '+_gExtHint()):'')):''), src==='lrclib'?9000:4000);
   }, function(p){ if(tok!==_gTok) return; toast(_geniusProgMsg(p), 60000); if(p&&p.total) setProgress(Math.min(0.9,(p.done||0)/p.total)); });
 }
 // Load from the detected Genius tab: use the instantly-scraped lyrics if we got them,
@@ -2795,10 +2795,13 @@ function _gTokens(s){
   return out;
 }
 function _lrclibFetch(url, cb){
-  var want=_gTokens(_gQuery(url));
+  var want=_gTokens(_gQuery(url)), h={ cur:null, dead:false };
   if(!want.length){ setTimeout(function(){ cb(null); }, 0); return { abort:function(){} }; }
   // Sin conectores ("and", "feat"…): LRCLIB devuelve 0 resultados si la busqueda los incluye.
-  return _gGet('https://lrclib.net/api/search?q='+encodeURIComponent(want.join(' ')), 8000, function(err, txt){
+  // LRCLIB responde 503/429 si se le pide mucho junto → un reintento a los ~1.5 s.
+  (function go(n){ h.cur=_gGet('https://lrclib.net/api/search?q='+encodeURIComponent(want.join(' ')), 8000, function(err, txt){
+    if(h.dead) return;
+    if(err && n<1 && /^(HTTP (429|5\d\d)|timeout|network error)$/.test(err)){ setTimeout(function(){ if(!h.dead) go(n+1); }, 1200+Math.floor(Math.random()*800)); return; }
     var list=null; if(!err){ try{ list=JSON.parse(txt); }catch(e){} }
     var best=null, bestSc=0, bestExtra=1e9, i, k;
     for(i=0;i<((list&&list.length)||0);i++){
@@ -2810,43 +2813,75 @@ function _lrclibFetch(url, cb){
       if(sc>bestSc || (sc===bestSc && extra<bestExtra)){ bestSc=sc; bestExtra=extra; best=it; }
     }
     cb(best&&bestSc>=0.75?_cleanGeniusText(best.plainLyrics):null);
-  });
+  }); })(0);
+  return { abort:function(){ h.dead=true; if(h.cur) h.cur.abort(); } };
 }
-// Web: puente con la extension "Content Controler" (v2+). Se detecta con un ping (0.5 s, una
-// vez; si no esta, se vuelve a preguntar a los 30 s). Sin extension (p. ej. iPad) se salta.
-var _gExt=null, _gExtWait=[];
+// Web: puente con la extension "Content Controler" (v2+). Ping de 0.6 s; a la vez se toca el
+// puente viejo (VERSO_GET_GENIUS) para distinguir "no instalada" de "instalada pero sin
+// recargar" (tras actualizarla hay que recargarla en chrome://extensions Y recargar esta
+// pagina: el script viejo de la pestaña queda huerfano). _gExtState: 'ok' | 'old' | 'none'.
+// Un "no" se vuelve a comprobar al iniciar cada carga (_gExtReset).
+var _gExt=null, _gExtState='', _gExtV3=false, _gExtWait=[];
 function _gExtReady(cb){
   if(IN_AE){ cb(false); return; }
   if(_gExt!==null){ cb(_gExt); return; }
   _gExtWait.push(cb); if(_gExtWait.length>1) return;
-  var id='p'+Date.now()+'_'+Math.random(), fin=false;
-  function end(v){ if(fin) return; fin=true; window.removeEventListener('message', on); _gExt=v; var w=_gExtWait; _gExtWait=[]; for(var i=0;i<w.length;i++){ try{ w[i](v); }catch(e){} } if(!v) setTimeout(function(){ if(_gExt===false) _gExt=null; }, 30000); }
-  function on(e){ if(e.source!==window) return; var d=e.data; if(d && d.type==='VERSO_EXT_PONG' && d.reqId===id) end(!!d.fetch); }
+  var id='p'+Date.now()+'_'+Math.random(), fin=false, old=false, v2t=null;
+  function end(v){ if(fin) return; fin=true; clearTimeout(v2t); window.removeEventListener('message', on); _gExt=v; _gExtState=v?'ok':(old?'old':'none'); var w=_gExtWait; _gExtWait=[]; for(var i=0;i<w.length;i++){ try{ w[i](v); }catch(e){} } }
+  function on(e){ if(e.source!==window) return; var d=e.data; if(!d || d.reqId!==id) return;
+    if(d.type==='VERSO_EXT_PONG'){
+      // v3 dice la verdad (un puente huerfano contesta fetch:false). v2 siempre dice fetch:true
+      // aunque este huerfano: se le cree, pero se esperan 150 ms por si tambien contesta un v3.
+      if(d.fetch && d.v>=3){ _gExtV3=true; end(true); }
+      else if(d.fetch){ if(!v2t) v2t=setTimeout(function(){ end(true); }, 150); }
+      else old=true;
+    }
+    else if(d.type==='VERSO_GENIUS_RESULT') old=true; }
   window.addEventListener('message', on);
-  try{ window.postMessage({ type:'VERSO_EXT_PING', reqId:id }, '*'); }catch(e){}
-  setTimeout(function(){ end(false); }, 500);
+  try{ window.postMessage({ type:'VERSO_EXT_PING', reqId:id }, '*'); window.postMessage({ type:'VERSO_GET_GENIUS', reqId:id }, '*'); }catch(e){}
+  setTimeout(function(){ end(false); }, 600);
 }
-// Pide a la extension la letra de UN link. cb(err, {lyrics|html, finalUrl, source}). Devuelve {abort}.
+function _gExtReset(){ if(_gExt===false){ _gExt=null; _gExtV3=false; } }
+function _gExtHint(){
+  if(IN_AE) return '';
+  if(_gExtState==='old') return 'Content Controler no responde: recárgala en chrome://extensions y recarga esta página';
+  if(_gExtState==='none') return 'para letras de Genius con [secciones], abre Verso en Chrome con la extensión Content Controler';
+  return '';
+}
+// Pide a la extension la letra de UN link. cb(err, {lyrics|html|embed, finalUrl, id, source}). Devuelve {abort}.
 function _gExtFetch(url, ms, cb){
-  var id='f'+Date.now()+'_'+Math.random(), fin=false;
-  function stop(){ fin=true; clearTimeout(to); window.removeEventListener('message', on); }
-  function on(e){ if(e.source!==window) return; var d=e.data; if(!d || d.type!=='VERSO_FETCH_GENIUS_RESULT' || d.reqId!==id || fin) return; stop(); cb(d.error||null, d); }
+  var id='f'+Date.now()+'_'+Math.random(), fin=false, orphanErr=null, ot=null;
+  function stop(){ fin=true; clearTimeout(to); clearTimeout(ot); window.removeEventListener('message', on); }
+  function on(e){ if(e.source!==window) return; var d=e.data; if(!d || d.type!=='VERSO_FETCH_GENIUS_RESULT' || d.reqId!==id || fin) return;
+    // Tras recargar la extension puede haber 2 puentes en la pestaña: el viejo (huerfano) contesta
+    // al instante con error. Si el ping ya confirmo un puente vivo, ese error se ignora y se espera
+    // la respuesta buena; si no, se le dan 1.5 s al puente nuevo antes de darlo por perdido.
+    if(d.error && /extension unavailable|context invalidated/i.test(d.error)){
+      if(_gExt===true && _gExtV3) return;   // hay un puente v3 vivo: llegara su respuesta
+      if(!orphanErr){ orphanErr=d.error; ot=setTimeout(function(){ if(fin) return; stop(); cb(orphanErr, {}); }, 1500); }
+      return;
+    }
+    stop(); cb(d.error||null, d); }
   window.addEventListener('message', on);
   var to=setTimeout(function(){ if(fin) return; stop(); cb('timeout', {}); }, ms);
   try{ window.postMessage({ type:'VERSO_FETCH_GENIUS', reqId:id, url:url }, '*'); }catch(e){}
   return { abort:function(){ if(!fin) stop(); } };
 }
-// cb(err, letra, fuente) · fuente: 'tab' | 'ext' | 'embed' | 'page' | 'curl' | 'lrclib'. onProg(p) = estado.
-function fetchGeniusLyrics(url, cb, onProg){
+// cb(err, letra, fuente, motivo) · fuente: 'tab' | 'ext' | 'embed' | 'page' | 'curl' | 'lrclib'.
+// motivo = por que no salio de Genius (si cayo a LRCLIB o fallo). onProg(p) = estado.
+// opt.noLrc = solo Genius (sin respaldo LRCLIB): la pasada que "sube" canales de LRCLIB a Genius.
+function fetchGeniusLyrics(url, cb, onProg, opt){
+  opt=opt||{};
   url=String(url||'').trim();
   if(!/^https?:\/\//i.test(url)){ cb('invalid url', null); return; }
   var key=_gNorm(url), isG=_gIsGenius(url);
   if(_gMem[key]){ var mc=_gMem[key]; setTimeout(function(){ if(onProg){ try{ onProg({stage:'done', done:1, total:1}); }catch(e){} } cb(null, mc.lyr, mc.src); }, 0); return; }
-  var S={ over:false, cand:null, live:[], timers:[], tried:0, total:0, round:1, notFound:false, lrc:null, lrcDone:false, waitLrc:false };
+  var S={ over:false, cand:null, live:[], timers:[], tried:0, total:0, round:1, notFound:false, lrc:null, lrcDone:false, waitLrc:false, why:[] };
+  function note(w){ if(w && S.why.indexOf(w)<0) S.why.push(w); }
   function prog(stage){ if(onProg){ try{ onProg({stage:stage, done:S.tried, total:Math.max(1,S.total)}); }catch(e){} } }
   function stopAll(){ var i; for(i=0;i<S.timers.length;i++) clearTimeout(S.timers[i]); for(i=0;i<S.live.length;i++){ try{ S.live[i].abort(); }catch(e){} } S.timers=[]; S.live=[]; }
-  function win(lyr, src, keep){ if(S.over) return; S.over=true; stopAll(); if(keep) _gMem[key]={lyr:lyr, src:src}; prog('done'); cb(null, lyr, src); }
-  function lose(err){ if(S.over) return; S.over=true; stopAll(); cb(err||'no lyrics found', null); }
+  function win(lyr, src, keep){ if(S.over) return; S.over=true; stopAll(); if(keep) _gMem[key]={lyr:lyr, src:src}; prog('done'); cb(null, lyr, src, S.why.join(' · ')); }
+  function lose(err){ if(S.over) return; S.over=true; stopAll(); var w=S.why.join(' · '); cb((err||'no lyrics found')+(w?(' ('+w+')'):''), null, '', w); }
   function offer(lyr, src, verdict){
     if(!lyr||S.over) return false;
     if(verdict==='other'){ if(!S.cand) S.cand={ lyr:lyr, src:src }; return false; }   // no es el link exacto: solo si nada mejor aparece
@@ -2889,14 +2924,18 @@ function fetchGeniusLyrics(url, cb, onProg){
   function tExt(){ return { delay:0, run:function(done){   // web: extension Content Controler (pestaña abierta o descarga sin CORS)
     _gExtReady(function(ok){
       if(S.over) return;
-      if(!ok){ done(); return; }
-      S.live.push(_gExtFetch(url, 15000, function(err, r){
+      if(!ok){ note(_gExtState==='old'?'extensión sin recargar':'sin extensión'); done(); return; }
+      S.live.push(_gExtFetch(url, 12000, function(err, r){
         if(S.over) return;
-        if(!err && r.lyrics){ var tl=_cleanGeniusText(r.lyrics); if(tl && offer(tl, 'tab', 'ok')) return; }   // pestaña con ESE link
-        if(!err && r.html){
+        if(err && /extension unavailable|context invalidated/i.test(err)){ _gExt=false; _gExtState='old'; }   // solo hay un script huerfano en esta pestaña
+        if(err){ note('extensión: '+err); done(); return; }
+        if(r.lyrics){ var tl=_cleanGeniusText(r.lyrics); if(tl && offer(tl, 'tab', 'ok')) return; }   // pestaña con ESE link
+        if(r.html){
           var lyr=parseGeniusHTML(r.html);
           if(lyr){ var v=_gVerify(_gCanon(r.html), key, r.finalUrl||''), id=_gIdFromHtml(r.html); if(id&&v!=='other') _gRememberId(key, id); if(offer(lyr, 'ext', v)) return; }
         }
+        if(r.embed){ var em=_gParseEmbed(r.embed); if(em && em.lyr){ if(r.id) _gRememberId(key, r.id); if(offer(em.lyr, 'ext', 'ok')) return; } }   // v3: via busqueda + embed
+        note('extensión: sin letra');
         done();
       }));
     });
@@ -2906,6 +2945,7 @@ function fetchGeniusLyrics(url, cb, onProg){
     S.live.push(_gGet(px?px.w(url):url, 8000, function(err, txt, fu){
       if(S.over) return;
       if(!px && err==='HTTP 404') S.notFound=true;
+      if(!px && err) note('directa: '+err);
       if(!err && px && px.json){ try{ txt=JSON.parse(txt).contents||''; }catch(e){ txt=''; } }
       if(px) fu='';                                     // la URL final seria la del proxy, no la de Genius
       var lyr=(!err&&txt)?parseGeniusHTML(txt):null;
@@ -2919,6 +2959,7 @@ function fetchGeniusLyrics(url, cb, onProg){
       if(S.over) return;
       var lyr=html?parseGeniusHTML(html):null;
       if(lyr){ var v=_gVerify(_gCanon(html), key, fu), id=_gIdFromHtml(html); if(id&&v!=='other') _gRememberId(key, id); if(offer(lyr, 'curl', v)) return; }
+      note(html?'curl: página sin letra':'curl: sin respuesta');
       done();
     }));
   }}; }
@@ -2965,13 +3006,13 @@ function fetchGeniusLyrics(url, cb, onProg){
     if(S.cand){ win(S.cand.lyr, S.cand.src, false); return; }
     if(S.notFound){ lose('link not found on Genius (404)'); return; }
     // 2a vuelta solo si hay vias no-proxy que pueden recuperarse (AE: directa/curl; web: extension).
-    if(S.round<2 && (IN_AE || _gExt===true)){ S.round++; prog('retry'); S.timers.push(setTimeout(runRound, 600)); return; }
-    if(!isG){ lose('no lyrics found'); return; }
+    if(S.round<2 && (IN_AE || _gExt===true)){ S.round++; prog('retry'); S.timers.push(setTimeout(runRound, 1200)); return; }
+    if(!isG || opt.noLrc){ lose('no lyrics found'); return; }
     if(!S.lrcDone){ S.waitLrc=true; prog('lrclib'); return; }   // el respaldo sigue en camino
     if(S.lrc) win(S.lrc, 'lrclib', false); else lose('no lyrics found');
   }
   // Respaldo LRCLIB en paralelo desde el inicio: si Genius falla, ya esta listo (sin espera extra).
-  if(isG) S.live.push(_lrclibFetch(url, function(t){ S.lrc=t||null; S.lrcDone=true; if(S.waitLrc && !S.over){ if(S.lrc) win(S.lrc, 'lrclib', false); else lose('no lyrics found'); } }));
+  if(isG && !opt.noLrc) S.live.push(_lrclibFetch(url, function(t){ S.lrc=t||null; S.lrcDone=true; if(S.waitLrc && !S.over){ if(S.lrc) win(S.lrc, 'lrclib', false); else lose('no lyrics found'); } }));
   prog('start');
   runRound();
 }

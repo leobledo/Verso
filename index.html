@@ -9,15 +9,15 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* ── design tokens ── */
-  --bg:#0E0E0E;
-  --container:#171717;
+  --bg:#0E0E0E;                       /* web; en AE #141414 (html.ae-host) */
+  --container:#1e1e1e;
   --panel:#0E0E0E;                     /* lyrics + timeline panels (darker than side panels) */
-  --track:#161616;
+  --track:#191919;
   --accent:#8a8a8a;                    /* gris opaco (antes indigo) */
   --accent35:rgba(138,138,138,.35);
   --accent25:rgba(138,138,138,.22);
   --accent50:rgba(138,138,138,.5);
-  --btnbox:#161616;                    /* sub-container behind the button pills */
+  --btnbox:#191919;                    /* sub-container behind the button pills */
   --inact:rgba(255,255,255,.5);        /* inactive button icon + text */
   --title:rgba(255,255,255,.7);
   --text:#e9e9e9;
@@ -104,8 +104,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .lyr-line.section:hover .lk{filter:none}
 .lyr-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;text-align:center;padding:0 30px;line-height:1.7}
 .lyr-fade{position:absolute;left:0;right:0;z-index:3;pointer-events:none}
-.lyr-fade.top{top:0;height:120px;background:linear-gradient(var(--panel) 52%,rgba(14,14,14,0))}
-.lyr-fade.bot{bottom:0;height:70px;background:linear-gradient(rgba(14,14,14,0),var(--panel) 72%)}
+.lyr-fade.top{top:0;height:120px;background:linear-gradient(var(--panel) 52%,rgba(20,20,20,0))}
+.lyr-fade.bot{bottom:0;height:70px;background:linear-gradient(rgba(20,20,20,0),var(--panel) 72%)}
 
 /* ─── TIMELINE ZONE ─── */
 .timeline-zone{flex-shrink:0;background:var(--panel);border-radius:var(--rad);padding:10px 14px;display:flex;flex-direction:column;gap:8px;overflow:hidden}   /* own container like the other panels; clips the playhead */
@@ -297,7 +297,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .lyr-content{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.22,1,.36,1)}
 .lyrics.details-open .lyr-content{transform:translateX(var(--dp-shift,156px))}
 .details-panel{position:absolute;top:12px;left:12px;bottom:12px;width:300px;max-width:calc(100% - 24px);z-index:8;padding:13px;
-  background:#121212;border:1px solid rgba(255,255,255,.06);border-radius:14px;
+  background:#1b1b1b;border:1px solid rgba(255,255,255,.06);border-radius:14px;
   opacity:0;transform:scale(.97);transform-origin:left center;pointer-events:none;
   transition:opacity .2s ease,transform .22s cubic-bezier(.22,1,.36,1);
   display:flex;flex-direction:column}
@@ -306,23 +306,23 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dp-body::-webkit-scrollbar{display:none}
 .dp-inputs{display:flex;gap:7px}
 /* inputs: borde tenue que se ilumina al enfocar (paridad con CM/LMG) */
-.dp-in{flex:1 1 0;min-width:0;height:30px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#1c1c1c;color:var(--text);font-size:11px;font-weight:600;outline:none;transition:border-color .15s,background .15s,flex-grow .32s cubic-bezier(.22,1,.36,1)}
+.dp-in{flex:1 1 0;min-width:0;height:30px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.10);background:#232323;color:var(--text);font-size:11px;font-weight:600;outline:none;transition:border-color .15s,background .15s,flex-grow .32s cubic-bezier(.22,1,.36,1)}
 .dp-in:focus{flex-grow:3.4;border-color:var(--accent);background:rgba(255,255,255,.07)}
 .dp-in::placeholder{color:rgba(255,255,255,.35)}
 /* Sin max-height: el flex-parent (.dp-body, height:100%) ya limita la altura real
    disponible del panel; un max-height:70vh dejaba hueco debajo de los botones en
    ventanas altas porque el textarea se topaba con ese techo antes de llegar al fondo. */
-.dp-lyr{flex:1 1 auto;min-height:110px;padding:10px 11px;border-radius:11px;border:1px solid rgba(255,255,255,.10);background:#1c1c1c;color:var(--text);font-size:12px;line-height:1.6;outline:none;font-family:inherit;scrollbar-width:none;-ms-overflow-style:none;transition:border-color .15s,background .15s}
+.dp-lyr{flex:1 1 auto;min-height:110px;padding:10px 11px;border-radius:11px;border:1px solid rgba(255,255,255,.10);background:#232323;color:var(--text);font-size:12px;line-height:1.6;outline:none;font-family:inherit;scrollbar-width:none;-ms-overflow-style:none;transition:border-color .15s,background .15s}
 .dp-lyr:focus{border-color:var(--accent);background:rgba(255,255,255,.07)}
 .dp-lyr::-webkit-scrollbar{display:none}
 .dp-lyr::placeholder{color:rgba(255,255,255,.35)}
 .dp-thumb{width:100%;border-radius:9px}
 /* refresh button next to the Song input */
-.dp-refresh{flex:0 0 30px;width:30px;height:30px;border:none;border-radius:9px;background:#1c1c1c;color:var(--inact);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.dp-refresh{flex:0 0 30px;width:30px;height:30px;border:none;border-radius:9px;background:#232323;color:var(--inact);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
 .dp-refresh svg{width:14px;height:14px}
 .dp-refresh:hover{background:var(--accent25);color:var(--accent)}
 /* unified actions pill: Lyrics · Thumbnail · Clear, with a sliding indigo indicator */
-.dp-actions{position:relative;display:flex;background:#1c1c1c;border-radius:999px;padding:2px}
+.dp-actions{position:relative;display:flex;background:#232323;border-radius:999px;padding:2px}
 .dp-actions>.dp-act{position:relative;z-index:1;flex:1}
 .dp-act{display:flex;align-items:center;justify-content:center;gap:6px;height:28px;border:none;border-radius:999px;background:transparent;color:var(--inact);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .15s}
 .dp-act svg{width:14px;height:14px}
@@ -330,7 +330,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .dp-act.danger:hover,.dp-act.danger:hover svg{color:#e06666}
 .dp-act.loading{opacity:.55;pointer-events:none}
 /* Genius input that extends from the Lyrics button to cover the whole pill */
-.dp-genius-over{position:absolute;inset:0;display:flex;align-items:center;gap:4px;padding:0 3px 0 12px;background:#1c1c1c;border-radius:999px;z-index:4;
+.dp-genius-over{position:absolute;inset:0;display:flex;align-items:center;gap:4px;padding:0 3px 0 12px;background:#232323;border-radius:999px;z-index:4;
   opacity:0;transform:scaleX(.55);transform-origin:left center;pointer-events:none;transition:opacity .18s ease,transform .24s cubic-bezier(.22,1,.36,1)}
 .dp-actions.genius-mode .dp-genius-over{opacity:1;transform:none;pointer-events:auto}
 .dp-genius-inp{flex:1;min-width:0;height:100%;background:transparent;border:none;outline:none;color:var(--text);font-size:11px}
@@ -375,6 +375,20 @@ body.touch .tl-fade-x{display:none}
 .tl-node{position:absolute;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.5);z-index:7}
 .tl-node.l{left:-9px}.tl-node.r{right:-9px}
 body.touch .tl-wrap,body.touch .tl-marker,body.touch .tl-node{touch-action:none}
+/* ─── Timeline de PUNTOS (nov 2026, las tres versiones) ───
+   Punto brillante = timestamp. Puntos opacos (20%) = duracion hasta el siguiente. Hueco sin
+   puntos = tramo recortado. Clic en un punto = se estira en pildora (animado) para moverla/
+   recortarla; al soltar el ajuste (o al seguir: Enter, Space, clic fuera) vuelve a puntos.
+   Para volver a las pildoras de siempre: TL_DOTS=false en el JS. */
+body.tl-dots{--dot-on:#d4d4d4;--dot-dim:rgba(212,212,212,.2);--dot-dim-hi:rgba(212,212,212,.32)}
+body.tl-dots .tl-track{background:transparent}
+body.tl-dots .tl-marker,body.tl-dots .tl-marker.sel,body.touch.tl-dots .tl-marker.sel{background:transparent!important;box-shadow:none!important;filter:none!important;border-radius:0;cursor:pointer}
+.tl-pill{position:absolute;left:0;top:0;height:100%;border-radius:999px;background:var(--dot-on);pointer-events:none;transition:background-color .15s}
+.tl-dot{position:absolute;top:0;height:100%;border-radius:50%;background:var(--dot-dim);pointer-events:none;transition:opacity .26s ease,background-color .15s}
+.tl-marker.sel .tl-dot{opacity:0}
+.tl-marker.anim .tl-pill{transition:width .36s cubic-bezier(.22,1,.36,1),background-color .15s}
+body.tl-dots .tl-marker:not(.sel):hover .tl-pill{background:#ededed}
+body.tl-dots .tl-marker:not(.sel):hover .tl-dot{background:var(--dot-dim-hi)}
 body.touch .lyr-stage{touch-action:none}
 /* use the dynamic viewport so iOS Safari's bars don't push controls off-screen */
 body.touch .app{height:100vh;height:100dvh}
@@ -468,6 +482,210 @@ body.touch .app{height:100vh;height:100dvh}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 input[type=file]{display:none}
 </style>
+<script>/* Fondo segun donde corre: AE #141414, web #0E0E0E. Se marca aqui (en el head) para que no
+   haya parpadeo de color al abrir. window.__adobe_cep__ solo existe dentro de After Effects. */
+try{ if(window.__adobe_cep__) document.documentElement.classList.add('ae-host'); }catch(e){}</script>
+<style id="lookNov8">
+/* ─── Ajustes de diseno (nov 2026, las tres versiones) ─── */
+html.ae-host{--bg:#141414;--panel:#141414}   /* After Effects: #141414; web: #0E0E0E (:root) */
+/* Lineas no activas un poco mas tenues para destacar la activa (antes .25). */
+.lk{color:rgba(255,255,255,.22)}
+/* Separadores [Chorus] [Verse 1]... dentro de una pildora opaca. */
+.lyr-line.section{font-size:10.5px;font-weight:600;letter-spacing:.08em;line-height:1;margin-top:1.45em;margin-bottom:1.45em}
+body.touch .lyr-line.section{font-size:10px}
+.lyr-flow .lyr-line.section:first-child{margin-top:0}
+.lyr-line.section .lk{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:7.3em;height:2.15em;padding:0 1.15em;border-radius:999px;background:#202020;color:#666!important;font-weight:600!important;white-space:nowrap}
+/* Blur ligero donde la letra desaparece arriba y abajo (el blur se desvanece con el fade). */
+.lyr-fade::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;-webkit-backdrop-filter:blur(2.5px);backdrop-filter:blur(2.5px)}
+.lyr-fade.top::before{-webkit-mask-image:linear-gradient(#000 35%,transparent);mask-image:linear-gradient(#000 35%,transparent)}
+.lyr-fade.bot::before{-webkit-mask-image:linear-gradient(transparent,#000 65%);mask-image:linear-gradient(transparent,#000 65%)}
+/* Pildora de velocidad en la barra de la linea de tiempo (reemplaza el clic en el timer). */
+.tl-btn.tl-speed{justify-content:center;min-width:38px;padding:0 9px;font-variant-numeric:tabular-nums}
+.tl-btn.tl-speed.fast{color:rgba(255,255,255,.95)}
+/* Mas aire arriba (area de la letra): el titulo no queda pegado al marco. Abajo sigue igual:
+   la linea de tiempo no se mueve. */
+.app{padding-top:24px}
+/* Playhead: al llevar el mouse hasta el (clase .hov, por JS) o al agarrarlo se ensancha con un rebote suave tipo liquido
+   (primero lo ancho, luego lo alto), como pildora gris con borde blanco. Al soltar vuelve sin rebote. */
+.tl-playhead{box-sizing:border-box;border:0 solid #fff;box-shadow:none;pointer-events:auto;cursor:ew-resize;transition:width .22s ease,margin-left .22s ease,top .25s ease,bottom .25s ease,background-color .2s ease,border-width .16s ease,box-shadow .2s ease}   /* sin halo: en zoom fit parpadeaba */
+.tl-playhead::before{content:'';position:absolute;top:-2px;bottom:-2px;left:-6px;right:-6px}
+.tl-playhead.hov,.tl-playhead.grab{width:10px!important;margin-left:-5px!important;top:-11px;bottom:-11px;border-radius:999px;background:#595959;border-width:1.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);transition:width .38s cubic-bezier(.22,1.65,.42,1),margin-left .38s cubic-bezier(.22,1.65,.42,1),top .47s cubic-bezier(.3,1.5,.45,1) .035s,bottom .47s cubic-bezier(.3,1.5,.45,1) .035s,background-color .2s ease,border-width .16s ease,box-shadow .24s ease}
+body.touch .tl-playhead{cursor:default}
+/* Copiar seccion: la pildora responde al hover (solo si la seccion esta completa) y las lineas
+   que se copiarian se iluminan; al copiar, la pildora destella. */
+.lyr-line.section .lk{pointer-events:auto;cursor:default;transition:background-color .18s ease,color .18s ease,transform .14s ease}
+.lyr-line.section .lk.sec-ok{cursor:copy}
+.lyr-line.section .lk.sec-ok:hover{background:#2a2a2a;color:#9a9a9a!important}
+.lyr-line.section .lk.sec-no{cursor:not-allowed}
+.lyr-line.section .lk.sec-copied{background:#3a3a3a;color:#fff!important;transform:scale(1.05)}
+.lyr-line.sec-hl .lk{color:rgba(255,255,255,.6)!important}
+</style>
+<style id="vlgCss">
+/* ─── Aviso al salir / recargar (solo web; en After Effects no se crea) ───
+   Tarjeta chica centrada (378px) de vidrio oscuro: translucida y con su propio blur, de modo
+   que lo de atras se ve desenfocado a traves de ella (no es solida).
+   El oscurecido + blur de toda la pagina va en ::before y NO en .vlg-bg: un backdrop-filter
+   dentro de otro elemento con backdrop-filter u opacity < 1 ya no "ve" la pagina de atras,
+   y la tarjeta se veria solida.
+   Medidas en em (1em = 16px) para que se encoja sola en pantallas angostas. */
+.vlg-bg{position:fixed;top:0;right:0;bottom:0;left:0;z-index:2147483000;display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.vlg-bg::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);opacity:0;transition:opacity .24s ease}
+.vlg-bg.vlg-in::before{opacity:1}
+.vlg-bg.vlg-out{pointer-events:none}
+.vlg-bg.vlg-out::before{opacity:0;transition-duration:.18s}
+.vlg-card{position:relative;font-size:16px;font-size:min(16px,calc((100vw - 32px) / 23.625));width:23.625em;max-width:100%;box-sizing:border-box;padding:2.25em 1em 1.375em;border-radius:2em;background:rgba(24,24,24,.8);-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);border:1px solid rgba(255,255,255,.08);color:#fff;text-align:center;box-shadow:0 1.25em 3em rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);outline:none;opacity:0;transform:scale(.94);transition:opacity .24s ease,transform .32s cubic-bezier(.2,.9,.25,1);-webkit-user-select:none;user-select:none;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.vlg-bg.vlg-in .vlg-card{opacity:1;transform:scale(1)}
+.vlg-bg.vlg-out .vlg-card{opacity:0;transform:scale(.97);transition-duration:.16s}
+.vlg-title{font-size:1.125em;font-weight:400;line-height:1.25;letter-spacing:.005em;margin:0 0 1.9em;overflow-wrap:anywhere}
+.vlg-btn{display:block;width:100%;font:inherit;font-size:1.125em;font-weight:400;height:2.7em;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.07);color:#a3a3a3;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color .32s ease,color .32s ease,filter .4s ease,transform .12s}
+.vlg-btn:hover{background:rgba(255,255,255,.12);color:#f2f2f2}
+.vlg-btn:active{transform:scale(.98)}
+.vlg-btn:focus{outline:none}
+.vlg-btn:focus-visible{box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+@media (prefers-reduced-motion:reduce){.vlg-bg::before,.vlg-card{transition:none}}
+</style>
+<style id="btnFx">
+/* ─── BOTONES (nov 2026, las 3 versiones, web + AE) ───
+   Hover: se iluminan suave y elegante (brillo + halo tenue) y crecen un poco con una escala
+   sutil y suave; al salir vuelven igual de suave, sin rebote. Sin hover real (pantallas
+   tactiles) no se aplica.
+   En los grupos con pildora deslizante (Song, Details, 1x, Import, Render, Export, acciones
+   del panel de detalles) la pildora crece junto con el boton (.on-hov). _slideTo mide el
+   boton SIN su escala (_unscaledRect), asi que la pildora nunca se desalinea. */
+.tl-btn,.mode-pill,.dp-act{transition:color .32s ease,filter .4s ease,transform .38s cubic-bezier(.22,1,.36,1)}
+.tl-imp-opt,.tl-icobtn,.dp-mini-btn,.dp-refresh,.dp-genius-go,.chpop-x,.songs-refresh,.ch-clear,.mbtn,.stack-item,.rate-item,.t-btn,.t-icon,.t-exp{transition:background-color .32s ease,border-color .32s ease,color .32s ease,filter .4s ease,transform .38s cubic-bezier(.22,1,.36,1)}
+.slide-ind{transition:left .26s cubic-bezier(.22,1,.36,1),width .26s cubic-bezier(.22,1,.36,1),opacity .16s,filter .4s ease,box-shadow .4s ease,transform .38s cubic-bezier(.22,1,.36,1)}
+@media (hover:hover){
+  .tl-btn:hover,.mode-pill:hover{filter:drop-shadow(0 0 6px rgba(255,255,255,.32));transform:scale(1.05)}
+  .dp-act:hover{filter:drop-shadow(0 0 6px rgba(255,255,255,.32));transform:scale(1.03)}
+  /* el texto se aclara al pasar el mouse en las 3 (en CM/LMG algunos se quedaban en gris) */
+  .tl-btn:hover,.tl-btn:hover .tl-ico,.mode-pill:hover,.dp-act:not(.danger):hover,.dp-act:not(.danger):hover svg{color:rgba(255,255,255,.95)}
+  button:not(.tl-btn):not(.dp-act):not(:disabled):hover{filter:brightness(1.12) drop-shadow(0 0 9px rgba(255,255,255,.1));transform:scale(1.06)}
+  #vlgBg .vlg-btn:hover{transform:scale(1.02)}
+  #vlgBg .vlg-btn:active{transform:scale(.99)}
+  .tl-ctl:hover>.slide-ind.show,.tl-right:hover>.slide-ind.show,.mode-toggle:hover>.slide-ind.show,.dp-actions:hover>.slide-ind.show{filter:brightness(1.3);box-shadow:0 0 14px rgba(255,255,255,.07)}
+  .slide-ind.on-hov{transform:scale(1.05)}
+  .dp-actions>.slide-ind.on-hov{transform:scale(1.03)}
+}
+@media (prefers-reduced-motion:reduce){.tl-btn,.mode-pill,.dp-act,button,.slide-ind{transform:none!important}}
+</style>
+<style id="modsCss">
+/* ═══ BARRA INFERIOR EN 3 MODULOS (nov 2026, Verso Alpha) ═══
+   [1 cancion/detalles] [2 cargar cancion · linea de tiempo · velocidad] [3 Export SRT + Content
+   Manager (web) | Import + Render (AE)].
+   Medidas del diseno de referencia: modulos #191919 de 54px (pildora) y botones #212121 de 46x34.
+   La cancion ya no va arriba: vive en el modulo 1 (Artist/Song editables directo, sin cajas).
+   Detalles: el modulo 1 crece hacia arriba (.mod-exp va DETRAS del contenido del modulo, mismo
+   color) con la letra completa para editar; en LMG/CM con los canales. */
+:root{--mod-bg:#191919;--mod-btn:#212121;--mod-btn-hov:#2b2b2b;--mod-ico:#7a7a7a;--mod-card:#1d1d1d;--mod-h:54px}
+.lyr-title{display:none!important}
+#rszV{display:none!important}
+.timeline-zone{background:transparent!important;padding:12px 0 0!important;border-radius:0!important;overflow:visible!important;flex-shrink:0;height:auto!important}
+.tl-row.mods{display:flex;align-items:center;gap:10px;height:var(--mod-h)}
+.mod{position:relative;z-index:41;display:flex;align-items:center;gap:10px;height:var(--mod-h);padding:0 10px;background:var(--mod-bg);border-radius:calc(var(--mod-h) / 2);min-width:0;box-sizing:border-box}
+.mod-song{flex:0 1 340px;min-width:230px;padding-left:7px;cursor:pointer}
+.mod-tl{flex:1 1 auto;min-width:180px}
+.mod-right{flex:0 0 auto}
+/* modulo 2: la linea de tiempo ocupa todo el espacio entre los dos botones */
+.mod-tl .tl-mid{flex:1 1 auto;min-width:40px;align-self:stretch;display:flex;align-items:center;background:transparent!important;border-radius:0!important;padding:0 4px!important;transition:none!important}
+.mod-tl .tl-mid>.tl-wrap{flex:1;min-width:0;width:auto;height:22px}
+/* botones de los modulos */
+.mod-btn{position:relative;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:46px;height:34px;padding:0 14px;margin:0;border:0;border-radius:999px;background:var(--mod-btn);color:var(--mod-ico);font-family:inherit;font-size:11.5px;font-weight:600;line-height:1;cursor:pointer;white-space:nowrap;transition:background-color .32s ease,color .32s ease,filter .4s ease,transform .38s cubic-bezier(.22,1,.36,1)}
+.mod-btn svg{width:16px;height:16px;flex:0 0 16px}
+.mod-btn:focus{outline:none}
+.mod-btn:focus-visible{box-shadow:0 0 0 2px rgba(255,255,255,.22)}
+.mod-btn.on,.mod-btn.active-imp{background:var(--mod-btn-hov);color:#fff}
+.mod-btn.loading{opacity:.55;pointer-events:none}
+.mod-btn.gyellow{color:#ffe14d;background:rgba(255,225,77,.12)}
+.mod-btn.mod-speed{padding:0 10px;color:#9a9a9a;font-variant-numeric:tabular-nums}
+.mod-btn.mod-speed.fast{color:#fff}
+.mod-btn.mod-wide{padding:0 18px 0 15px}
+@media (hover:hover){
+  .mod-btn:hover{background:var(--mod-btn-hov);color:#fff}
+  .mod-btn.gyellow:hover{background:rgba(255,225,77,.2);color:#ffe14d}
+}
+/* modulo 1: icono (espectro o canal) + Artist/Song editables + buscar letra */
+.mod-ico{flex:0 0 42px;width:42px;height:38px;display:flex;align-items:center;justify-content:center;margin:0;padding:0;border:0;border-radius:999px;background:transparent;color:#fff;cursor:pointer}
+.mod-ico:focus{outline:none}
+.mod-ico .ch-av{width:32px;height:32px;font-size:13px}
+.mod-meta{position:relative;flex:1 1 auto;min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.mod-in{display:block;width:100%;min-width:0;height:17px;margin:0;padding:0;border:0;border-radius:0;outline:none;background:transparent;font-family:inherit;line-height:17px;text-overflow:ellipsis;white-space:nowrap;cursor:text;caret-color:#fff;transition:color .25s ease}
+.mod-in.a{font-size:12.5px;font-weight:500;color:#fff}
+.mod-in.s{font-size:12px;font-weight:400;color:#8c8c8c}
+.mod-in::placeholder{color:rgba(255,255,255,.3);opacity:1}
+.mod-in.s::placeholder{color:rgba(255,255,255,.2)}
+.mod-in.s:focus{color:#cfcfcf}
+/* espectro de audio (Verso individual): 3 barras grises con su nivel blanco */
+.spec{display:flex;align-items:center;justify-content:center;gap:5px;height:36px;pointer-events:none}
+.spec i{position:relative;display:block;width:5px;height:17px;border-radius:3px;background:#5c5c5c}
+.spec i.m{height:27px}
+.spec b{position:absolute;left:0;right:0;top:50%;height:7px;border-radius:3px;background:#fff;transform:translateY(-50%)}
+.spec i.m b{height:15px}
+/* link de Genius (Verso individual): la lupa se extiende hacia la IZQUIERDA en una pildora con el
+   campo para pegar el link; la lupa queda a la derecha (Enter o la lupa lo cargan). */
+/* En reposo mide EXACTAMENTE lo que la lupa (sin relleno: con relleno quedaba mas ancha y asomaba
+   por la izquierda) y esta oculta; al abrir se extiende hacia la izquierda; al cerrar vuelve y se oculta. */
+.mod-gin{position:absolute;right:10px;top:50%;z-index:1;width:46px;height:34px;margin-top:-17px;display:flex;align-items:center;box-sizing:border-box;padding:0;background:var(--mod-btn);border-radius:999px;overflow:hidden;pointer-events:none;opacity:0;transition:width .46s cubic-bezier(.22,1,.36,1),padding .46s cubic-bezier(.22,1,.36,1),opacity 0s linear .46s}
+.mod-song.gmode .mod-gin{width:calc(100% - 63px);padding:0 50px 0 15px;pointer-events:auto;opacity:1;transition:width .46s cubic-bezier(.22,1,.36,1),padding .46s cubic-bezier(.22,1,.36,1),opacity 0s}
+.mod-meta{transition:opacity .2s ease}
+.mod-song.gmode .mod-meta{opacity:0;transition:opacity .15s ease}
+.mod-gin input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;outline:none;background:transparent;color:#fff;font-family:inherit;font-size:12px;opacity:0;transition:opacity .15s ease}
+.mod-song.gmode .mod-gin input{opacity:1;transition:opacity .3s ease .16s}
+.mod-gin input::placeholder{color:rgba(255,255,255,.35)}
+#btnLyrSearch{z-index:2}
+.mod-song.gmode #btnLyrSearch{background:var(--mod-btn-hov);color:#fff}
+/* LMG/CM: con links de Genius pegados, la lupa = "cargar" */
+#btnLyrSearch.ready,#btnLyrSearch.ready:hover{background:#ececec;color:#141414}
+/* detalles: el modulo crece hacia arriba (mismo color, detras de su contenido) */
+.mod-exp{position:absolute;left:0;right:0;bottom:0;height:100%;z-index:-1;background:var(--mod-bg);border-radius:calc(var(--mod-h) / 2);overflow:hidden;pointer-events:none;transition:height .48s cubic-bezier(.22,1,.36,1),border-radius .35s ease}
+.mod-song.open .mod-exp{height:var(--exp-h,60vh);border-radius:26px;pointer-events:auto}
+#modSong .details-panel{position:absolute;left:0;right:0;top:auto;bottom:var(--mod-h);height:calc(var(--exp-h,60vh) - var(--mod-h));width:auto!important;max-width:none;margin:0;padding:10px 10px 2px;background:transparent;border:0;border-radius:0;box-shadow:none;transform:none;opacity:0;pointer-events:none;z-index:auto;display:flex;flex-direction:column;overflow:hidden;cursor:default;transition:opacity .2s ease}
+#modSong.open .details-panel{opacity:1;pointer-events:auto;transition:opacity .32s ease .1s}
+/* Verso individual: tarjeta con la letra completa */
+#modSong .dp-card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;background:var(--mod-card);border-radius:20px;overflow:hidden}
+#modSong .dp-card-head{flex:0 0 auto;display:flex;align-items:center;gap:2px;padding:8px 8px 0 17px}
+#modSong .dp-card-title{flex:1;min-width:0;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#555}
+.dp-ibtn{width:30px;height:28px;display:flex;align-items:center;justify-content:center;margin:0;padding:0;border:0;border-radius:999px;background:transparent;color:#6a6a6a;cursor:pointer;transition:background-color .3s ease,color .3s ease,filter .4s ease,transform .38s cubic-bezier(.22,1,.36,1)}
+.dp-ibtn svg{width:14px;height:14px}
+.dp-ibtn:focus{outline:none}
+@media (hover:hover){ .dp-ibtn:hover{background:#262626;color:#fff} .dp-ibtn.danger:hover{background:rgba(224,102,102,.12);color:#e06666} }
+#modSong .dp-lyr{flex:1 1 auto;min-height:60px;width:100%;margin:0;resize:none;border:0;border-radius:0;outline:none;font-family:inherit;scrollbar-width:none;-ms-overflow-style:none;background:transparent;padding:8px 17px 34px;font-size:12.5px;line-height:1.62;color:rgba(255,255,255,.66);-webkit-mask-image:linear-gradient(#000 calc(100% - 54px),transparent);mask-image:linear-gradient(#000 calc(100% - 54px),transparent)}
+#modSong .dp-lyr:focus{background:transparent;border:0;color:rgba(255,255,255,.86)}
+#modSong .dp-lyr::placeholder{color:rgba(255,255,255,.28)}
+#modSong .dp-lyr::-webkit-scrollbar{display:none;width:0;height:0}
+#modSong .dp-thumb{flex:0 0 auto;display:block;width:calc(100% - 20px);max-height:30%;margin:0 10px 10px;border-radius:10px;object-fit:contain}
+/* LMG / CM: canales dentro del modulo que crece */
+#modSong .dp-chan-list{flex:1 1 auto;min-height:0;padding:0 0 6px;gap:6px}
+#modSong .channel{background:var(--mod-card);border:0;border-radius:18px;padding:8px 10px}
+#modSong .channel.expanded{background:var(--mod-card)}
+@media (hover:hover){ #modSong .channel:hover{background:#212121} }
+#modSong .channel .ch-av{width:30px;height:30px}
+#modSong .channel .ch-name{font-size:12.5px;font-weight:500}
+#modSong .channel .ch-lyr{min-height:160px;background:rgba(255,255,255,.025);border:0;border-radius:13px;color:rgba(255,255,255,.72);font-size:12px;line-height:1.6;padding:10px 12px}
+#modSong .channel .ch-lyr:focus{background:rgba(255,255,255,.045);border:0}
+#modSong .dp-globalbar{border-top:0;padding:6px 0}
+#modSong .dp-actions,#modSong .dp-mini{background:var(--mod-btn)}
+#modSong .dp-genius{left:0;right:0;background:var(--mod-bg);border:0;border-radius:18px 18px 0 0;box-shadow:none}
+/* modulo 3 (web): solo Export SRT (Verso individual no lleva Content Management) */
+/* modulo 3 (AE): Import con sus opciones (SRT / Bulk) que salen al pasar el mouse + Render */
+.mod-imp{display:inline-flex;align-items:center}
+.mod-imp .tl-imp-menu{display:inline-flex;align-items:center;max-width:0;overflow:hidden;opacity:0;transition:max-width .3s cubic-bezier(.22,1,.36,1),opacity .2s ease}
+.mod-imp:hover .tl-imp-menu{max-width:160px;opacity:1}
+.mod-imp .tl-imp-opt{flex:0 0 auto;height:34px;margin:0 0 0 4px;padding:0 13px;border:0;border-radius:999px;background:var(--mod-btn);color:#9a9a9a;font-size:11px;font-weight:700}
+@media (hover:hover){ .mod-imp .tl-imp-opt:hover{background:var(--mod-btn-hov);color:#fff;transform:none} }
+.mod-right .tl-lines{background:var(--mod-btn)}
+/* tactil (iPad): linea de tiempo mas alta para el dedo */
+body.touch .tl-row.mods{height:auto}
+body.touch .mod-tl{height:auto;min-height:var(--mod-h);padding:5px 10px}
+body.touch .mod-tl .tl-mid>.tl-wrap{height:46px}
+/* ventanas angostas (o panel de AE angosto): modulo 1 y 3 arriba, la linea de tiempo abajo */
+@media (max-width:820px){
+  .tl-row.mods{flex-wrap:wrap;height:auto;row-gap:8px}
+  .mod-song{flex:1 1 220px;min-width:0}
+  .mod-tl{order:3;flex:1 1 100%;min-width:0}
+}
+@media (prefers-reduced-motion:reduce){.mod-exp,.mod-gin,#modSong .details-panel{transition:none!important}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -483,8 +701,6 @@ input[type=file]{display:none}
     <!-- RIGHT COLUMN: lyrics on top, timeline below -->
     <div class="right-col" id="rightCol">
       <section class="lyrics" id="lyricsPanel">
-        <!-- Details panel: slides in from the left; pushes the content right to re-centre it -->
-        <div class="details-panel" id="detailsPanel"></div>
         <div class="lyr-content" id="lyrContent">
           <div class="lyr-title">
             <div class="lyr-song" id="lyrSong">Untitled</div>
@@ -502,22 +718,33 @@ input[type=file]{display:none}
 
       <div class="rsz-v" id="rszV" style="pointer-events:none"></div>
 
-      <!-- TIMELINE + integrated control pills -->
+      <!-- BARRA INFERIOR (nov 2026): 3 modulos — cancion/detalles · linea de tiempo · export -->
       <div class="timeline-zone" id="timelineZone">
-        <div class="tl-row">
-          <div class="tl-ctl tl-left" id="tlLeft"></div>
-          <div class="tl-mid">
-            <div class="tl-wrap" id="tlWrap">
-              <div class="tl-track" id="tlTrack">
-                <div id="tlMarkers"></div>
-                <div class="tl-fade-x l"></div>
-                <div class="tl-fade-x r"></div>
+        <div class="tl-row mods" id="modsRow">
+          <div class="mod mod-song" id="modSong">
+            <div class="mod-exp" id="modExp"><div class="details-panel" id="detailsPanel"></div></div>
+            <button class="mod-ico" id="modIco" type="button" title="Details — lyrics"><span class="spec" id="modSpec"><i><b></b></i><i class="m"><b></b></i><i><b></b></i></span></button>
+            <div class="mod-meta" id="modMeta">
+              <input class="mod-in a" id="modArtist" type="text" placeholder="Artist" spellcheck="false" autocomplete="off">
+              <input class="mod-in s" id="modTitle" type="text" placeholder="Song" spellcheck="false" autocomplete="off">
+            </div>
+            <div class="mod-gin"><input class="dp-genius-inp" id="g-link-inline" type="text" placeholder="Paste a Genius link…" spellcheck="false" autocomplete="off"></div>
+            <button class="mod-btn" id="btnLyrSearch" type="button" onclick="searchAction(event)" title="Find the lyrics on Genius"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></button>
+          </div>
+          <div class="mod mod-tl" id="modTl">
+            <div class="tl-mid">
+              <div class="tl-wrap" id="tlWrap">
+                <div class="tl-track" id="tlTrack">
+                  <div id="tlMarkers"></div>
+                  <div class="tl-fade-x l"></div>
+                  <div class="tl-fade-x r"></div>
+                </div>
+                <div class="tl-playhead" id="tlPlayhead" style="left:0;display:none"></div>
+                <div class="tl-tip" id="tlTip"></div>
               </div>
-              <div class="tl-playhead" id="tlPlayhead" style="left:0;display:none"></div>
-              <div class="tl-tip" id="tlTip"></div>
             </div>
           </div>
-          <div class="tl-right" id="tlRight"></div>
+          <div class="mod mod-right" id="tlRight"></div>
         </div>
       </div>
     </div>
@@ -570,6 +797,135 @@ input[type=file]{display:none}
 <!-- CEP bridge library — only meaningful inside an Adobe host; harmless on the web -->
 <script src="./CSInterface.js"></script>
 <script>
+// ─── AVISO AL SALIR / RECARGAR (solo web) ───
+// Cmd+R (Mac), Ctrl+R / F5 (Windows) y "atras" (boton, gesto, Alt+Flecha, boton del mouse)
+// muestran este aviso en vez de recargar o salir. Siempre en ingles:
+//   "Are you trying to leave?"  [ Accept ]
+//   Accept -> recarga o sale, segun lo que se hizo.
+//   Clic fuera de la tarjeta o Esc -> se queda, sin recargar.
+// Lo que el navegador NO deja interceptar con un aviso propio (su boton de recargar, cerrar la
+// pestana, escribir otra direccion) cae en el aviso nativo del navegador (beforeunload).
+// "Atras": se agrega una entrada de historial propia (con la misma URL) tras la primera
+// interaccion; al volver a ella, el aviso aparece y la pagina sigue intacta.
+// Va ANTES del script principal para que su keydown corra primero y, con el aviso abierto,
+// ninguna tecla (Space, Enter...) llegue al resto del panel.
+// En After Effects (CEP) no hace nada.
+(function(){
+  if(window.__adobe_cep__) return;
+  var IS_MAC_LG=/mac|iphone|ipad|ipod/i.test(navigator.platform||'')||/Mac OS X/i.test(navigator.userAgent||'');
+  var TITLE='Are you trying to leave?', ACCEPT='Accept';
+
+  var open=false, action=null, leaving=false, unloading=false, armed=false, depth=0;
+  var el=null, card=null, okB=null, downOnBg=false, closeTimer=null, prevFocus=null;
+
+  // Profundidad = cuantas entradas de historial de Verso hay antes de esta (se guarda en el
+  // propio historial y sobrevive a la recarga). Accept en "atras" salta todas de una vez.
+  function readDepth(){ try{ var s=history.state; return (s&&typeof s.vgDepth==='number')?s.vgDepth:-1; }catch(e){ return -1; } }
+  depth=readDepth();
+  if(depth<0){ depth=0; try{ history.replaceState({vgDepth:0},'',location.href); }catch(e){} }
+
+  function arm(){
+    if(armed||open||leaving) return;
+    // Solo con interaccion real: Chrome salta entradas de historial agregadas sin ella.
+    try{ if(navigator.userActivation && !navigator.userActivation.isActive) return; }catch(e){}
+    try{ history.pushState({vgDepth:depth+1},'',location.href); depth++; armed=true; }catch(e){}
+  }
+
+  function build(){
+    if(el) return;
+    el=document.createElement('div'); el.className='vlg-bg'; el.id='vlgBg';
+    el.innerHTML='<div class="vlg-card" role="alertdialog" aria-modal="true" aria-labelledby="vlgTitle" tabindex="-1" lang="en">'+
+      '<div class="vlg-title" id="vlgTitle"></div>'+
+      '<button type="button" class="vlg-btn" id="vlgAccept"></button></div>';
+    card=el.firstChild; okB=el.querySelector('#vlgAccept');
+    el.querySelector('#vlgTitle').textContent=TITLE; okB.textContent=ACCEPT;
+    okB.addEventListener('click',function(e){ e.stopPropagation(); confirmLeave(); });
+    // Clic FUERA de la tarjeta = quedarse (solo si el clic empezo y termino fuera).
+    var downEv=window.PointerEvent?'pointerdown':'mousedown';
+    el.addEventListener(downEv,function(e){ downOnBg=(e.target===el); });
+    el.addEventListener('click',function(e){ if(e.target===el && downOnBg) stay(); downOnBg=false; });
+    document.body.appendChild(el);
+  }
+
+  function show(kind){
+    action=kind;
+    if(open) return;
+    build(); open=true;
+    clearTimeout(closeTimer);
+    el.classList.remove('vlg-out'); el.style.display='flex';
+    void el.offsetWidth;                     // reflow: que la animacion de entrada arranque desde 0
+    el.classList.add('vlg-in');
+    prevFocus=document.activeElement;
+    try{ card.focus({preventScroll:true}); }catch(e){ try{ card.focus(); }catch(e2){} }
+  }
+  function hide(instant){
+    if(!el) return;
+    open=false; clearTimeout(closeTimer);
+    el.classList.remove('vlg-in');
+    if(instant){ el.classList.remove('vlg-out'); el.style.display='none'; }
+    else { el.classList.add('vlg-out'); closeTimer=setTimeout(function(){ el.style.display='none'; el.classList.remove('vlg-out'); },200); }
+    try{ if(prevFocus && prevFocus!==document.body && prevFocus.focus) prevFocus.focus({preventScroll:true}); }catch(e){}
+    prevFocus=null;
+  }
+  // Clic fuera / Esc: la pagina sigue igual. Si venia de "atras", se re-arma la entrada.
+  function stay(){ var a=action; action=null; hide(false); if(a==='back') arm(); }
+  // Accept: hace lo que se intento (recargar o salir), sin volver a preguntar.
+  function confirmLeave(){
+    var a=action; leaving=true;
+    if(a==='reload'){ location.reload(); return; }
+    if(a==='back'){
+      try{ history.go(-(depth+1)); }catch(e){}
+      // No habia pagina anterior (pestana nueva): no hay a donde salir; cerrar y re-armar.
+      setTimeout(function(){ if(unloading) return; leaving=false; action=null; hide(false); arm(); },700);
+      return;
+    }
+    leaving=false; stay();
+  }
+
+  // Teclas: Cmd+R (Mac) / Ctrl+R / F5 (+Shift = recarga forzada). Con el aviso abierto se
+  // bloquean todas las demas teclas del panel; Esc = quedarse; Tab enfoca Accept.
+  window.addEventListener('keydown',function(e){
+    var k=e.key||'';
+    var isReload=(k==='F5'||e.keyCode===116) ||
+      ((IS_MAC_LG?e.metaKey:e.ctrlKey) && (IS_MAC_LG||!e.altKey) && (e.code==='KeyR'||k.toLowerCase()==='r'));   // Win: sin Alt (AltGr = Ctrl+Alt)
+    if(open){
+      if(k==='Escape'||k==='Esc'){ e.preventDefault(); e.stopImmediatePropagation(); stay(); return; }
+      if(k==='Tab'){ e.preventDefault(); e.stopImmediatePropagation(); okB.focus(); return; }
+      if(document.activeElement===okB && !isReload && (k==='Enter'||k===' '||e.code==='Space'||e.code==='NumpadEnter')){ e.stopImmediatePropagation(); return; }   // Accept enfocado: se presiona normal
+      e.preventDefault(); e.stopImmediatePropagation(); return;
+    }
+    if(isReload){ e.preventDefault(); e.stopImmediatePropagation(); arm(); show('reload'); return; }
+    if(k!=='Escape' && k!=='Shift' && k!=='Control' && k!=='Alt' && k!=='Meta') arm();
+  },true);
+
+  // Primera interaccion = se arma la proteccion de "atras".
+  ['pointerdown','mousedown','touchend','click'].forEach(function(t){ window.addEventListener(t,function(){ arm(); },true); });
+
+  // "Atras" (o adelante) dentro de las entradas de Verso.
+  window.addEventListener('popstate',function(e){
+    if(leaving) return;
+    var s=e.state, d=(s&&typeof s.vgDepth==='number')?s.vgDepth:0, prev=depth;
+    depth=d;
+    if(d>prev){ armed=true; if(open && action==='back'){ action=null; hide(false); } return; }   // "adelante": se deshizo el atras
+    armed=false;
+    show('back');
+  });
+
+  // Respaldo nativo: boton de recargar del navegador, cerrar pestana, escribir otra URL.
+  window.addEventListener('beforeunload',function(e){
+    if(leaving){ unloading=true; return; }
+    e.preventDefault(); e.returnValue=''; return '';
+  });
+
+  // Volver a la pagina desde la cache del navegador (atras/adelante): estado limpio.
+  window.addEventListener('pageshow',function(e){
+    if(!e.persisted) return;
+    leaving=false; unloading=false; armed=false; action=null; hide(true);
+    var d=readDepth(); depth=d<0?0:d;
+  });
+})();
+</script>
+<script>
 // ─── CEP BRIDGE ───
 // window.__adobe_cep__ exists ONLY inside a CEP host (After Effects). That is our
 // single source of truth for "running inside AE" — so the AE-only UI (the import
@@ -592,13 +948,19 @@ try{
 // Two interfaces in one. Default = Video (targets "Song" / "Lyrics" / "TH").
 // Short = purple accents + narrow vertical lyrics stage; every action targets the
 // project items whose name contains "Short" (Short Song / Short Lyrics / Short).
-var SHORT_MODE=false;
+// Nov 2026 (Verso Alpha): en AE el modo Short es el UNICO (sin toggle Video/Short). Todas las
+// acciones hacen lo de video Y lo Short que exista en el proyecto; lo que no exista se ignora.
+// En la web no cambia nada (false).
+var SHORT_MODE=IN_AE;
 // Per-interface details (Artist / Song). Video uses ch.artist/ch.song; Short uses
 // ch.shortArtist/ch.shortSong. These accessors pick the right bucket for the mode.
-function chArtist(ch){ return (ch ? (SHORT_MODE ? ch.shortArtist : ch.artist) : '') || ''; }
-function chSong(ch){   return (ch ? (SHORT_MODE ? ch.shortSong   : ch.song)   : '') || ''; }
-function setChArtist(ch,v){ if(!ch) return; if(SHORT_MODE) ch.shortArtist=v; else ch.artist=v; }
-function setChSong(ch,v){   if(!ch) return; if(SHORT_MODE) ch.shortSong=v;   else ch.song=v; }
+// Sin toggle (nov 2026) Video y Short son la MISMA cancion: en Short se escriben ambos
+// juegos (artist/song y shortArtist/shortSong) para que la TH de video y la Short reciban
+// siempre el mismo titulo.
+function chArtist(ch){ return (ch ? (SHORT_MODE ? (ch.shortArtist||ch.artist) : ch.artist) : '') || ''; }
+function chSong(ch){   return (ch ? (SHORT_MODE ? (ch.shortSong||ch.song)     : ch.song)   : '') || ''; }
+function setChArtist(ch,v){ if(!ch) return; if(SHORT_MODE){ ch.shortArtist=v; ch.artist=v; } else ch.artist=v; }
+function setChSong(ch,v){   if(!ch) return; if(SHORT_MODE){ ch.shortSong=v;   ch.song=v; }   else ch.song=v; }
 function setMode(short){
   short=!!short;
   if(short===SHORT_MODE){ return; }
@@ -706,16 +1068,46 @@ tlWrap.addEventListener('mousedown', function(e){
   if(e.target.closest('.tl-marker')) return;
   if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=null; } scrollTarget=scrollPct;
   selStampSet.clear(); tlRefresh();
-  scrubbing=true; doScrub(e.clientX); e.preventDefault();
+  if(!(e.target&&e.target.id==='tlPlayhead')) _scrubOff=0; scrubbing=true; doScrub(e.clientX+_scrubOff); e.preventDefault();
 });
+// Playhead: agarrarlo lo mantiene ancho mientras se arrastra (la animacion esta en CSS) y el
+// arrastre parte desde donde esta, sin brincar al punto exacto del clic.
+var _scrubOff=0;
+(function(){ var ph=document.getElementById('tlPlayhead'); if(!ph) return;
+  ph.addEventListener('mousedown', function(e){ if(e.button!==0) return; ph.classList.add('grab'); var r=ph.getBoundingClientRect(); _scrubOff=(r.left+r.width/2)-e.clientX; });
+  window.addEventListener('mouseup', function(){ ph.classList.remove('grab'); _scrubOff=0; });
+})();
+// Playhead: se ensancha (.hov) solo cuando TU mueves el mouse hasta el. Con :hover tambien se
+// ensanchaba cuando el playhead pasaba por debajo del cursor quieto al reproducir = parpadeo.
+var _phMouseX=null;
+function _phSnap(x){ var d=window.devicePixelRatio||1; return Math.round(x*d)/d; }
+function _phHovCheck(ph){ if(!ph.classList.contains('hov')||ph.classList.contains('grab')||_phMouseX==null) return; var r=ph.getBoundingClientRect(); if(Math.abs(r.left+r.width/2-_phMouseX)>9) ph.classList.remove('hov'); }
+(function(){ var ph=document.getElementById('tlPlayhead'); if(!ph) return;
+  tlWrap.addEventListener('mousemove', function(e){ _phMouseX=e.clientX; if(ph.style.display==='none'){ ph.classList.remove('hov'); return; } var r=ph.getBoundingClientRect(), thr=ph.classList.contains('hov')?9:7; ph.classList.toggle('hov', Math.abs(r.left+r.width/2-e.clientX)<=thr || ph.classList.contains('grab')); });
+  tlWrap.addEventListener('mouseleave', function(){ _phMouseX=null; if(!ph.classList.contains('grab')) ph.classList.remove('hov'); });
+})();
+// Rueda / trackpad sobre la linea de tiempo (nov 2026): zoom SIN modificador.
+//  - Rueda del mouse, o trackpad con dos dedos arriba/abajo = zoom, anclado en el cursor.
+//  - Pellizco del trackpad = zoom (Chrome/AE lo mandan como ctrl+wheel; Safari como gesture*).
+//  - Trackpad a los lados, o Shift+rueda = moverse por la linea de tiempo. Boton central = arrastrar.
 tlWrap.addEventListener('wheel', function(e){
   if(!dur) return; e.preventDefault();
-  if(e.altKey){
-    var r=tlTrack.getBoundingClientRect(), mx=(e.clientX-r.left)/r.width, tp=scrollPct+mx/zoom;
-    zoomTarget=Math.max(1,Math.min(40,(tlEaseId?zoomTarget:zoom)+(e.deltaY>0?-1:1)));
-    scrollTarget=Math.max(0,Math.min(1-1/zoomTarget, tp-mx/zoomTarget)); startTlEase();
-  } else { var step=(e.deltaY||e.deltaX)*.0016/zoom; scrollTarget=clampScroll((tlEaseId?scrollTarget:scrollPct)+step); startTlEase(); }
+  var unit=(e.deltaMode===1)?16:(e.deltaMode===2)?(tlTrack.clientWidth||800):1;
+  var dx=(e.deltaX||0)*unit, dy=(e.deltaY||0)*unit;
+  var zc=tlEaseId?zoomTarget:zoom, sc=tlEaseId?scrollTarget:scrollPct;
+  if(e.shiftKey || (!e.ctrlKey && Math.abs(dx)>Math.abs(dy))){
+    var d=(Math.abs(dx)>Math.abs(dy))?dx:dy;   // Shift+rueda en Windows llega en deltaY
+    scrollTarget=clampScroll(sc+d*.0016/zc); startTlEase(); return;
+  }
+  var r=tlTrack.getBoundingClientRect(), mx=r.width?Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)):.5, tp=sc+mx/zc;
+  zoomTarget=Math.max(1,Math.min(40, zc*Math.exp(-dy*(e.ctrlKey?0.01:0.003))));
+  scrollTarget=Math.max(0,Math.min(1-1/zoomTarget, tp-mx/zoomTarget)); startTlEase();
 },{passive:false});
+// Safari en Mac: el pellizco llega como gesturestart/gesturechange (en iPad lo manejan los touch*).
+var _gZ0=1, _gMx=.5, _gTp=0;
+tlWrap.addEventListener('gesturestart', function(e){ if(!dur||IS_TOUCH) return; e.preventDefault(); var r=tlTrack.getBoundingClientRect(); _gMx=r.width?Math.max(0,Math.min(1,((e.clientX||r.left+r.width/2)-r.left)/r.width)):.5; _gZ0=zoom; _gTp=scrollPct+_gMx/zoom; });
+tlWrap.addEventListener('gesturechange', function(e){ if(!dur||IS_TOUCH) return; e.preventDefault(); zoomTarget=Math.max(1,Math.min(40,_gZ0*(e.scale||1))); scrollTarget=Math.max(0,Math.min(1-1/zoomTarget,_gTp-_gMx/zoomTarget)); startTlEase(); });
+tlWrap.addEventListener('gestureend', function(e){ if(!IS_TOUCH) e.preventDefault(); });
 
 // ─── TOUCH: pan with one finger, pinch-zoom with two (timeline only) ───
 var tlTouchPan=false, tlTouchStartX=0, tlTouchStartScroll=0, tlTouchMoved=false;
@@ -852,14 +1244,23 @@ function _pill(id,onclick,title,icon,label,cls){
 function flashPill(id){ var el=document.getElementById(id); if(!el) return; el.classList.add('on'); var c=el.closest('.tl-ctl'); if(c&&c._slideRest) c._slideRest(); clearTimeout(el._flash); el._flash=setTimeout(function(){ el.classList.remove('on'); if(c&&c._slideRest) c._slideRest(); },2000); }
 // Sliding hover indicator: an indigo pill that glides to the hovered button and,
 // on mouse-leave, returns to the container's "resting" button (restFn) — switch-like.
+// Rect del boton SIN su escala de hover (btnFx): la pildora se mide sobre el tamano real del
+// boton y luego crece con el via CSS (.on-hov), asi nunca queda desalineada.
+function _unscaledRect(el){
+  var r=el.getBoundingClientRect(), s=1;
+  try{ var m=getComputedStyle(el).transform, v=m&&m!=='none'?/matrix\(([^,]+)/.exec(m):null; if(v) s=parseFloat(v[1])||1; }catch(e){}
+  if(Math.abs(s-1)<0.0005) return r;
+  var w=r.width/s; return { left:r.left+(r.width-w)/2, width:w };
+}
+function _isHov(el){ try{ return !!(el && el.matches && el.matches(':hover')); }catch(e){ return false; } }
 function initSlider(container, restFn){
   if(!container) return;
   var ind=document.createElement('div'); ind.className='slide-ind';
   container.insertBefore(ind, container.firstChild);
-  container._slideTo=function(el){ if(!el){ ind.classList.remove('show'); return; } var cr=container.getBoundingClientRect(), r=el.getBoundingClientRect(); ind.style.left=(r.left-cr.left)+'px'; ind.style.width=r.width+'px'; ind.classList.toggle('danger', !!(el.classList&&el.classList.contains('danger'))); ind.classList.toggle('gfound', !!(el.classList&&el.classList.contains('gyellow'))); ind.classList.add('show'); };
+  container._slideTo=function(el){ if(!el){ ind.classList.remove('show','on-hov'); return; } var cr=container.getBoundingClientRect(), r=_unscaledRect(el); ind.style.left=(r.left-cr.left)+'px'; ind.style.width=r.width+'px'; ind.classList.toggle('on-hov', _isHov(el)); ind.classList.toggle('danger', !!(el.classList&&el.classList.contains('danger'))); ind.classList.toggle('gfound', !!(el.classList&&el.classList.contains('gyellow'))); ind.classList.add('show'); };
   // Slide to an explicit rect — used by the Import pill so its indicator can embrace the
   // full Import+SRT width from the FIRST frame, before the menu has finished expanding.
-  container._slideRect=function(left,width){ ind.classList.remove('danger','gfound'); ind.style.left=left+'px'; ind.style.width=width+'px'; ind.classList.add('show'); };
+  container._slideRect=function(left,width){ ind.classList.remove('danger','gfound','on-hov'); ind.style.left=left+'px'; ind.style.width=width+'px'; ind.classList.add('show'); };
   container._slideRest=function(){ requestAnimationFrame(function(){ container._slideTo(restFn?restFn():null); }); };
   container.addEventListener('mouseover', function(e){ var b=e.target.closest('.tl-btn,.tl-imp,.mode-pill,.dp-act'); if(!b||!container.contains(b)) return;
     if(b.closest('.tl-imp')) return;   // Import gestiona su propio indicador (ancho final inmediato)
@@ -872,99 +1273,54 @@ function initSlider(container, restFn){
   container.addEventListener('mouseleave', function(){ clearTimeout(container._reslide); container._slideRest(); });
   container._slideRest();
 }
-function buildActionBar(){
-  // 1) Lyrics-panel centre block (igual que LMG): avisos temporales ARRIBA del timer y la
-  //    leyenda fija (cancion) ABAJO, en #tChannel.
+// Velocidad de reproduccion (nov 2026): el timer se quito; ahora es una pildora chica en la
+// barra de la linea de tiempo. Clic = 1x -> 1.5x -> 2.1x -> 3x -> 1x (toggleRate15, se recuerda).
+function _rateLabel(){ var r=currentRate||1; return (Math.abs(r-Math.round(r))<0.001?String(Math.round(r)):String(r))+'\u00d7'; }
+function _speedPill(){ return '<button class="tl-btn tl-speed" id="btnSpeed" onclick="toggleRate15()" title="Playback speed (click: 1\u00d7 \u2192 1.5\u00d7 \u2192 2.1\u00d7 \u2192 3\u00d7)">'+_rateLabel()+'</button>'; }
+function syncSpeedBtn(){ var b=document.getElementById('btnSpeed'); if(!b) return; b.textContent=_rateLabel(); b.classList.toggle('fast', Math.abs((currentRate||1)-1)>0.001); }
+// ─── BARRA INFERIOR EN 3 MODULOS (nov 2026) ───
+// Modulo 1 = cancion/detalles (#modSong, en el HTML). Modulo 2 = cargar cancion · linea de tiempo
+// · velocidad (#modTl). Modulo 3 = web: solo Export SRT (nov 2026: Verso individual no lleva
+// Content Management; sin #cmHost la extension no dibuja nada aqui, sus puentes de Genius siguen
+// activos); AE: Import (+opciones) + Render.
+var MOD_NOTE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+var MOD_ARROWR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+var MOD_PLAY_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+var MOD_IMPORT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+function _modMid(onclick, title){
+  var tl=document.getElementById('modTl'); if(!tl) return;
+  ['btnMaster','btnSpeed'].forEach(function(id){ var o=document.getElementById(id); if(o&&o.parentNode) o.parentNode.removeChild(o); });
+  tl.insertAdjacentHTML('afterbegin','<button class="mod-btn" id="btnMaster" type="button" onclick="'+onclick+'" title="'+title+'">'+MOD_NOTE_SVG+'</button>');
+  tl.insertAdjacentHTML('beforeend','<button class="mod-btn mod-speed" id="btnSpeed" type="button" onclick="toggleRate15()" title="Playback speed (click: 1× → 1.5× → 2.1× → 3×)">'+_rateLabel()+'</button>');
+}
+function _modLyrControls(){
+  // Centro del panel de la letra: solo la leyenda dinamica y los puntitos de velocidad.
   var bar=document.querySelector('.lyr-controls');
-  if(bar){
-    bar.classList.remove('ae');
-    bar.innerHTML=
-      '<div class="t-center-timer">'+
-        '<div class="t-status" id="tStatus"></div>'+
-        '<div class="t-dots" id="tDots"></div>'+
-        '<div class="t-timer-flat" id="tTimer" title="Click to cycle speed: 1× → 1.5× → 2.1× → 3×" onclick="toggleRate15()">00:00:00</div>'+
-        '<div class="t-pbar" id="tPbar"><i></i></div>'+
-        '<div class="t-channel" id="tChannel">'+esc(_legendBase)+'</div>'+
-      '</div>';
-  }
-  // 2) Timeline bar — LEFT: Song · Details · Import · Render (control pills). Web: no
-  // Export here — it lives in the RIGHT group instead (next to the line selector).
-  var importPill = IN_AE
-    ? '<div class="tl-imp" id="tlImp">'+
-        '<button class="tl-btn tl-imp-head" id="btnImport" onclick="importClick(event)" title="Import timestamped lyrics to the comp"><span class="tl-ico">'+CLIP_SVG+'</span><span class="tl-lbl">Import</span></button>'+
-        '<div class="tl-imp-menu">'+
-          '<button class="tl-imp-opt" onclick="importSRTFile(event)" title="Import an external .srt into the comp">SRT</button>'+
-        '</div>'+
-      '</div>'
-    : '';
-  var tlLeft=document.getElementById('tlLeft');
-  if(tlLeft){
-    tlLeft.innerHTML=
-      _pill('btnMaster','loadSingleSong(event)',(IN_AE?'Load a new song':'Load audio'),NOTE_SVG,'Song')+
-      _pill('btnDetails','toggleDetails(event)','Details — edit song info & lyrics',CARD_SVG,'Details')+
-      importPill+
-      (IN_AE?_pill('btnRender','renderAction(event)','Render',PLAY_SVG,'Render'):'');
-  }
-  // 3) Timeline bar — RIGHT: lines-per-timestamp icons + Video/Short toggle (AE) or the
-  // wide Export button in its place (web — sin toggle, como Verso LMG).
+  if(bar){ bar.classList.remove('ae'); bar.innerHTML='<div class="t-center-timer"><div class="t-status" id="tStatus"></div><div class="t-dots" id="tDots"></div></div>'; }
+}
+function buildActionBar(){
+  _modLyrControls();
+  // Modulo 2: cargar cancion (izquierda) · linea de tiempo · velocidad (derecha).
+  _modMid('loadSingleSong(event)', IN_AE?'Load a new song':'Load audio');
+  // Modulo 3: web = solo Export SRT; AE = Import (+opciones) + Render.
   var tlRight=document.getElementById('tlRight');
   if(tlRight){
-    tlRight.innerHTML=
-      '<div class="tl-lines" id="tlLines">'+
-        '<button class="tl-icobtn" id="lt2" onclick="setLinesPerStamp(2)" title="2 lines per timestamp">'+LINES2_SVG+'</button>'+
-        '<button class="tl-icobtn" id="lt3" onclick="setLinesPerStamp(3)" title="3 lines per timestamp">'+LINES3_SVG+'</button>'+
-        '<button class="tl-icobtn" id="lt4" onclick="setLinesPerStamp(4)" title="4 lines per timestamp">'+LINES4_SVG+'</button>'+
-      '</div>'+
-      (IN_AE
-        ? '<div class="mode-toggle" id="modeToggle" role="switch" aria-label="Video / Short">'+
-            '<span class="mode-pill'+(!SHORT_MODE?' on':'')+'" onclick="setMode(false)">Video</span>'+
-            '<span class="mode-pill'+(SHORT_MODE?' on':'')+'" onclick="setMode(true)">Short</span>'+
-          '</div>'
-        : '<div class="tl-ctl tl-wide" id="tlRenderCtl">'+_pill('mainActionBtn','importClick(event)','Export SRT',ARROWDN_SVG,'Export')+'</div>');
+    var h='';
+    // Lineas por timestamp: teclas 1-4; en pantallas tactiles (sin teclas) quedan los botones.
+    if(IS_TOUCH) h+='<div class="tl-lines" id="tlLines">'+
+      '<button class="tl-icobtn" id="lt2" onclick="setLinesPerStamp(2)" title="2 lines per timestamp (key 2; key 1 = 1 line)">'+LINES2_SVG+'</button>'+
+      '<button class="tl-icobtn" id="lt3" onclick="setLinesPerStamp(3)" title="3 lines per timestamp (key 3)">'+LINES3_SVG+'</button>'+
+      '<button class="tl-icobtn" id="lt4" onclick="setLinesPerStamp(4)" title="4 lines per timestamp (key 4)">'+LINES4_SVG+'</button>'+
+    '</div>';
+    h+= IN_AE
+      ? '<div class="mod-imp" id="tlImp"><button class="mod-btn" id="btnImport" type="button" onclick="importClick(event)" title="Import timestamped lyrics to the comp">'+MOD_IMPORT_SVG+'</button>'+
+        '<div class="tl-imp-menu"><button class="tl-imp-opt" type="button" onclick="importSRTFile(event)" title="Import an external .srt into the comp">SRT</button></div></div>'+
+        '<button class="mod-btn mod-wide" id="btnRender" type="button" onclick="renderAction(event)" title="Render">'+MOD_PLAY_SVG+'<span>Render</span></button>'
+      : '<button class="mod-btn" id="mainActionBtn" type="button" onclick="importClick(event)" title="Export SRT">'+MOD_ARROWR_SVG+'</button>';
+    tlRight.innerHTML=h;
   }
   syncRateUI();
   syncLinesMenu();
-  // sliding hover indicators: controls (rests on the active/flashed pill) + toggle (rests on selected)
-  initSlider(document.getElementById('tlLeft'), function(){ var c=document.getElementById('tlLeft'); return c?c.querySelector('.tl-btn.on'):null; });
-  initSlider(document.getElementById('modeToggle'), function(){ var c=document.getElementById('modeToggle'); return c?c.querySelector('.mode-pill.on'):null; });
-  initSlider(document.getElementById('tlRenderCtl'), function(){ var c=document.getElementById('tlRenderCtl'); return c?c.querySelector('.tl-btn.on'):null; });
-  // Import hover: shrink Render to its icon (slides right) so the Import/SRT pill fits
-  var imp=document.getElementById('tlImp'), ctl=document.getElementById('tlLeft');
-  if(imp&&ctl){
-    // Measure the Import pill (head + expanded options) and size the indicator to it.
-    // FINAL width up-front: while collapsed the menu is clipped (max-width:0), so measure
-    // its scrollWidth instead of the live rect. The indicator embraces Import+SRT from the
-    // first frame — no "sit on Import, then grow" two-step.
-    var _impInd=function(){
-      if(!ctl._slideRect) return;
-      var head=imp.querySelector('.tl-imp-head'), menu=imp.querySelector('.tl-imp-menu');
-      if(!head) return;
-      var cr=ctl.getBoundingClientRect(), ir=imp.getBoundingClientRect();
-      ctl._slideRect(ir.left-cr.left, head.offsetWidth+(menu?menu.scrollWidth:0));
-    };
-    // Asienta el layout al instante (sin animar) para poder medir el estado FINAL.
-    // El indicador conserva su propia transicion, asi que sigue deslizandose suave.
-    var _settle=function(){ ctl.classList.add('no-anim'); void ctl.offsetWidth; };
-    var _unsettle=function(){ ctl.classList.remove('no-anim'); };
-    imp.addEventListener('mouseenter',function(){
-      clearTimeout(ctl._reslide);          // cancela el slide pendiente de Details/Render
-      ctl.classList.add('imp-open');
-      _settle(); _impInd(); _unsettle();   // menu ya expandido -> ancho final exacto
-    });
-    imp.addEventListener('mouseleave',function(){
-      clearTimeout(ctl._reslide);
-      ctl.classList.remove('imp-open');
-      _settle();                            // menu colapsado y Render ya en su sitio
-      var h=ctl.querySelector('.tl-btn:hover');
-      if(h) ctl._slideTo(h); else ctl._slideRest();
-      _unsettle();
-    });
-  }
-  // Lock the controls container to its resting width so the Import hover (expand/shrink)
-  // never resizes the markers track (which was making the timeline "recede").
-  // min-width (not a fixed width): keeps the markers track from receding, but still lets
-  // the pill GROW when Import expands, so Import+SRT never get clipped at the edge.
-  if(ctl){ ctl.style.width=''; ctl.style.minWidth=''; requestAnimationFrame(function(){ if(ctl.offsetWidth) ctl.style.minWidth=ctl.offsetWidth+'px'; }); }
 }
 // Verso 2: speed selectors flanking the timer (slow left, fast right). No containers,
 // semi-opaque numbers; the selected one turns blue. 1x = none selected.
@@ -1023,7 +1379,7 @@ function applyGlobalRate(){
 AEL.addEventListener('loadedmetadata', applyGlobalRate);
 AEL.addEventListener('canplay', applyGlobalRate);
 AEL.addEventListener('play', applyGlobalRate);
-function syncRateUI(){ var t=document.getElementById('tTimer'); if(t) t.classList.toggle('rate15', Math.abs(currentRate-1)>0.001); }
+function syncRateUI(){ try{ syncSpeedBtn(); }catch(e){}  var t=document.getElementById('tTimer'); if(t) t.classList.toggle('rate15', Math.abs(currentRate-1)>0.001); }
 // Verso: load a NEW song. Web → file picker. AE → ExtendScript dialog that replaces
 // the project's "Song" footage with the chosen file, then loads it into the timeline.
 function loadSingleSong(ev){
@@ -1034,10 +1390,10 @@ function loadSingleSong(ev){
   // "2 por 1": desde Short, el mismo archivo (una sola vez se elige) reemplaza AMBAS —
   // "Short Song" Y "Song" (video) — ajusta el rango de "Short" Y del video largo, y borra
   // los SRT viejos en ambos lados. Antes solo tocaba el lado Short.
-  toast(short?'Select the song file (Short + Video)…':'Select the song file…');
+  toast('Select the song file…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
-    _evalDlg((short?'loadShortSongFile()':'loadSingleSongFile()'), function(txt){
+    _evalDlg((short?'((typeof loadSongAuto==="function")?loadSongAuto():loadShortSongFile())':'loadSingleSongFile()'), function(txt){
       var r=_parseRes(txt, 'Song'); if(!r) return;
       if(!r.ok){ toast('Song: '+((r.msg||'')==='Cancelled'?'carga cancelada':(r.msg||'error')), 5000); return; }
       var ch=getActive();
@@ -1052,7 +1408,7 @@ function loadSingleSong(ev){
         if(ch.id===activeId){ AEL.src=ch.audioURL; AEL.load(); }
       }
       renderChannels(); syncTitle(); tlRefresh();
-      toast('✓ Cancion cargada'+(short?' (Short + Video)':'')+' · rango ajustado'+(r.removed?(' · '+r.removed+' SRT borrados'):''), 6000);
+      toast('✓ Cancion cargada'+(r.shortToo?' (Short + Video)':'')+' · rango ajustado'+(r.removed?(' · '+r.removed+' SRT borrados'):''), 6000);
       // Auto-update the thumbnail(s) with the new Artist/Song (same step the Thumbnail button does).
       if(ch && chArtist(ch) && chSong(ch)){ thumbnailAction(ch.id); }
     });
@@ -1060,35 +1416,30 @@ function loadSingleSong(ev){
 }
 // Verso single-channel: the song container (artist/song/lyrics/thumbnail) as a popup.
 var CARD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="7" y1="13" x2="14" y2="13"/><line x1="7" y1="16.5" x2="11" y2="16.5"/></svg>';
-// Details panel: slides in from the left inside the lyrics panel and shifts the
-// lyrics content right to re-centre it. A click outside the panel closes it.
-function toggleDetails(ev){ if(ev) ev.stopPropagation(); var lp=document.getElementById('lyricsPanel'); if(!lp) return; var open=!lp.classList.contains('details-open'); setDetailsOpen(open); }
+// ─── DETALLES (nov 2026): el modulo 1 crece hacia arriba hasta el borde superior de la letra ───
+// Se abre con clic en el icono o en el fondo del modulo; se cierra igual, con Esc o con clic fuera.
+// La letra se re-centra en el espacio que queda a la derecha (--dp-shift).
+function _modFitExp(){
+  var ms=document.getElementById('modSong'), lp=document.getElementById('lyricsPanel'); if(!ms||!lp) return;
+  var mb=ms.getBoundingClientRect(), lt=lp.getBoundingClientRect();
+  var h=Math.max(ms.offsetHeight+140, Math.round(mb.bottom-lt.top));
+  ms.style.setProperty('--exp-h', h+'px');
+  // la letra se re-centra en el espacio libre; si el modulo ocupa mas de la mitad (panel angosto), no se mueve
+  var sh=(mb.width+10)/2; if(mb.width+10>lt.width*0.5) sh=0;
+  lp.style.setProperty('--dp-shift', Math.round(sh)+'px');
+}
+function toggleDetails(ev){ if(ev&&ev.stopPropagation) ev.stopPropagation(); var ms=document.getElementById('modSong'); if(!ms) return; setDetailsOpen(!ms.classList.contains('open')); }
 function setDetailsOpen(open){
-  var lp=document.getElementById('lyricsPanel'); if(!lp) return;
-  if(open){
-    // Details panel width matches the first (controls) container, with a comfortable floor —
-    // on web tlLeft only has Song+Details (no Import/Render), so its width alone was too
-    // narrow and squeezed the Artist/Song inputs + lyrics box (looked like "Arl"/"So").
-    var tlLeft=document.getElementById('tlLeft'), panel=document.getElementById('detailsPanel');
-    var w=Math.max((tlLeft&&tlLeft.offsetWidth)||224, 300);
-    if(panel) panel.style.width=w+'px';
-    lp.style.setProperty('--dp-shift', Math.round(w/2+6)+'px');
-    renderChannels();
-  }
-  lp.classList.toggle('details-open', open);
-  var b=document.getElementById('btnDetails'); if(b) b.classList.toggle('on', open);
+  var ms=document.getElementById('modSong'), lp=document.getElementById('lyricsPanel'); if(!ms) return;
+  open=!!open;
+  if(open){ _modFitExp(); renderChannels(); }
+  ms.classList.toggle('open', open);
+  if(lp) lp.classList.toggle('details-open', open);
 }
 function closeDetails(){ setDetailsOpen(false); }
 // legacy aliases (older callers)
 function openChPop(ev){ if(ev) ev.stopPropagation(); setDetailsOpen(true); }
 function closeChPop(){ setDetailsOpen(false); }
-// click outside the details panel (and not on the Details button) closes it.
-document.addEventListener('mousedown', function(e){
-  var lp=document.getElementById('lyricsPanel');
-  if(!lp || !lp.classList.contains('details-open')) return;
-  if(e.target.closest && (e.target.closest('#detailsPanel') || e.target.closest('#btnDetails'))) return;
-  closeDetails();
-});
 
 // ─── Verso 2 icons (SRT button + line toggles) ───
 var SRT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="7" y1="10" x2="11" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/><line x1="15" y1="14" x2="17" y2="14"/></svg>';
@@ -1104,7 +1455,13 @@ var linesPerStamp=1;
 // Only changes how many lines the NEXT timestamp will cover/underline.
 // Does NOT alter the lyrics text or remove existing markers.
 function setLinesPerStamp(n){
-  linesPerStamp=(linesPerStamp===n)?1:n;   // clicking the active one turns it back to 1
+  applyLinesPerStamp((linesPerStamp===n)?1:n);   // clicking the active one turns it back to 1
+}
+// Teclas 1-4 (fila de numeros o teclado numerico): fijan exactamente N lineas, sin alternar.
+// Siempre arranca en 1 al cargar la pagina / abrir el panel (no se guarda en ningun lado).
+function applyLinesPerStamp(n){
+  n=Math.max(1,Math.min(4,n|0||1));
+  linesPerStamp=n;
   syncLinesMenu();
   updateLyricHighlight(AEL.currentTime||0);   // no rebuild — just refresh (keeps painted lines)
   toast(linesPerStamp===1?'1 line per timestamp':(linesPerStamp+' lines per timestamp'));
@@ -1402,67 +1759,37 @@ function chDisplayName(ch){
 // rebuilt on every relevant change (song load, mode switch, edits), which keeps the
 // Artist/Song inputs in sync — no need to reopen the panel.
 function renderChannels(){
+  // Nov 2026: los detalles son la tarjeta de la letra completa dentro del modulo 1 (que crece).
+  // Artist/Song ya no van aqui: se editan directo en el modulo. Buscar letra = boton del modulo.
   var host=document.getElementById('detailsPanel'); if(!host) return;
   var ch=getActive(); if(!ch){ host.innerHTML=''; return; }
   host.innerHTML='';
-  var body=document.createElement('div'); body.className='dp-body'; body.onclick=function(e){ e.stopPropagation(); };
-
   var clrIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
   var thumbIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="M21 15l-5-5L5 18"/></svg>';
-
-  // Artist / Song inputs + refresh (re-reads the loaded song title)
-  var _a=chArtist(ch), _s=chSong(ch);
-  var ins=document.createElement('div'); ins.className='dp-inputs';
-  var inA=document.createElement('input'); inA.className='dp-in'+((_a&&_a.trim())?' filled':''); inA.placeholder='Artist'; inA.value=_a;
-  inA.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editArtist(ch.id,this.value); };
-  var inS=document.createElement('input'); inS.className='dp-in'+((_s&&_s.trim())?' filled':''); inS.placeholder='Song'; inS.value=_s;
-  inS.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editSong(ch.id,this.value); };
-  var rf=document.createElement('button'); rf.className='dp-refresh'; rf.title='Re-read the loaded song title'; rf.innerHTML=REFRESH_SVG;
-  rf.onclick=function(e){ e.stopPropagation(); channelReload(ch.id); };
-  ins.appendChild(inA); ins.appendChild(inS); ins.appendChild(rf); body.appendChild(ins);
-
-  // Lyrics textarea
-  var ta=document.createElement('textarea'); ta.className='dp-lyr'+((ch.lyricsText&&ch.lyricsText.trim())?' filled':''); ta.placeholder='Lyrics — one line per row…'; ta.value=ch.lyricsText||'';
+  var card=document.createElement('div'); card.className='dp-card';
+  var head=document.createElement('div'); head.className='dp-card-head';
+  var ttl=document.createElement('span'); ttl.className='dp-card-title'; ttl.textContent='Lyrics'; head.appendChild(ttl);
+  function ib(svg,title,fn,cls){ var b=document.createElement('button'); b.type='button'; b.className='dp-ibtn'+(cls?' '+cls:''); b.title=title; b.innerHTML=svg; b.onclick=function(e){ e.stopPropagation(); fn(); }; head.appendChild(b); return b; }
+  ib(REFRESH_SVG,'Re-read the loaded song title',function(){ channelReload(ch.id); });
+  if(IN_AE) ib(thumbIcon,'Update the thumbnail (Artist/Song text layers)',function(){ thumbnailAction(ch.id); });
+  ib(clrIcon,'Clear inputs, lyrics, timestamps & SRT layers',function(){ if(IN_AE) clearChannelFull(ch.id); else clearActive(); },'danger');
+  card.appendChild(head);
+  var ta=document.createElement('textarea'); ta.className='dp-lyr'+((ch.lyricsText&&ch.lyricsText.trim())?' filled':''); ta.placeholder='Lyrics — one line per row…'; ta.value=ch.lyricsText||''; ta.spellcheck=false;
   ta.oninput=function(){ this.classList.toggle('filled',!!this.value.trim()); editLyrics(ch.id,this.value); };
-  body.appendChild(ta);
-
-  // AE: thumbnail preview
-  if(IN_AE){ var timg=document.createElement('img'); timg.className='dp-thumb'; timg.style.display='none'; timg.onclick=function(e){ e.stopPropagation(); }; body.appendChild(timg); ch._thumbImg=timg; }
-
-  // Unified actions pill: Lyrics · Thumbnail · Clear (sliding indigo hover).
-  // Clicking "Lyrics" extends an inline Genius input over the whole pill (no popup);
-  // once the lyrics load it animates back to the minimised button.
-  var acts=document.createElement('div'); acts.className='dp-actions'; acts.id='dpActions';
-  var bLyr=document.createElement('button'); bLyr.className='dp-act'; bLyr.id='dpLyrBtn'; bLyr.title='Find the lyrics on Genius';
-  bLyr.innerHTML=SEARCH_SVG+'<span>Lyrics</span>'; bLyr.onclick=function(e){ e.stopPropagation(); if(!IN_AE && (GENIUS_TAB_URL||GENIUS_TAB_LYRICS)){ applyGeniusFromTab(); } else { toggleGeniusInput(); } };
-  acts.appendChild(bLyr);
-  if(IN_AE){
-    var bThumb=document.createElement('button'); bThumb.className='dp-act'; bThumb.title='Update the thumbnail (Artist/Song text layers)';
-    bThumb.innerHTML=thumbIcon+'<span>Thumbnail</span>'; bThumb.onclick=function(e){ e.stopPropagation(); thumbnailAction(ch.id); };
-    acts.appendChild(bThumb);
-  }
-  var bClr=document.createElement('button'); bClr.className='dp-act danger'; bClr.title='Clear inputs, lyrics, timestamps & SRT layers';
-  bClr.innerHTML=clrIcon+'<span>Clear</span>'; bClr.onclick=function(e){ e.stopPropagation(); if(IN_AE) clearChannelFull(ch.id); else clearActive(); };
-  acts.appendChild(bClr);
-  // Genius input overlay (covers the whole pill; extends from the left = the Lyrics button)
-  var over=document.createElement('div'); over.className='dp-genius-over';
-  var gin=document.createElement('input'); gin.className='dp-genius-inp'; gin.id='g-link-inline'; gin.type='text'; gin.placeholder='Paste a Genius link…';
-  gin.onkeydown=function(e){ if(e.key==='Enter') loadGeniusInline(e); else if(e.key==='Escape') closeGeniusInput(); };
-  var ggo=document.createElement('button'); ggo.className='dp-genius-go'; ggo.title='Load lyrics'; ggo.innerHTML=SEARCH_SVG; ggo.onclick=function(e){ e.stopPropagation(); loadGeniusInline(e); };
-  over.appendChild(gin); over.appendChild(ggo); acts.appendChild(over);
-  body.appendChild(acts);
-
-  host.appendChild(body);
-  initSlider(acts, null);   // hover-only sliding indicator (turns red over Clear)
+  card.appendChild(ta);
+  // AE: vista previa de la TH
+  if(IN_AE){ var timg=document.createElement('img'); timg.className='dp-thumb'; timg.style.display='none'; card.appendChild(timg); ch._thumbImg=timg; }
+  host.appendChild(card);
   if(!IN_AE) scanGeniusTab();   // web: ask the Chrome extension for an open Genius tab → "Lyrics Found"
 }
-// Extend the Lyrics button into an inline Genius input over the actions pill.
+// Nov 2026 (ronda 4): la lupa del modulo 1 se extiende hacia la izquierda con el campo del link.
 function toggleGeniusInput(){
-  var a=document.getElementById('dpActions'); if(!a) return;
-  var open=a.classList.toggle('genius-mode');
-  if(open){ var i=a.querySelector('.dp-genius-inp'); if(i){ try{ i.focus(); }catch(e){} } }
+  var ms=document.getElementById('modSong'); if(!ms) return;
+  var open=ms.classList.toggle('gmode'), i=document.getElementById('g-link-inline');
+  if(open&&i){ setTimeout(function(){ try{ i.focus(); }catch(e){} }, 30); }
+  else _modBlur(i);
 }
-function closeGeniusInput(){ var a=document.getElementById('dpActions'); if(a) a.classList.remove('genius-mode'); }
+function closeGeniusInput(){ var ms=document.getElementById('modSong'); if(ms) ms.classList.remove('gmode'); _modBlur(document.getElementById('g-link-inline')); }
 // Re-read the channel's loaded song and refresh its Artist/Song title.
 function channelReload(id){
   var ch=getChannel(id); if(!ch) return;
@@ -1533,17 +1860,103 @@ function editLyrics(id,v){
   if(id===activeId){ lines=ch.lines.slice(); pendingId=null; if(curLine>lines.length) curLine=lines.length; renderLyricsFlow(); updateLyricHighlight(AEL.currentTime||0); }
 }
 function updateSub(id){ var ch=getChannel(id), row=document.querySelector('.channel[data-id="'+id+'"]'); if(!ch||!row) return; var s=row.querySelector('.ch-sub'); if(!s) return; var info=((ch.artist||'')+(ch.artist&&ch.song?' - ':'')+(ch.song||'')).trim(); s.textContent=(id===expandedId)?(info||'Load Contents'):info; }
-function syncTitle(){ var ch=getActive(); var s=chSong(ch), a=chArtist(ch); document.getElementById('lyrSong').textContent=s?s:'Untitled'; document.getElementById('lyrArtist').textContent=a?a:'';
+function syncTitle(){ try{ modSyncMeta(); }catch(e){} var ch=getActive(); var s=chSong(ch), a=chArtist(ch); document.getElementById('lyrSong').textContent=s?s:'Untitled'; document.getElementById('lyrArtist').textContent=a?a:'';
   // Keep the static status legend in sync with the song/channel being worked on.
   var lbl=s?(a?a+' — '+s:s):((ch&&ch.name&&ch.name.indexOf('New Channel')!==0)?ch.name:''); setLegend(lbl?('♪ '+lbl):''); }
 
 // ─── LYRICS PANEL ───
+// ─── COPIAR / PEGAR SECCION (nov 2026) ───
+// Clic en la pildora de una seccion COMPLETA ([Chorus], [Verse 1]...) copia sus timestamps:
+// tiempos relativos al primero, largos recortados y lineas por timestamp. Cmd/Ctrl+V los pega
+// desde el playhead en las siguientes lineas sin marcar (dentro de esa parte de la letra, sin
+// pasar al siguiente separador), con las mismas duraciones; despues se sigue normal con Enter.
+// Hover en la pildora ilumina las lineas que se copiarian. Se puede deshacer con Cmd/Ctrl+Z.
+var _secClip=null;
+function _secLinesOfStamp(s){ return (s.idxs&&s.idxs.length)?s.idxs:[s.lineIdx]; }
+function _secLabel(si){ return (lines[si]||'').replace(/^\s*\[\s*|\s*\]\s*$/g,'')||'Section'; }
+function _secInfo(si){
+  if(!lines[si] || !isSection(lines[si])) return null;
+  var idx=[]; for(var i=si+1;i<lines.length && !isSection(lines[i]);i++) idx.push(i);
+  if(!idx.length) return {lines:[],stamps:[],complete:false};
+  var lo=idx[0], hi=idx[idx.length-1], covered={}, mine=[];
+  for(var k=0;k<stamps.length;k++){
+    var ls=_secLinesOfStamp(stamps[k]), inSec=0;
+    for(var q=0;q<ls.length;q++) if(ls[q]>=lo && ls[q]<=hi){ covered[ls[q]]=1; inSec++; }
+    if(inSec) mine.push({s:stamps[k], n:inSec});
+  }
+  var complete=mine.length>0; for(var m=0;m<idx.length;m++) if(!covered[idx[m]]){ complete=false; break; }
+  mine.sort(function(a,b){ return a.s.time-b.s.time; });
+  return {lines:idx, stamps:mine, complete:complete};
+}
+function _secHighlight(si,on){
+  var info=on?_secInfo(si):null, set={};
+  if(info && info.complete) for(var i=0;i<info.lines.length;i++) set[info.lines[i]]=1;
+  var els=document.querySelectorAll('.lyr-line[data-i]');
+  for(var j=0;j<els.length;j++) els[j].classList.toggle('sec-hl', !!set[+els[j].dataset.i]);
+  return info;
+}
+function _secWire(sp, si){
+  sp.addEventListener('mouseenter', function(){
+    var info=_secHighlight(si,true), ok=!!(info&&info.complete);
+    sp.classList.toggle('sec-ok', ok); sp.classList.toggle('sec-no', !ok);
+    sp.title=ok ? 'Click to copy this section\'s timestamps, then '+(IS_MAC?'Cmd':'Ctrl')+'+V pastes them at the playhead' : 'Finish timestamping this section to copy it';
+  });
+  sp.addEventListener('mouseleave', function(){ _secHighlight(si,false); });
+  sp.addEventListener('click', function(e){ if(lyrMoved){ lyrMoved=false; return; } e.stopPropagation(); copySection(si, sp); });
+}
+function _secToClipboard(txt){
+  try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).catch(function(){}); return; } }catch(e){}
+  if(IN_AE) return;   // en AE no se toca el foco (en Mac lo saca del panel)
+  try{ var ta=document.createElement('textarea'); ta.value=txt; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
+}
+function copySection(si, sp){
+  var info=_secInfo(si), name=_secLabel(si).toUpperCase();
+  if(!info || !info.complete){ toast('Finish timestamping '+name+' to copy it'); return; }
+  var t0=info.stamps[0].s.time, items=[], txt=['['+_secLabel(si)+']'];
+  for(var i=0;i<info.stamps.length;i++){
+    var o=info.stamps[i], s=o.s;
+    items.push({dt:s.time-t0, len:(s.len!=null?s.len:null), n:o.n});
+    txt.push('+'+(s.time-t0).toFixed(2)+'s  '+_secLinesOfStamp(s).filter(function(x){ return x>info.lines[0]-1 && x<=info.lines[info.lines.length-1]; }).map(function(x){ return lines[x]; }).join(' / '));
+  }
+  _secClip={name:name, items:items};
+  _secToClipboard(txt.join('\n'));
+  if(sp){ sp.classList.add('sec-copied'); clearTimeout(sp._ct); sp._ct=setTimeout(function(){ sp.classList.remove('sec-copied'); },700); }
+  toast('Copied '+name+' · '+items.length+' timestamps — '+(IS_MAC?'Cmd':'Ctrl')+'+V pastes at the playhead', 5000);
+}
+function pasteSection(){
+  if(!_secClip){ toast('Click a finished section label to copy it first'); return; }
+  var ach=getActive(); if(!ach||!ach.audioURL||!dur){ toast('Load audio for this channel first'); return; }
+  if(!lines.length){ toast('Add lyrics first'); return; }
+  var t0=AEL.currentTime||0, lastT=-1;
+  for(var i=0;i<stamps.length;i++) if(stamps[i].time>lastT) lastT=stamps[i].time;
+  if(t0<=lastT+0.05){ toast('Move the playhead after the last timestamp to paste '+_secClip.name); return; }
+  var li=nextStampable(curLine);
+  if(li>=lines.length){ toast('All lines stamped'); return; }
+  var end=li; while(end<lines.length && !isSection(lines[end])) end++;   // no pasar al siguiente separador
+  pushUndo();
+  var added=0, groups=(typeof stampLineSet==='function');
+  for(var k=0;k<_secClip.items.length;k++){
+    var it=_secClip.items[k], t=t0+it.dt; if(t>=dur-0.05) break;
+    var want=groups?Math.max(1,it.n):1, grp=[], c=li;
+    while(grp.length<want && c<end){ grp.push(c); c++; }
+    if(!grp.length) break;
+    var st={id:++stampSeq, lineIdx:grp[0], time:t}; if(groups) st.idxs=grp;
+    if(it.len!=null) st.len=Math.max(0.1, Math.min(it.len, dur-t));
+    stamps.push(st); li=c; added++;
+  }
+  if(!added){ undoStack.pop(); toast('Nothing to paste here'); return; }
+  stamps.sort(function(a,b){ return a.time-b.time; });
+  curLine=nextStampable(li);
+  if(typeof collapseDotsSel==='function') collapseDotsSel();
+  saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
+  toast('Pasted '+_secClip.name+' · '+added+' timestamps');
+}
 function renderLyricsFlow(){
   var flow=document.getElementById('lyrFlow'), ch=getActive();
   if(!ch||!ch.lines.length){ flow.innerHTML=''; flow.style.transform='translateY(0)'; if(!document.getElementById('lyrEmpty')){ var e=document.createElement('div'); e.className='lyr-empty'; e.id='lyrEmpty'; e.textContent='No lyrics yet'; document.getElementById('lyrStage').appendChild(e); } document.getElementById('lyrEmpty').style.display='flex'; return; }
   var em=document.getElementById('lyrEmpty'); if(em) em.style.display='none';
   flow.innerHTML='';
-  ch.lines.forEach(function(ln,i){ var sec=isSection(ln); var d=document.createElement('div'); d.className='lyr-line'+(sec?' section':''); d.dataset.i=i; var sp=document.createElement('span'); sp.className='lk'; sp.textContent=ln; d.appendChild(sp); if(!sec) d.onclick=function(){ if(lyrMoved){ lyrMoved=false; return; } seekToLine(i); }; flow.appendChild(d); });
+  ch.lines.forEach(function(ln,i){ var sec=isSection(ln); var d=document.createElement('div'); d.className='lyr-line'+(sec?' section':''); d.dataset.i=i; var sp=document.createElement('span'); sp.className='lk'; sp.textContent=sec?(ln.replace(/^\s*\[\s*|\s*\]\s*$/g,'')||ln):ln; d.appendChild(sp); if(sec) _secWire(sp,i); if(!sec) d.onclick=function(){ if(lyrMoved){ lyrMoved=false; return; } seekToLine(i); }; flow.appendChild(d); });
   flow.classList.add('nodrift'); lyrManualY=null;
   // Center the first line so the lyrics are visible immediately after loading.
   var firstLn=flow.querySelector('.lyr-line:not(.section)')||flow.querySelector('.lyr-line');
@@ -1581,7 +1994,7 @@ var ACCENT_LYRIC='#fff';
 function paintLine(el, state){
   var lk=el.firstChild; if(!lk) return;
   var active=(state==='active');
-  lk.style.color = active ? ACCENT_LYRIC : 'rgba(255,255,255,.25)';
+  lk.style.color = active ? ACCENT_LYRIC : 'rgba(255,255,255,.22)';
   lk.style.fontWeight = active ? '600' : '400';
 }
 function seekToLine(i){
@@ -1617,6 +2030,9 @@ function deriveLines(text){
 }
 
 // ─── TIMELINE ─── (markers rebuilt only when dirty/scroll/zoom changes; playhead positioned every frame = smooth)
+// Marcadores como PUNTOS (nov 2026). false = pildoras de siempre.
+var TL_DOTS=true;
+try{ document.body.classList.toggle('tl-dots', TL_DOTS); }catch(e){}
 function defaultLen(i){ if(i+1<stamps.length) return Math.max(0.15, stamps[i+1].time-stamps[i].time-0.02); return Math.min(2, Math.max(0.5, dur?dur-stamps[i].time:2)); }
 function markerLen(s,i){ return (s.len!=null)? s.len : defaultLen(i); }
 function resolveCollisions(idx, spp){
@@ -1628,6 +2044,7 @@ function resolveCollisions(idx, spp){
 function getStampById(id){ for(var i=0;i<stamps.length;i++) if(stamps[i].id===id) return stamps[i]; return null; }
 
 function renderMarkers(){
+  if(TL_DOTS) return renderMarkersDots();
   var W=tlTrack.clientWidth, mk=document.getElementById('tlMarkers'); mk.innerHTML='';
   _lastScroll=scrollPct; _lastZoom=zoom;
   if(!dur) return;
@@ -1646,13 +2063,76 @@ function renderMarkers(){
     mk.appendChild(el);
   });
 }
+// ── Timeline de PUNTOS ──
+// Cada marcador es un .tl-marker (zona de clic = todo su tramo) con:
+//   .tl-pill = el punto brillante del timestamp; seleccionado se ESTIRA a pildora (anima width)
+//   .tl-dot  = puntos opacos de la duracion; seleccionado se desvanecen
+// Los elementos se REUSAN por id (no innerHTML) para que la pildora pueda animarse.
+// Posicion: el punto brillante va en el tiempo real del timestamp (si queda encimado con el anterior
+// se corre hasta un paso, nunca mas); los opacos se reparten parejo hasta el siguiente. Si el marcador esta recortado
+// (termina antes que el siguiente), los puntos acaban en su final y queda un hueco vacio.
+var _dotEls={};
+function renderMarkersDots(){
+  var W=tlTrack.clientWidth, mk=document.getElementById('tlMarkers');
+  _lastScroll=scrollPct; _lastZoom=zoom;
+  if(!dur){ mk.innerHTML=''; _dotEls={}; return; }
+  var D=tlTrack.clientHeight||8, G=Math.max(2,Math.round(D*0.32)), P=D+G, vp=1/zoom;
+  function X(t){ return (t/dur-scrollPct)/vp*W; }
+  var vx=[], prevX=-1e9;
+  for(var i=0;i<stamps.length;i++){ var ex=X(stamps[i].time), x=Math.max(ex, Math.min(prevX+P, ex+P)); vx.push(x); prevX=x; }   // corrimiento maximo: 1 paso (si no cabe, se enciman en vez de correrse)
+  var seen={};
+  for(var j=0;j<stamps.length;j++){
+    var s=stamps[j], len=markerLen(s,j), nx=stamps[j+1], x0=vx[j];
+    var cut=nx ? (s.time+len < nx.time-0.05) : true;          // recortado (o ultimo): termina en su propio final
+    var endX=cut ? X(s.time+len) : vx[j+1]-G;
+    if(endX<x0+D) endX=x0+D;
+    if(endX<-P || x0>W+P) continue;
+    var w=endX-x0, dims=[];
+    if(!cut){ var span=vx[j+1]-x0, n=Math.max(1,Math.min(Math.round(span/P),Math.floor(span/(D+1.5)))), pitch=span/n; for(var k=1;k<n;k++) dims.push(k*pitch); }
+    else { for(var c=P; c+D<=w+0.5; c+=P) dims.push(c); }
+    var el=_dotEls[s.id];
+    if(!el){
+      el=document.createElement('div'); el.className='tl-marker'; el.dataset.sid=s.id;
+      var pl=document.createElement('div'); pl.className='tl-pill'; pl.style.width=D+'px'; el.appendChild(pl);
+      (function(el, sid){
+        el.addEventListener('mousemove', function(ev){ if(mkDrag||scrubbing) return; if(!el.classList.contains('sel')){ el.style.cursor='pointer'; return; } var r=el.getBoundingClientRect(), ox=ev.clientX-r.left; el.style.cursor=(ox<7||ox>r.width-7)?'ew-resize':'grab'; });
+        el.addEventListener('mousedown', function(ev){ if(ev.button!==0) return; ev.stopPropagation(); ev.preventDefault(); startMarkerDrag(ev, sid, el); });
+      })(el, s.id);
+      _dotEls[s.id]=el;
+    }
+    if(el.parentNode!==mk) mk.appendChild(el);
+    seen[s.id]=1;
+    var sel=selStampSet.has(s.id);
+    if(sel!==el.classList.contains('sel')){
+      el.classList.add('anim'); clearTimeout(el._animT);
+      el._animT=setTimeout((function(e){ return function(){ e.classList.remove('anim'); }; })(el), 400);
+      el.classList.toggle('sel', sel);
+    }
+    if(mkDrag && mkDrag.moved && mkDrag.sid===s.id) el.classList.remove('anim');   // arrastrando: sigue al mouse sin retraso
+    el.style.left=x0+'px'; el.style.width=w+'px';
+    el.title='#'+(j+1)+'  '+fmtClock(s.time);
+    el.firstChild.style.width=(sel?w:D)+'px';
+    var kids=el.children.length-1;
+    while(kids<dims.length){ var dd=document.createElement('i'); dd.className='tl-dot'; dd.style.width=D+'px'; el.appendChild(dd); kids++; }
+    while(kids>dims.length){ el.removeChild(el.lastChild); kids--; }
+    for(var q=0;q<dims.length;q++){ var de=el.children[q+1]; de.style.left=dims[q]+'px'; de.style.width=D+'px'; }
+  }
+  for(var id in _dotEls){ if(!seen[id]){ var old=_dotEls[id]; if(old.parentNode) old.parentNode.removeChild(old); delete _dotEls[id]; } }
+  for(var ci=mk.children.length-1;ci>=0;ci--){ var ce=mk.children[ci]; if(_dotEls[ce.dataset.sid]!==ce) mk.removeChild(ce); }   // restos del modo pildoras
+}
+// Puntos: al seguir con el proceso (Enter / Space) la pildora vuelve a puntos.
+function collapseDotsSel(){ if(TL_DOTS && !IS_TOUCH && selStampSet.size){ selStampSet.clear(); tlRefresh(); } }
 function positionPlayhead(t){
   var W=tlTrack.clientWidth, vp=1/zoom, ph=document.getElementById('tlPlayhead');
   setTimer(t);
   if(!dur){ ph.style.display='none'; return; }
   var gp=t/dur, lx=(gp-scrollPct)/vp*W;
-  if(lx<0||lx>W){ ph.style.display='none'; return; }
-  ph.style.display='block'; ph.style.left=lx+'px';
+  if(lx<-0.5||lx>W+0.5){ ph.style.display='none'; return; }
+  // Al pixel exacto de la pantalla: en fracciones de pixel la linea titilaba al avanzar.
+  var nl=_phSnap(Math.max(0,Math.min(W,lx)))+'px';
+  if(ph.style.display!=='block') ph.style.display='block';
+  if(ph.style.left!==nl) ph.style.left=nl;
+  _phHovCheck(ph);
 }
 function setTimer(t){ var el=document.getElementById('tTimer'); if(el) el.textContent=fmtTimer(t); }
 // Timeline track height is CONSTANT — zoom only lengthens markers horizontally,
@@ -1683,6 +2163,7 @@ function startTlEase(){ if(tlEaseId){ cancelAnimationFrame(tlEaseId); tlEaseId=n
 function startMarkerDrag(ev, sid, el){
   var s=getStampById(sid); if(!s) return;
   var r=el.getBoundingClientRect(), ox=ev.clientX-r.left, mode=(ox<7)?'l':(ox>r.width-7)?'r':'move';
+  if(TL_DOTS && !selStampSet.has(sid)) mode='none';   // punto sin seleccionar: solo clic (se estira en pildora)
   var i=stamps.indexOf(s);
   mkDrag={ sid:sid, mode:mode, startX:ev.clientX, t0:s.time, len0:markerLen(s,i), W:tlTrack.clientWidth, moved:false, pushed:false, ctrl:ev.ctrlKey||ev.metaKey };
 }
@@ -1704,7 +2185,7 @@ function startMarkerTouch(ev, sid, el){
 function doScrub(clientX){
   var r=tlTrack.getBoundingClientRect(); if(!r.width) return;
   var pct=Math.max(0,Math.min(1,(clientX-r.left)/r.width)), t=Math.max(0,Math.min(dur,(scrollPct+pct/zoom)*dur));
-  document.getElementById('tlPlayhead').style.left=(pct*r.width)+'px';
+  document.getElementById('tlPlayhead').style.left=_phSnap(pct*r.width)+'px';
   setTimer(t);
   AEL.currentTime=t; lyrManualY=null; updateLyricHighlight(t);
 }
@@ -1745,6 +2226,7 @@ function loadChannelAudio(){
 function parseAudioMeta(filename){ var n=(filename||'').replace(/\.[^.]+$/,'').replace(/_/g,' ').trim(); var artist='', song=n; var parts=n.split(/\s+[-–—]\s+/); if(parts.length>=2){ artist=parts[0].trim(); song=parts.slice(1).join(' - ').trim(); } return {artist:artist, song:song}; }   // keeps "ft./feat." inside the song title
 function applyAudioMeta(filename){ var m=parseAudioMeta(filename), ch=getActive(); if(!ch) return; if(m.artist) ch.artist=m.artist; if(m.song) ch.song=m.song; syncTitle(); renderChannels(); }
 function togglePlay(){
+  collapseDotsSel();
   var ch=getActive();
   if(!ch||!ch.audioURL){
     if(IN_AE && ch){ aeLoadSong(ch, true); toast('Loading channel audio…'); }   // try to pull it from the project
@@ -1931,11 +2413,12 @@ function srtBatchAction(){
   toast('Selecciona los archivos .srt…', 30000);
   ensureHost(function(ok){
     if(!ok){ toast('No se pudo conectar con AE'); return; }
-    _evalDlg('importSRTBatch()', function(txt){
+    // El modo viaja al host: Video = solo "Lyrics"; Short = "Lyrics" + "Short Lyrics".
+    _evalDlg('importSRTBatch('+(SHORT_MODE?'true':'false')+')', function(txt){
       var r=_parseRes(txt, 'SRT'); if(!r) return;
       if(!r.ok){ toast('SRT: '+(r.msg==='Cancelado'?'importacion cancelada':(r.msg||'error')), 5000); return; }
-      if(!r.applied){ toast('SRT: no se aplico ninguno (0/'+r.total+')', 6000); return; }
-      toast('\u2713 SRT importado en '+r.applied+'/'+r.total+' comps \u00b7 '+r.layers+' capas', 6000);
+      if(!r.applied && !r.shortApplied){ toast('SRT: no se aplico ninguno (0/'+r.total+')'+(r.missed?(' \u26a0 '+r.missed):''), 8000); return; }
+      toast('\u2713 SRT: '+(r.applied||0)+' Lyrics'+(r.shortApplied?(' + '+r.shortApplied+' Short'):'')+' \u00b7 '+r.layers+' capas'+(r.missed?(' \u26a0 '+r.missed):''), r.missed?9000:6000);
     });
   });
 }
@@ -1945,7 +2428,8 @@ function masterClearAll(){
   toast('Clearing SRT layers…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
-    csInterface.evalScript('clearAllLyricLayers()', function(raw){
+    // Nov 2026: en AE (Short) borra el SRT de las comps de video Y de las Short.
+    csInterface.evalScript('clearAllLyricLayers('+(SHORT_MODE?'true':'false')+')', function(raw){
       var r=null; try{ r=JSON.parse(raw); }catch(e){}
       if(r&&r.ok){ toast('✓ '+r.removed+' SRT layers removed in '+r.comps+' comps'); }
       else { toast('Clear all: '+((r&&r.msg)||raw||'error')); }
@@ -1955,6 +2439,7 @@ function masterClearAll(){
 
 // ─── STAMP ───
 function doStamp(){
+  collapseDotsSel();
   var ach=getActive(); if(!ach||!ach.audioURL){ toast('Load audio for this channel first'); return; }
   if(!lines.length){ toast('Add lyrics first'); return; }
   lyrBrowseUntil=0; lyrManualY=null;   // stamping snaps the lyrics back to the current line
@@ -1993,8 +2478,15 @@ function onKey(e){
   function stop(){ e.preventDefault(); if(e.stopPropagation) e.stopPropagation(); }
   if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ'){ stop(); if(e.shiftKey) redoAction(); else undoAction(); return; }
   if((e.ctrlKey||e.metaKey)&&e.code==='KeyY'){ stop(); redoAction(); return; }   // CMD/CTRL+Y = redo
+  if((e.ctrlKey||e.metaKey)&&!e.altKey&&e.code==='KeyV'){ stop(); pasteSection(); return; }   // CMD/CTRL+V = pegar seccion copiada
   if(e.code==='Space'){ stop(); togglePlay(); return; }
   if(e.code==='Enter'||e.code==='NumpadEnter'){ stop(); doStamp(); return; }
+  // 1/2/3/4 = lineas por timestamp (solo sin modificadores: Shift/Cmd/Ctrl/Alt+numero no se tocan)
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.shiftKey){
+    var dg=/^(?:Digit|Numpad)([1-4])$/.exec(e.code||'');
+    var nk=dg?+dg[1]:(/^[1-4]$/.test(e.key||'')?+e.key:0);
+    if(nk){ stop(); if(!e.repeat) applyLinesPerStamp(nk); return; }
+  }
   if((e.code==='Delete'||e.code==='Backspace') && selStampSet.size){ stop(); pushUndo(); stamps=stamps.filter(function(s){ return !selStampSet.has(s.id); }); selStampSet.clear(); recomputeCurLine(); saveWorkingSet(); updTimed(); tlRefresh(); updateLyricHighlight(AEL.currentTime||0); toast('Marker(s) deleted'); }
 }
 // CEP: reclamar estas combinaciones para que AE NO las procese (que no reproduzca su comp con
@@ -2024,6 +2516,8 @@ function _registerKeys(){
       ev.push(K2(90,false,true,false), K2(90,false,true,true));   // Cmd+Z / Cmd+Shift+Z (undo/redo)
       ev.push(K2(90,true,false,false), K2(90,true,false,true));   // Ctrl+Z / Ctrl+Shift+Z
       ev.push(K2(89,false,true,false), K2(89,true,false,false));  // Cmd/Ctrl+Y (redo)
+      ev.push(K2(86,false,true,false), K2(86,true,false,false));  // Cmd/Ctrl+V (pegar seccion)
+      m(86,{metaKey:true}); m(86,{ctrlKey:true}); m(9,{metaKey:true}); m(9,{ctrlKey:true});   // respaldo: V = 9 en macOS
       // Respaldo: mismos combos con los virtual keycodes de macOS (Z=6, Y=16)
       m(90,{metaKey:true}); m(90,{metaKey:true,shiftKey:true});
       m(90,{ctrlKey:true}); m(90,{ctrlKey:true,shiftKey:true});
@@ -2032,6 +2526,8 @@ function _registerKeys(){
       m(16,{metaKey:true}); m(16,{ctrlKey:true});
       // Respaldo generico: virtual keycodes de macOS para Enter/Delete
       m(49); m(36); m(76); m(51); m(117);
+      // 1-4 (lineas por timestamp): fila de numeros (49-52) y teclado numerico (97-100), keyCode JS
+      m(49); m(50); m(51); m(52); m(97); m(98); m(99); m(100);
     } else {
       // WINDOWS: formato que ya funciona perfecto — NO cambiar.
       function K(code, ctrl, meta, shift){ return { keyCode:code, ctrlKey:!!ctrl, altKey:false, shiftKey:!!shift, metaKey:!!meta }; }
@@ -2039,9 +2535,12 @@ function _registerKeys(){
         K(90,true,false,false), K(90,false,true,false),   // Ctrl+Z / Cmd+Z  (undo)
         K(90,true,false,true),  K(90,false,true,true),    // +Shift          (redo)
         K(89,true,false,false), K(89,false,true,false),   // Ctrl/Cmd+Y      (redo)
+        K(86,true,false,false), K(86,false,true,false),   // Ctrl/Cmd+V      (pegar seccion)
         K(32,false,false,false),                          // Space           (play)
         K(13,false,false,false),                          // Enter           (stamp)
-        K(8,false,false,false), K(46,false,false,false)   // Backspace / Del (borrar)
+        K(8,false,false,false), K(46,false,false,false),  // Backspace / Del (borrar)
+        K(49,false,false,false), K(50,false,false,false), K(51,false,false,false), K(52,false,false,false),   // 1-4 (lineas)
+        K(97,false,false,false), K(98,false,false,false), K(99,false,false,false), K(100,false,false,false)  // Numpad 1-4
       ];
     }
     var _r=csInterface.registerKeyEventsInterest(JSON.stringify(ev));
@@ -2059,9 +2558,10 @@ function onGlobalMove(e){
   if(vDrag){ var dy=vStartY-e.clientY, h=Math.max(80,Math.min(vStartH+dy, window.innerHeight*0.5)); document.getElementById('timelineZone').style.height=h+'px'; tlRefresh(); return; }
   if(tlPanning){ var pr=tlTrack.getBoundingClientRect(); if(pr.width){ var pdx=e.clientX-tlPanStartX; scrollPct=clampScroll(tlPanStartScroll - pdx/pr.width/zoom); scrollTarget=scrollPct; tlRefresh(); } return; }
   if(miniDragging){ miniSeek(e.clientX); return; }
-  if(scrubbing){ doScrub(e.clientX); return; }
+  if(scrubbing){ doScrub(e.clientX+_scrubOff); return; }
   if(mkDrag){
     var ddx=e.clientX-mkDrag.startX; if(Math.abs(ddx)>2) mkDrag.moved=true;
+    if(mkDrag.mode==='none'){ mkDrag.moved=false; return; }
     if(mkDrag.moved&&!mkDrag.pushed){ pushUndo(); mkDrag.pushed=true; }
     var s=getStampById(mkDrag.sid); if(!s||!mkDrag.W) return;
     var secPerPx=(dur/zoom)/mkDrag.W, di=stamps.indexOf(s), GAP=Math.max(0.02,4*secPerPx);
@@ -2103,7 +2603,7 @@ function onGlobalUp(){
   if(miniDragging){ miniDragging=false; }
   if(mkDrag){
     if(!mkDrag.moved){ if(mkDrag.ctrl){ if(selStampSet.has(mkDrag.sid)) selStampSet.delete(mkDrag.sid); else selStampSet.add(mkDrag.sid); } else { selStampSet.clear(); selStampSet.add(mkDrag.sid); } }
-    else { stamps.sort(function(a,b){ return a.time-b.time; }); saveWorkingSet(); updTimed(); }
+    else { stamps.sort(function(a,b){ return a.time-b.time; }); saveWorkingSet(); updTimed(); if(TL_DOTS && !IS_TOUCH) selStampSet.clear(); }   // puntos: ajustado -> vuelve a puntos
     hideTip(); mkDrag=null; tlRefresh(); updateLyricHighlight(AEL.currentTime||0);
     if(IS_TOUCH) syncTouchButtons();
   }
@@ -2172,21 +2672,19 @@ function importStyleController(){
 // Self-contained ExtendScript that finds the channel's "… Song" footage (by name, else
 // by leading number) and returns "OK:<current file path>" or "ERR:…". No host needed.
 function _songReadJsx(ch){
-  // Mode-aware: Video reads the "Song" footage (excluding "short"); Short reads "Short Song".
-  var isShort=SHORT_MODE;
-  var want=isShort?'short song':((ch.songName||'song').toLowerCase());
+  // Nov 2026: primero la "Song" de VIDEO (siempre existe y es la que se reemplaza en todos los
+  // casos); si el proyecto no la tiene y estamos en Short, la "Short Song".
+  var want=(ch.songName||'song').toLowerCase();
   return '(function(){try{'+
-    'var want='+JSON.stringify(want)+';var isShort='+(isShort?'true':'false')+';var found=null,list=[];'+
-    'function ok(nm){nm=nm.toLowerCase();if(nm.indexOf("song")===-1)return false;return isShort?(nm.indexOf("short")!==-1):(nm.indexOf("short")===-1);}'+
-    'for(var i=1;i<=app.project.numItems;i++){var it=app.project.item(i);'+
-      'if(it instanceof FootageItem){'+
-        'if(it.hasAudio)list.push(it.name);'+
-        'var n=it.name.replace(/^\\s+|\\s+$/g,"").toLowerCase();'+
-        'if(n===want){found=it;break;}'+
-      '}}'+
-    'if(!found){for(var s=1;s<=app.project.numItems;s++){var it3=app.project.item(s);'+
-      'if(it3 instanceof FootageItem && ok(it3.name)){found=it3;break;}'+
-    '}}'+
+    'var list=[];'+
+    'function ok(nm,sh){nm=nm.toLowerCase();if(nm.indexOf("song")===-1)return false;return sh?(nm.indexOf("short")!==-1):(nm.indexOf("short")===-1);}'+
+    'function find(w,sh){var i,it;for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);'+
+      'if(it instanceof FootageItem&&it.name.replace(/^\\s+|\\s+$/g,"").toLowerCase()===w)return it;}'+
+      'for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);if(it instanceof FootageItem&&ok(it.name,sh))return it;}'+
+      'return null;}'+
+    'for(var k=1;k<=app.project.numItems;k++){var ft=app.project.item(k);if(ft instanceof FootageItem&&ft.hasAudio)list.push(ft.name);}'+
+    'var found=find('+JSON.stringify(want)+',false);'+
+    (SHORT_MODE?'if(!found)found=find("short song",true);':'')+
     'if(!found)return "ERR:Audio not found. Available: "+(list.join(" | ")||"(none)");'+
     'var f=null;try{f=found.file;}catch(e){}if(!f){try{f=found.mainSource.file;}catch(e){}}'+
     'if(!f)return "ERR:\\""+found.name+"\\" has no file on disk (load it with Master)";'+
@@ -2222,7 +2720,7 @@ function _applySongTitle(ch, path, overwrite){
   if(meta.artist && (overwrite || !(curA&&curA.trim()))){ setChArtist(ch,meta.artist); changed=true; }
   if(meta.song   && (overwrite || !(curS&&curS.trim()))){ setChSong(ch,meta.song);     changed=true; }
   // Verso single-channel: the channel/container name IS the video song title (not Short).
-  if(!SHORT_MODE && typeof SINGLE_CHANNEL!=='undefined' && SINGLE_CHANNEL && ch.song && ch.song.trim()){
+  if(typeof SINGLE_CHANNEL!=='undefined' && SINGLE_CHANNEL && ch.song && ch.song.trim()){
     ch.name=ch.song.trim();
     var rowN=document.querySelector('.channel[data-id="'+ch.id+'"] .ch-name');
     if(rowN) rowN.textContent=ch.name;
@@ -2289,7 +2787,7 @@ function masterAction(ev){
       if(!r.ok){ toast('Master: '+(r.msg||r.step||'error')); return; }
       toast('✓ Audio '+r.replaced+'/'+r.total+' · Lyrics '+r.lyricsCleaned+'/'+r.lyricsTotal+' · Ranges '+r.rangeUpdated+'/'+r.rangeTotal);
       // Clear all SRT layers (separate call so it never risks breaking the song replacement).
-      csInterface.evalScript('clearAllLyricLayers()', function(){});
+      csInterface.evalScript('clearAllLyricLayers(false)', function(){});   // solo VIDEO: la Short conserva su SRT
       // Apply new song paths returned directly by masterRun (no second evalScript round-trip needed).
       if(r.songs && r.songs.length){
         var applied=0;
@@ -2319,13 +2817,13 @@ function renderAction(ev){
   flashPill('btnRender');
   if(!csInterface){ toast('Render is only available inside After Effects'); return; }
   var short=SHORT_MODE;                                      // Short → TH + video + comp "Short"
-  toast(short?'Render Short…':'Render…');
+  toast('Render…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
     _evalDlg('renderRun('+(short?'true':'false')+')', function(txt){
       var r=_parseRes(txt, 'Render'); if(!r) return;
       if(!r.ok){ toast('Render: '+(r.msg||'error'), 6000); return; }
-      var m='✓ '+r.added+' to Render Queue (TH '+r.thCount+' · Main '+r.mainCount+')';
+      var m='✓ '+r.added+' to Render Queue (TH '+r.thCount+(r.shortThCount?' · Short TH '+r.shortThCount:'')+' · Main '+r.mainCount+')';
       if(r.tmplWarning) m+=' ⚠ '+r.tmplWarning;
       toast(m);
     });
@@ -2343,7 +2841,7 @@ function thumbnailAction(id){
     // "2 por 1": desde Short se actualizan AMBAS — la TH de video (con los datos de video) Y
     // la comp "Short" (con los datos de short). Desde Video, solo la TH.
     var call=SHORT_MODE
-      ? 'updateThumbnailBoth('+JSON.stringify(ch.th)+','+JSON.stringify(ch.artist||'')+','+JSON.stringify(ch.song||'')+','+JSON.stringify(ch.shortArtist||'')+','+JSON.stringify(ch.shortSong||'')+')'
+      ? 'updateThumbnailBoth('+JSON.stringify(ch.th)+','+JSON.stringify(ch.artist||chArtist(ch))+','+JSON.stringify(ch.song||chSong(ch))+','+JSON.stringify(chArtist(ch))+','+JSON.stringify(chSong(ch))+')'
       : 'updateThumbnailComp('+JSON.stringify(ch.th)+','+JSON.stringify(chArtist(ch))+','+JSON.stringify(chSong(ch))+')';
     csInterface.evalScript(call, function(r){
       if(r&&r.indexOf('ok:')===0){ toast('✓ Miniatura actualizada · '+r.slice(3), 5000); loadThumbPreview(ch); }
@@ -2354,17 +2852,22 @@ function thumbnailAction(id){
 // Render a PNG preview of the channel's TH comp (or the "Short" comp) under the lyrics box.
 function loadThumbPreview(ch){
   if(!csInterface) return;
-  if(!SHORT_MODE && (!ch||!ch.th)) return;
+  var calls=[];
+  if(ch&&ch.th) calls.push('getThumbnailPreviewComp('+JSON.stringify(ch.th)+')');   // TH de video primero
+  if(SHORT_MODE) calls.push('getShortThumbnailPreview()');                           // si no hay, la Short
+  if(!calls.length) return;
   ensureHost(function(ok){
     if(!ok) return;
-    var call=SHORT_MODE ? 'getShortThumbnailPreview()' : 'getThumbnailPreviewComp('+JSON.stringify(ch.th)+')';
-    csInterface.evalScript(call, function(raw){
-      var r=null; try{ r=JSON.parse(raw); }catch(e){}
-      if(!r||!r.ok||!r.path) return;
-      var img=ch&&ch._thumbImg; if(!img) return;
-      img.src=_fileURL(r.path);   // unique filename per render → no cache-bust needed
-      img.style.display='block';
-    });
+    (function next(i){
+      if(i>=calls.length) return;
+      csInterface.evalScript(calls[i], function(raw){
+        var r=null; try{ r=JSON.parse(raw); }catch(e){}
+        if(!r||!r.ok||!r.path){ next(i+1); return; }
+        var img=ch&&ch._thumbImg; if(!img) return;
+        img.src=_fileURL(r.path);   // unique filename per render → no cache-bust needed
+        img.style.display='block';
+      });
+    })(0);
   });
 }
 
@@ -2392,7 +2895,7 @@ function importToChannel(){
   var srt=buildSRT(lpb); if(!srt.trim()){ toast('Nothing to import'); return; }
   var opt={ styleLayerName:'Style Controler', fadeIn:0.3, fadeOut:0.3, lyricsBySuffix:true };
   // "2 por 1": desde Short el SRT va a AMBAS (Lyrics + Short Lyrics); desde Video, solo a Lyrics.
-  toast('Importing to '+(SHORT_MODE?(ch.lyr+' + Short Lyrics'):ch.lyr)+'…');
+  toast('Importing to '+ch.lyr+(SHORT_MODE?' (+ Short)':'')+'…');
   ensureHost(function(ok){
     if(!ok){ toast('Could not connect to the AE host'); return; }
     var call=SHORT_MODE
@@ -2419,8 +2922,14 @@ function clearChannelFull(id){
     ensureHost(function(ok){
       if(!ok){ toast('Channel cleared (no AE connection to remove layers)'); return; }
       csInterface.evalScript('clearLyricLayers('+JSON.stringify(ch.lyr)+')', function(raw){
-        if(raw&&raw.indexOf('ok:')===0){ var n=raw.slice(3); toast('Channel cleared'+(n&&n!=='0'?' · '+n+' SRT layers removed':'')); }
-        else { toast('Channel cleared (layers: '+(raw||'?')+')'); }
+        var tot=(raw&&raw.indexOf('ok:')===0)?(parseInt(raw.slice(3),10)||0):null;
+        function done(){ if(tot!=null){ toast('Channel cleared'+(tot?' · '+tot+' SRT layers removed':'')); } else { toast('Channel cleared (layers: '+(raw||'?')+')'); } }
+        if(!SHORT_MODE){ done(); return; }
+        // Short: tambien la "Short Lyrics" (si no existe, no pasa nada)
+        csInterface.evalScript('(typeof _shortLyricsComp==="function"&&_shortLyricsComp())?clearLyricLayers(_shortLyricsComp().name):"ok:0"', function(r2){
+          if(tot!=null && r2 && r2.indexOf('ok:')===0) tot+=(parseInt(r2.slice(3),10)||0);
+          done();
+        });
       });
     });
   } else { toast('Channel cleared'); }
@@ -2543,7 +3052,7 @@ function applyGeniusUrl(url){
   var ch=getActive(); if(!ch){ toast('No channel'); return; }
   url=_gLinkOf(url); var tok=++_gTok; _gExtReset();
   ch.geniusUrl=url; toast('Fetching lyrics…', 60000); startProgress(6000);
-  var btn=document.getElementById('dpLyrBtn'); if(btn) btn.classList.add('loading');
+  var btn=document.getElementById('btnLyrSearch'); if(btn) btn.classList.add('loading');
   fetchGeniusLyrics(url, function(err,lyr,src){
     if(tok!==_gTok) return;   // llego tarde: ya se pidio otro link
     stopProgress();
@@ -2589,8 +3098,8 @@ function initGeniusPaste(){
 }
 function setGeniusFound(url){
   GENIUS_TAB_URL=url||null;
-  var b=document.getElementById('dpLyrBtn'); if(!b) return;
-  // Yellow (Genius) indicator ONLY when a tab was auto-detected; indigo otherwise (and always in AE).
+  var b=document.getElementById('btnLyrSearch'); if(!b) return;
+  // Yellow (Genius) indicator ONLY when a tab was auto-detected; gray otherwise (and always in AE).
   var on = !IN_AE && !!(GENIUS_TAB_URL||GENIUS_TAB_LYRICS);
   b.classList.toggle('gyellow', on);
   b.title = on ? 'Load the detected Genius lyrics' : 'Find the lyrics on Genius';
@@ -3110,6 +3619,191 @@ function toast(msg,ms){
   if(st){ st.textContent=msg; st.classList.add('on'); clearTimeout(st._t); st._t=setTimeout(function(){ st.classList.remove('on'); st.textContent=''; }, ms||4000); return; }
   var t=document.getElementById('toast'); if(t){ t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },ms||2200); }
 }
+// ═══ MODULO 1: Artist/Song editables directo + detalles (nov 2026) ═══
+// En Mac dentro de AE no se toca el foco (blur saca del panel y AE reproduce su composicion).
+function _modBlur(el){ if(!el||document.activeElement!==el) return; if(IN_AE&&IS_MAC) return; try{ el.blur(); }catch(e){} }
+function _modWire(ms, onArtist, onSong, onSongBlur){
+  var a=document.getElementById('modArtist'), s=document.getElementById('modTitle');
+  if(a) a.addEventListener('input', function(){ onArtist(this.value); });
+  if(s) s.addEventListener('input', function(){ onSong(this.value); });
+  if(s&&onSongBlur) s.addEventListener('blur', onSongBlur);
+  [a,s].forEach(function(inp){ if(inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key==='Escape'){ e.preventDefault(); _modBlur(this); } }); });
+  // Clic en el icono o en el fondo del modulo = abrir/cerrar detalles.
+  ms.addEventListener('click', function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    if(t.closest('#modIco')){ toggleDetails(e); return; }
+    if(t.closest('input,textarea,button,select,a,.details-panel,.mod-gin')) return;
+    toggleDetails(e);
+  });
+  // Clic fuera del modulo = cerrar (los avisos/modales no cuentan).
+  document.addEventListener('mousedown', function(e){
+    var t=e.target; if(t&&t.closest&&(t.closest('#modSong')||t.closest('.ov,#vlgBg,.rate-menu'))) return;
+    if(ms.classList.contains('open')) closeDetails();
+    var gi=document.getElementById('g-link-inline');
+    if(ms.classList.contains('gmode') && !(gi&&gi.value.trim())) closeGeniusInput();
+  });
+  window.addEventListener('keydown', function(e){
+    if(e.key!=='Escape') return; var tg=(document.activeElement&&document.activeElement.tagName)||'';
+    if(tg==='INPUT'||tg==='TEXTAREA') return;
+    if(ms.classList.contains('open')) closeDetails();
+  });
+  window.addEventListener('resize', function(){ if(ms.classList.contains('open')) _modFitExp(); });
+}
+
+function modSyncMeta(){
+  var ch=getActive(), a=document.getElementById('modArtist'), s=document.getElementById('modTitle');
+  var av=chArtist(ch), sv=chSong(ch);
+  if(a&&document.activeElement!==a&&a.value!==av) a.value=av;
+  if(s&&document.activeElement!==s&&s.value!==sv) s.value=sv;
+}
+function initModules(){
+  var ms=document.getElementById('modSong'); if(!ms||ms._modInit) return; ms._modInit=true;
+  _modWire(ms,
+    function(v){ var ch=getActive(); if(ch) editArtist(ch.id, v); },
+    function(v){ var ch=getActive(); if(ch) editSong(ch.id, v); }, null);
+  var gi=document.getElementById('g-link-inline');
+  if(gi) gi.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadGeniusInline(e); } else if(e.key==='Escape'){ e.preventDefault(); closeGeniusInput(); } });
+  var sb=document.getElementById('btnLyrSearch');
+  // Al pasar el mouse se pregunta (sin cargar nada) si hay una pestana de Genius abierta: el boton se pone amarillo.
+  if(sb&&!IN_AE) sb.addEventListener('mouseenter', function(){ var n=Date.now(); if(n-(sb._scan||0)<2500) return; sb._scan=n; _scanGeniusQuick(function(){}); });
+  if(!IN_AE){ try{ initGeniusPaste(); }catch(e){} }
+  try{ specInit(); }catch(e){}
+  modSyncMeta();
+}
+// Pregunta rapida a la extension por la pestana de Genius abierta (no carga nada por si sola).
+var _gQuickNoExt=false;
+function _scanGeniusQuick(cb){
+  if(IN_AE){ cb(false); return; }
+  var reqId='q'+Date.now()+'_'+Math.random(), done=false;
+  function onMsg(e){
+    if(e.source!==window) return; var d=e.data; if(!d||d.type!=='VERSO_GENIUS_RESULT'||d.reqId!==reqId) return;
+    done=true; _gQuickNoExt=false; window.removeEventListener('message', onMsg);
+    GENIUS_TAB_LYRICS=(d.lyrics&&(''+d.lyrics).trim().length>20)?(''+d.lyrics):null;
+    setGeniusFound(d.url||null);
+    cb(!!(GENIUS_TAB_URL||GENIUS_TAB_LYRICS));
+  }
+  window.addEventListener('message', onMsg);
+  window.postMessage({ type:'VERSO_GET_GENIUS', reqId:reqId }, '*');
+  setTimeout(function(){ if(!done){ window.removeEventListener('message', onMsg); _gQuickNoExt=true; cb(false); } }, 600);
+}
+// Boton de buscar del modulo 1: si la extension ve una pestana de Genius abierta, carga esa letra;
+// si no, abre la pildora para pegar el link (Enter o el mismo boton la cargan).
+function searchAction(ev){
+  if(ev&&ev.stopPropagation) ev.stopPropagation();
+  var ms=document.getElementById('modSong'), gi=document.getElementById('g-link-inline');
+  if(ms&&ms.classList.contains('gmode')){ if(gi&&gi.value.trim()) loadGeniusInline(ev); else closeGeniusInput(); return; }
+  if(IN_AE){ toggleGeniusInput(); return; }
+  if(GENIUS_TAB_URL||GENIUS_TAB_LYRICS){ applyGeniusFromTab(); return; }
+  if(_gQuickNoExt){ toggleGeniusInput(); _scanGeniusQuick(function(){}); return; }
+  var b=document.getElementById('btnLyrSearch'); if(b) b.classList.add('loading');
+  _scanGeniusQuick(function(found){ if(b) b.classList.remove('loading'); if(found) applyGeniusFromTab(); else toggleGeniusInput(); });
+}
+
+// ═══ ESPECTRO DE AUDIO (Verso individual, nov 2026) ═══
+// 3 barras que se animan al ritmo de la cancion mientras suena. No toca la reproduccion: al cargar
+// la cancion se lee el archivo aparte, se separan 3 bandas (graves / medios / agudos) con un
+// OfflineAudioContext y se guarda su energia 40 veces por segundo; al reproducir, cada barra
+// muestra la energia de su banda en el segundo actual. En pausa vuelven a su forma de reposo.
+// Si el archivo no se puede leer, se animan suave mientras suena (nunca se rompe nada).
+// Alturas en px por barra (lados / centro): nivel blanco [min,max] y fondo gris [min,max].
+// El fondo sigue a la musica con un poco de retraso (lo que sono hace un instante, suavizado mas
+// lento): queda un "eco" detras del nivel blanco. En reposo, la forma del diseno (7/15 y 17/27).
+var SPEC_W=[[4,19],[4,29],[4,19]], SPEC_T=[[7,24],[9,34],[7,24]];
+var SPEC_IDLE=[0.2,0.44,0.2], SPEC_IDLE_T=[0.59,0.72,0.59];
+var _spec={els:null, trk:null, bands:null, fps:40, tok:0, src:'', raf:0, cur:SPEC_IDLE.slice(), curT:SPEC_IDLE_T.slice()};
+function specInit(){
+  var w=document.getElementById('modSpec'); if(!w) return;
+  _spec.els=[].slice.call(w.querySelectorAll('b'));
+  _spec.trk=[].slice.call(w.querySelectorAll('i'));
+  specPaint();
+  ['play','pause','ended','seeked','playing','waiting'].forEach(function(ev){ AEL.addEventListener(ev, specKick); });
+  AEL.addEventListener('loadedmetadata', function(){ specAnalyze(AEL.currentSrc||AEL.src); });
+  if(AEL.currentSrc||AEL.src) specAnalyze(AEL.currentSrc||AEL.src);
+}
+function specPaint(){
+  if(!_spec.els) return;
+  function c01(v){ return Math.max(0,Math.min(1,v||0)); }
+  for(var k=0;k<_spec.els.length;k++){
+    var w=SPEC_W[k]||SPEC_W[0], t=SPEC_T[k]||SPEC_T[0];
+    _spec.els[k].style.height=(w[0]+c01(_spec.cur[k])*(w[1]-w[0])).toFixed(1)+'px';
+    if(_spec.trk&&_spec.trk[k]) _spec.trk[k].style.height=(t[0]+c01(_spec.curT[k])*(t[1]-t[0])).toFixed(1)+'px';
+  }
+}
+function specKick(){ if(!_spec.raf) _spec.raf=requestAnimationFrame(specFrame); }
+function specFrame(){
+  _spec.raf=0;
+  var playing=!AEL.paused&&!AEL.ended, tgt, tgtT, k;
+  if(playing){
+    var b=_spec.bands, tt=AEL.currentTime||0;
+    if(b){
+      var i=Math.floor(tt*_spec.fps), d0=Math.floor((tt-0.12)*_spec.fps);
+      tgt=[b[0][i]||0, b[1][i]||0, b[2][i]||0];
+      // fondo: el pico de lo que sono entre ~0.3 s y 0.12 s antes (eco con retraso)
+      tgtT=[0,0,0];
+      for(k=0;k<3;k++){ for(var j=d0-7;j<=d0;j++){ var v=j>=0?(b[k][j]||0):0; if(v>tgtT[k]) tgtT[k]=v; } }
+    } else {
+      var t=performance.now()/1000, td=t-0.22;
+      tgt=[.3+.35*Math.abs(Math.sin(t*5.1)), .4+.45*Math.abs(Math.sin(t*3.7+1)), .25+.35*Math.abs(Math.sin(t*6.3+2))];
+      tgtT=[.35+.4*Math.abs(Math.sin(td*5.1)), .45+.45*Math.abs(Math.sin(td*3.7+1)), .3+.4*Math.abs(Math.sin(td*6.3+2))];
+    }
+  } else { tgt=SPEC_IDLE; tgtT=SPEC_IDLE_T; }
+  var moving=false;
+  for(k=0;k<3;k++){
+    var d=tgt[k]-_spec.cur[k]; _spec.cur[k]+=d*(d>0?0.55:(playing?0.22:0.14)); if(Math.abs(d)>0.004) moving=true;
+    var dt=tgtT[k]-_spec.curT[k]; _spec.curT[k]+=dt*(dt>0?0.16:(playing?0.06:0.1)); if(Math.abs(dt)>0.004) moving=true;
+  }
+  specPaint();
+  if(playing||moving) _spec.raf=requestAnimationFrame(specFrame);
+}
+function specAnalyze(src){
+  if(!src||src===_spec.src) return;
+  _spec.src=src; _spec.bands=null; var tok=++_spec.tok;
+  var OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OAC) return;
+  var SR=11025, x;
+  function decode(buf){
+    if(tok!==_spec.tok||!buf||!buf.byteLength) return;
+    var dc; try{ dc=new OAC(1,1,SR); }catch(e){ return; }
+    var ok=function(ab){ if(tok===_spec.tok&&ab) specBands(ab, SR, tok); }, bad=function(){};
+    try{ var p=dc.decodeAudioData(buf, ok, bad); if(p&&p.catch) p.catch(bad); }catch(e){}
+  }
+  // Web: la cancion ya esta en memoria (File). El CSP de la pagina no deja leer blob: por XHR.
+  var ch=getActive(), f=(ch&&ch.audioURL===src&&ch.audioFile)||(/^blob:/i.test(src)?audioFile:null);
+  if(f&&typeof FileReader!=='undefined'){
+    var fr=new FileReader(); fr.onload=function(){ decode(fr.result); }; fr.onerror=function(){};
+    try{ fr.readAsArrayBuffer(f); }catch(e){} return;
+  }
+  if(/^blob:/i.test(src)) return;   // sin el archivo a mano: queda la animacion suave
+  // AE: archivo en disco (file://)
+  try{ x=new XMLHttpRequest(); x.open('GET',src,true); x.responseType='arraybuffer'; }catch(e){ return; }
+  x.onload=function(){ decode(x.response); };
+  x.onerror=function(){};
+  try{ x.send(); }catch(e){}
+}
+function specBands(ab, SR, tok){
+  var OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  var defs=[['lowpass',180,0.7],['bandpass',900,0.6],['highpass',3500,0.7]], out=[], k=0;
+  var len=Math.max(1,Math.ceil(ab.duration*SR)), hop=Math.max(1,Math.round(SR/_spec.fps));
+  (function next(){
+    if(tok!==_spec.tok) return;
+    if(k>=defs.length){ _spec.bands=out; return; }
+    var d=defs[k], oc; try{ oc=new OAC(1,len,SR); }catch(e){ return; }
+    var s=oc.createBufferSource(); s.buffer=ab;
+    var f=oc.createBiquadFilter(); f.type=d[0]; f.frequency.value=d[1]; f.Q.value=d[2];
+    s.connect(f); f.connect(oc.destination); s.start(0);
+    oc.oncomplete=function(ev){ if(tok!==_spec.tok) return; out.push(specEnv(ev.renderedBuffer.getChannelData(0), hop)); k++; setTimeout(next,0); };
+    try{ var p=oc.startRendering(); if(p&&p.catch) p.catch(function(){}); }catch(e){}
+  })();
+}
+function specEnv(data, hop){
+  var n=Math.max(1,Math.ceil(data.length/hop)), env=new Float32Array(n), i, j, s, v, a, e;
+  for(i=0;i<n;i++){ s=0; a=i*hop; e=Math.min(data.length,a+hop); for(j=a;j<e;j++){ v=data[j]; s+=v*v; } env[i]=Math.sqrt(s/Math.max(1,e-a)); }
+  // cada barra usa todo su recorrido: se normaliza al percentil 95 de su banda
+  var sorted=Array.prototype.slice.call(env).sort(function(x,y){ return x-y; }), ref=sorted[Math.floor((n-1)*0.95)]||sorted[n-1];
+  if(!(ref>0)) ref=1;
+  for(i=0;i<n;i++){ v=env[i]/ref; env[i]=Math.min(1, Math.pow(v, 0.8)); }
+  return env;
+}
+try{ initModules(); }catch(e){ try{ console.error('[Verso] modules', e); }catch(e2){} }
 </script>
 </body>
 </html>

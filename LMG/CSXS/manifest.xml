@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.leobledo.verso.lmg" ExtensionBundleVersion="10.0.0" ExtensionBundleName="Verso LMG">
+  <ExtensionList>
+    <Extension Id="com.leobledo.verso.lmg.panel" Version="1.0.0"/>
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="AEFT" Version="[15.0,99.9]"/>
+      <Host Name="PPRO" Version="[15.0,99.9]"/>
+    </HostList>
+    <LocaleList>
+      <Locale Code="All"/>
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="7.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.leobledo.verso.lmg.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./index.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--disable-web-security</Parameter>
+            <Parameter>--allow-running-insecure-content</Parameter>
+            <!-- macOS: sin esto el <audio> no puede leer file:// y Chrome bloquea el
+                 play() programatico hasta que haya un gesto del usuario (por eso solo
+                 sonaba tras dar play en el proyecto de AE). -->
+            <Parameter>--allow-file-access-from-files</Parameter>
+            <Parameter>--autoplay-policy=no-user-gesture-required</Parameter>
+          </CEFCommandLine>
+          <NetworkAccess>
+            <Allow>
+              <Domain schema="https">lrclib.net</Domain>
+              <Domain schema="https">*</Domain>
+            </Allow>
+          </NetworkAccess>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>Verso LMG</Menu>
+          <Geometry>
+            <Size>
+              <Height>600</Height>
+              <Width>900</Width>
+            </Size>
+            <MinSize>
+              <Height>380</Height>
+              <Width>480</Width>
+            </MinSize>
+          </Geometry>
+          <Icons/>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>

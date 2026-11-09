@@ -949,6 +949,10 @@ function _repositionConstant(layer, start, end) {
 
 var OUTRO_NAME = 'Outro';
 
+// Video vs Short: las comps/footage Short llevan la palabra "Short" en el nombre.
+function _isShortName(n){ return /\bShort\b/i.test(n || ''); }
+function _modeMatch(name, isShort){ return _isShortName(name) === !!isShort; }
+
 function isTHComp(item) {
   return (/ TH$/i.test(item.name) || item.label === 1);
 }
@@ -972,6 +976,9 @@ function getGeneralComps() {
     if (!(item instanceof CompItem)) continue;
     if (item.name.toLowerCase().indexOf('lyrics') !== -1) continue;
     if (isTHComp(item)) continue;
+    // Solo VIDEO: la comp "Short" nunca entra aqui (Master/carga de video le ajustaban el
+    // rango y le borraban el SRT). La Short se maneja aparte con _shortComp().
+    if (_isShortName(item.name)) continue;
 
     var isMain = false;
     // 1. existe una TH con su mismo nombre base  -> es su main (lo mas fiable aqui)
@@ -997,12 +1004,13 @@ function getGeneralComps() {
   return comps;
 }
 
-// Todas las comps de lyrics en orden de panel.
+// Todas las comps de lyrics de VIDEO en orden de panel. La "Short Lyrics" NO entra: el
+// Master de video le borraba el SRT y le recortaba keyframes.
 function _allLyricsComps() {
   var out = [];
   for (var i = 1; i <= app.project.numItems; i++) {
     var it = app.project.item(i);
-    if (it instanceof CompItem && it.name.toLowerCase().indexOf('lyrics') !== -1) out.push(it);
+    if (it instanceof CompItem && it.name.toLowerCase().indexOf('lyrics') !== -1 && !_isShortName(it.name)) out.push(it);
   }
   return out;
 }
@@ -1070,6 +1078,8 @@ function getSongItemInComp(comp) {
 
 // ── Lyric cleaner (recorta keyframes despues de la ultima frontera de grupo) ──
 function cleanLyricComp(comp) {
+  // SHORTS: no se recorta ni se toca ninguna capa de una comp Short (solo se reescribe su SRT).
+  if (!comp || _isShortName(comp.name)) return false;
   var targetLayer = null;
   for (var l = 1; l <= comp.numLayers; l++) {
     if (comp.layer(l).name === 'Lyric') { targetLayer = comp.layer(l); break; }
@@ -1152,6 +1162,9 @@ function _trimProps(propGroup, cutoff) {
 
 // ── Range adjuster (work area = audio; reubica Outro al final del audio) ──
 function adjustRangeComp(comp) {
+  // SHORTS: NUNCA se ajusta el rango de una comp Short (work area, duracion, Song, Outro).
+  // Ya tienen su duracion preestablecida; solo se editan su SRT y su Short TH.
+  if (!comp || _isShortName(comp.name)) return false;
   var audioLayer = null;
   for (var i = 1; i <= comp.numLayers; i++) {
     var lyr = comp.layer(i);
@@ -1236,7 +1249,9 @@ function masterRun() {
       }
     }
 
-    var rangeComps = limitToSelected ? selectedComps : getGeneralComps();
+    // Rangos: SOLO comps de VIDEO, aunque la "Short" este seleccionada en el panel.
+    var rangeSrc = limitToSelected ? selectedComps : getGeneralComps(), rangeComps = [];
+    for (var rq = 0; rq < rangeSrc.length; rq++) if (!_isShortName(rangeSrc[rq].name)) rangeComps.push(rangeSrc[rq]);
     var rangeUpdated = 0, rangeSkipped = 0;
     for (var rc = 0; rc < rangeComps.length; rc++) { if (adjustRangeComp(rangeComps[rc])) rangeUpdated++; else rangeSkipped++; }
 
@@ -1259,7 +1274,7 @@ function masterRun() {
   }
 }
 
-// ── Render: encola TH (JPEG) + main (H.264) en el Render Queue ──
+// ── Render: encola TH y Short TH (JPEG, primero) + main (H.264) en el Render Queue ──
 function getAllSelectedCompsByPanelOrder() {
   var comps = [];
   for (var i = 1; i <= app.project.numItems; i++) {
@@ -1283,7 +1298,7 @@ function doRenderOrQueue(sendToAME, isShort) {
     if (selected.length > 0) {
       for (var i = 0; i < selected.length; i++) { if (isTHComp(selected[i])) thComps.push(selected[i]); else mainComps.push(selected[i]); }
     } else if (!isShort) {
-      // VIDEO: TH roja + main naranja. Nunca Lyrics.
+      // VIDEO: TH roja + Short TH (JPEG) + main naranja. Nunca Lyrics.
       for (var i2 = 1; i2 <= app.project.numItems; i2++) {
         var item = app.project.item(i2);
         if (!(item instanceof CompItem)) continue;
@@ -1292,8 +1307,8 @@ function doRenderOrQueue(sendToAME, isShort) {
         else if (item.label === 9 || item.label === 11) mainComps.push(item);
       }
     } else {
-      // SHORT: TH roja (se reusa la de video, no hay "Short TH") + main naranja de video +
-      // la comp "Short" (amarilla). Antes solo se mandaba el Short — faltaban TH y video.
+      // SHORT: TH y Short TH (JPEG) + main naranja de video + la comp "Short" (amarilla).
+      // Antes solo se mandaba el Short — faltaban TH y video.
       for (var i3 = 1; i3 <= app.project.numItems; i3++) {
         var it3 = app.project.item(i3);
         if (!(it3 instanceof CompItem)) continue;
@@ -1307,6 +1322,11 @@ function doRenderOrQueue(sendToAME, isShort) {
     if (thComps.length === 0 && mainComps.length === 0)
       return _writeResult({ ok: false, msg: 'No ' + (isShort ? 'Short ' : '') + 'compositions detected.\nSelect comps in the panel\nor use a red (TH) / orange (main) / yellow (Short) label.' });
 
+    // Todos los TH al principio de la cola (nov 2026): primero los TH de video y despues los
+    // Short TH, cada grupo en el orden del panel; luego las main. Todos los TH en JPEG.
+    var thV = [], thS = [];
+    for (var tq = 0; tq < thComps.length; tq++) (_isShortName(thComps[tq].name) ? thS : thV).push(thComps[tq]);
+    thComps = thV.concat(thS);
     var allComps = thComps.concat(mainComps);
     var rq = app.project.renderQueue, jpegTplName = null, h264TplName = null;
     try {
@@ -1342,7 +1362,7 @@ function doRenderOrQueue(sendToAME, isShort) {
     }
     if (added === 0) return _writeResult({ ok: false, msg: 'Could not add any comp to the queue' });
     if (sendToAME) { try { rq.queueInAME(false); } catch (e) { try { app.executeCommand(3767); } catch (e2) {} } }
-    return _writeResult({ ok: true, added: added, thCount: thComps.length, mainCount: mainComps.length, mode: sendToAME ? 'AME' : 'AE', tmplWarning: tmplWarning, jpegTpl: usedJpeg });
+    return _writeResult({ ok: true, added: added, thCount: thV.length, shortThCount: thS.length, mainCount: mainComps.length, mode: sendToAME ? 'AME' : 'AE', tmplWarning: tmplWarning, jpegTpl: usedJpeg });
   } catch (e) {
     return _writeResult({ ok: false, msg: e.toString() });
   }
@@ -1599,11 +1619,12 @@ function loadSingleSongFile() {
       if (adjustRangeComp(gc)) rangeUpdated++;   // work area = audio, mueve Outro al final
     }
 
-    // 2) Eliminar las capas SRT que ya existian (en todas las comps).
+    // 2) Eliminar las capas SRT que ya existian (en las comps de VIDEO; la Short no se toca).
     var removed = 0;
     for (var ci = 1; ci <= app.project.numItems; ci++) {
       var it2 = app.project.item(ci);
       if (!(it2 instanceof CompItem)) continue;
+      if (_isShortName(it2.name)) continue;                         // nunca las comps Short
       if (selN != null && _leadNum(it2.name) !== selN) continue;   // solo el canal seleccionado
       for (var l2 = it2.numLayers; l2 >= 1; l2--) {
         var ly2 = it2.layer(l2);
@@ -1685,6 +1706,12 @@ function _findShortSongFootage() {
 // "2 por 1": la seccion de Short SIEMPRE actualiza tambien el lado de video con el MISMO
 // archivo elegido (una sola vez se pide el archivo) — antes solo tocaba "Short Song"/"Short",
 // dejando "Song"/el video largo sin actualizar cuando se trabajaba desde la seccion Short.
+// Nov 2026 (Short por defecto, sin toggle): si el proyecto tiene "Short Song" se carga en
+// Short + Video (loadShortSongFile, como siempre en Short); si no, la carga normal de video
+// (loadSingleSongFile) — asi no se crea una "Short Song" donde no hay Short.
+function loadSongAuto() {
+  return _findShortSongFootage() ? loadShortSongFile() : loadSingleSongFile();
+}
 function loadShortSongFile() {
   try {
     _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
@@ -1708,21 +1735,13 @@ function loadShortSongFile() {
       } catch (e3) { app.endUndoGroup(); return _writeResult({ ok: false, msg: 'No se pudo importar (Short): ' + e3.toString() }); }
     }
 
-    var shortComp = _shortComp();
+    // La comp "Short" NO se toca: sin ajuste de rango ni de work area, y sin alargar o mover
+    // la capa de audio u otras capas (tiene su duracion fija). Solo se reemplazo la footage
+    // "Short Song" arriba y se borra el SRT viejo de "Short Lyrics" mas abajo.
     var rangeUpdated = 0;
-    if (shortComp) {
-      for (var al = 1; al <= shortComp.numLayers; al++) {
-        var L = shortComp.layer(al);
-        if (L.hasAudio && L.source instanceof FootageItem) {
-          try { L.outPoint = L.startTime + L.source.duration; } catch (eX) {}
-          break;
-        }
-      }
-      if (adjustRangeComp(shortComp)) rangeUpdated++;
-    }
 
     var removed = 0;
-    var srtComps = [shortComp, _shortLyricsComp()];
+    var srtComps = [_shortLyricsComp()];
 
     // ── Lado VIDEO (mismo archivo f) ──
     var videoSong = _pickSongFootage(null);
@@ -1748,8 +1767,10 @@ function loadShortSongFile() {
       if (adjustRangeComp(gc)) rangeUpdated++;
       srtComps.push(gc);
     }
-    var vLyrics = _anyCompBySuffix('lyrics');
-    if (vLyrics && !/\bshort\b/i.test(vLyrics.name)) srtComps.push(vLyrics);
+    // Lyrics de VIDEO (antes _anyCompBySuffix('lyrics'): si "Short Lyrics" iba primero en el
+    // panel, devolvia esa, se descartaba, y el SRT viejo del Lyrics de video quedaba).
+    var vLyrs = _allLyricsComps();
+    for (var vl = 0; vl < vLyrs.length; vl++) srtComps.push(vLyrs[vl]);
 
     // ── Eliminar SRT viejos en ambos lados ──
     for (var sc = 0; sc < srtComps.length; sc++) {
@@ -1765,7 +1786,7 @@ function loadShortSongFile() {
 
     var p = _footagePath(song);
     if (!p) return _writeResult({ ok: false, msg: 'La cancion no tiene archivo en disco' });
-    return _writeResult({ ok: true, path: p, name: song.name, rangeUpdated: rangeUpdated, removed: removed });
+    return _writeResult({ ok: true, path: p, name: song.name, rangeUpdated: rangeUpdated, removed: removed, shortToo: true });
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
     return _writeResult({ ok: false, msg: e.toString() });
@@ -1984,6 +2005,21 @@ function _buildStyleFrame(comp, entries, frameLayer, doCenter) {
 
 function _buildLyricLayers(comp, entries, fadeIn, fadeOut, styleName, doCenter, doExtend) {
   try { _SNAP_FD = comp.frameDuration; } catch (e) {}   // snap keyframes a frames del comp
+  // SHORTS: en una comp Short SOLO se reescribe la letra (capas SRT). No se cambia la
+  // duracion de la comp (doExtend se ignora) y los subtitulos que empiezan despues de su
+  // final se omiten: antes se apilaban todos en el ultimo frame. Se valida ANTES de borrar
+  // nada, asi un SRT que no cabe no deja la comp sin su letra anterior.
+  if (_isShortName(comp.name)) {
+    doExtend = false;
+    var inRange = [];
+    for (var sq = 0; sq < entries.length; sq++) if (entries[sq].startSec < comp.duration) inRange.push(entries[sq]);
+    if (!inRange.length) throw new Error('el SRT empieza despues del final de "' + comp.name + '" (' + Math.round(comp.duration) + ' s)');
+    entries = inRange;
+  }
+  // Quitar capas SRT generadas antes (incl. "SRT Frame") para que NO se sobrepongan al reimportar.
+  for (var rl = comp.numLayers; rl >= 1; rl--) {
+    try { if (/^SRT\b/i.test(comp.layer(rl).name)) comp.layer(rl).remove(); } catch (e) {}
+  }
   var lastEnd = 0;
   for (var q = 0; q < entries.length; q++) if (entries[q].endSec > lastEnd) lastEnd = entries[q].endSec;
   if (doExtend && (lastEnd + 0.5) > comp.duration) { try { comp.duration = lastEnd + 0.5; } catch (e) {} }
@@ -2379,6 +2415,9 @@ function importLyricsToShort(srtContent, optionsJSON) {
 // Lyrics" — no solo a Short. Antes el import en modo Short dejaba el Lyrics normal intacto.
 function importLyricsToBoth(lyrCompName, srtContent, optionsJSON) {
   var r1 = importLyricsToComp(lyrCompName, srtContent, optionsJSON);
+  // Nov 2026 (Short por defecto): si el proyecto no tiene "Short Lyrics", solo la de video,
+  // sin aviso de error.
+  if (!_shortLyricsComp()) return r1;
   var r2 = importLyricsToShort(srtContent, optionsJSON);
   var okc = 0, parts = [];
   if (String(r1).indexOf('ok:') === 0) { okc++; parts.push(String(r1).slice(3)); } else parts.push('Lyrics: ' + String(r1).replace(/^err:/, ''));
@@ -2484,25 +2523,40 @@ function _writeResult(obj) {
   _notify(s);
   return s;
 }
-function importSRTBatch() {
+// Solo ASCII imprimible: el nombre viaja de vuelta al panel dentro del resultado.
+function _fileDisplayName(f) {
+  var s = '';
+  try { s = decodeURI(f.name); } catch (e) { try { s = String(f.displayName || f.name); } catch (e2) { s = ''; } }
+  return s.replace(/[^\x20-\x7E]/g, '');
+}
+// Importa SRT desde archivo(s) .srt.
+//  - Video: a la(s) "Lyrics" de VIDEO. Antes el destino era la lista de TODAS las comps con
+//    "lyrics" en orden de panel, Short Lyrics incluida: el SRT podia caer en la Short.
+//  - Short (isShort): el MISMO SRT va a "Lyrics" Y a "Short Lyrics" (2 por 1, igual que el
+//    boton Import). En la Short solo se reescriben las capas SRT (ver _buildLyricLayers).
+//  - Si hay varias Lyrics de video numeradas, cada archivo va a la de SU numero ("01 …").
+//    Sin numero: en orden. Lyrics seleccionadas en el panel de Proyecto = solo esas.
+function importSRTBatch(isShort) {
   try {
     _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
-    var targets = _selectedLyricsComps();
-    if (!targets.length) targets = _allLyricsComps();
-    if (!targets.length) return _writeResult({ ok: false, msg: 'No Lyrics comps in the project' });
+    isShort = (isShort === true || isShort === 'true');
+    var videoLyr = _allLyricsComps(), i;               // solo VIDEO (sin "Short Lyrics")
+    var sel = _selectedLyricsComps(), selV = [];
+    for (i = 0; i < sel.length; i++) if (!_isShortName(sel[i].name)) selV.push(sel[i]);
+    var targets = selV.length ? selV : videoLyr;
+    var shortLyr = isShort ? _shortLyricsComp() : null;
+    if (!targets.length && !shortLyr) return _writeResult({ ok: false, msg: 'No hay comp "Lyrics" en el proyecto' });
 
     Folder.current = Folder.desktop;
-    var raw = File.openDialog('Select the SRT files (' + targets.length + ' Lyrics comp(s))', _SRT_FILTER(), true);
+    var raw = File.openDialog('Select the SRT file' + (targets.length > 1 ? 's (' + targets.length + ' Lyrics comps)' : ''), _SRT_FILTER(), true);
     if (!raw) return _writeResult({ ok: false, msg: 'Cancelado' });
     var files = (raw instanceof Array) ? raw : [raw];
     if (files.length === 0) return _writeResult({ ok: false, msg: 'Sin archivos' });
 
-    var oneByOne = (files.length === 1);
-    if (oneByOne) {
-      var slots = targets.length;
-      for (var s = 1; s < slots; s++) {
+    if (files.length === 1) {
+      for (var s = 1; s < targets.length; s++) {
         try { Folder.current = files[files.length - 1].parent; } catch (e) {}
-        var next = File.openDialog('SRT ' + (s + 1) + ' of ' + slots + '  —  Cancel to stop here', _SRT_FILTER(), false);
+        var next = File.openDialog('SRT ' + (s + 1) + ' of ' + targets.length + '  —  Cancel to stop here', _SRT_FILTER(), false);
         if (!next) break;
         files.push(next);
       }
@@ -2510,35 +2564,68 @@ function importSRTBatch() {
       files.sort(function (a, b) { return (a.created || new Date(0)).valueOf() - (b.created || new Date(0)).valueOf(); });
     }
 
+    // Asignacion: por NUMERO si la comp y el archivo lo traen (y hay mas de una Lyrics);
+    // el resto, en orden, a las Lyrics que queden libres.
+    var useFor = [], missed = [], j, n, fnum, byNum = {};
+    for (i = 0; i < targets.length; i++) { useFor.push(null); n = _leadNum(targets[i].name); if (n != null && byNum[n] == null) byNum[n] = i; }
+    var pending = [];
+    for (j = 0; j < files.length; j++) {
+      fnum = (targets.length > 1) ? _leadNum(_fileDisplayName(files[j])) : null;
+      if (fnum != null && byNum[fnum] != null && !useFor[byNum[fnum]]) useFor[byNum[fnum]] = files[j];
+      else pending.push(files[j]);
+    }
+    var t = 0;
+    for (j = 0; j < pending.length; j++) {
+      while (t < targets.length && useFor[t]) t++;
+      if (t >= targets.length) { missed.push('"' + _fileDisplayName(pending[j]) + '": sin Lyrics libre'); continue; }
+      useFor[t] = pending[j]; t++;
+    }
+
+    var jobs = [], firstFile = null;
+    for (i = 0; i < targets.length; i++) if (useFor[i]) { jobs.push({ comp: targets[i], file: useFor[i], kind: 'video' }); if (!firstFile) firstFile = useFor[i]; }
+    if (isShort) {
+      if (!firstFile) firstFile = files[0];
+      if (shortLyr) jobs.push({ comp: shortLyr, file: firstFile, kind: 'short' });   // sin Short Lyrics: se ignora
+    }
+
     app.beginUndoGroup('Lyricator: Import SRT batch');
-    var count = Math.min(targets.length, files.length), applied = 0, totalLayers = 0, firstComp = null;
-    for (var j = 0; j < count; j++) {
-      var content = _readFile(files[j]);
-      if (content === null) continue;
+    var applied = 0, shortApplied = 0, totalLayers = 0, firstComp = null, jc;
+    for (jc = 0; jc < jobs.length; jc++) {
+      var job = jobs[jc];
+      var content = _readFile(job.file);
+      if (content === null) { missed.push(job.comp.name + ': no se pudo leer el .srt'); continue; }
       var entries = _parseSRT(content);
-      if (!entries.length) continue;
-      var res = _buildLyricLayers(targets[j], entries, 0.3, 0.3, 'Style Controler', true, true);
-      totalLayers += res.count; applied++;
-      if (!firstComp) firstComp = targets[j];
+      if (!entries.length) { missed.push(job.comp.name + ': SRT sin subtitulos'); continue; }
+      try {
+        var r = _buildLyricLayers(job.comp, entries, 0.3, 0.3, 'Style Controler', true, true);
+        totalLayers += r.count;
+        if (job.kind === 'short') shortApplied++; else applied++;
+        if (!firstComp) firstComp = job.comp;
+      } catch (eB) { missed.push(job.comp.name + ': ' + (eB.message || eB.toString())); }
     }
     app.endUndoGroup();
     // Abrir la comp donde se importo, para quedar parado ahi.
     try { if (firstComp) { firstComp.openInViewer(); app.project.activeItem; } } catch (eV) {}
-    return _writeResult({ ok: true, applied: applied, total: count, layers: totalLayers });
+    return _writeResult({ ok: true, applied: applied, total: files.length, layers: totalLayers,
+      shortApplied: shortApplied, missed: missed.join(' | ') });
   } catch (e) {
     try { app.endUndoGroup(); } catch (x) {}
     return _writeResult({ ok: false, msg: e.toString() });
   }
 }
 
-// Borra TODAS las capas con "SRT" en el nombre, en TODAS las comps del proyecto.
-function clearAllLyricLayers() {
+// Borra las capas con "SRT" en el nombre. false (o sin argumento) = todas MENOS las Short
+// (tras el Master de video la "Short Lyrics" conserva su letra). true (modo Short, el unico
+// en AE desde nov 2026) = video Y Short.
+function clearAllLyricLayers(isShort) {
   try {
+    isShort = (isShort === true || isShort === 'true');
     app.beginUndoGroup('Lyricator: Clear ALL SRT layers');
     var removed = 0, comps = 0;
     for (var i = 1; i <= app.project.numItems; i++) {
       var it = app.project.item(i);
       if (!(it instanceof CompItem)) continue;
+      if (!isShort && _isShortName(it.name)) continue;   // false: nunca las Short; true: ambas
       var touched = false;
       for (var l = it.numLayers; l >= 1; l--) {
         var ly = it.layer(l);
@@ -2678,14 +2765,16 @@ function updateShortTHComp(artist, song) {
 // del video largo, dejando "Short TH" sin actualizar.
 function updateThumbnailBoth(thCompName, videoArtist, videoSong, shortArtist, shortSong) {
   var r1 = updateThumbnailComp(thCompName, videoArtist, videoSong);
-  var r2 = updateShortThumbnail(shortArtist, shortSong);
+  // Nov 2026 (Short por defecto): lo Short que no exista (comp "Short", sus capas, o
+  // "Short TH") se ignora; sus fallos solo se informan si tambien fallo la TH de video.
+  var r2 = _shortComp() ? updateShortThumbnail(shortArtist, shortSong) : 'skip:sin comp "Short"';
   var r3 = updateShortTHComp(shortArtist, shortSong);
-  var okc = 0, parts = [];
-  if (String(r1).indexOf('ok:') === 0) { okc++; parts.push(String(r1).slice(3)); } else parts.push('TH: ' + String(r1).replace(/^err:/, ''));
-  if (String(r2).indexOf('ok:') === 0) { okc++; parts.push(String(r2).slice(3)); } else parts.push('Short: ' + String(r2).replace(/^err:/, ''));
-  if (String(r3).indexOf('ok:') === 0) { okc++; parts.push(String(r3).slice(3)); }
-  else if (String(r3).indexOf('skip:') !== 0) parts.push('Short TH: ' + String(r3).replace(/^err:/, ''));   // "skip" (no existe) no cuenta como fallo
-  return okc ? ('ok:' + parts.join('  ·  ')) : ('err:' + parts.join('  ·  '));
+  var ok1 = String(r1).indexOf('ok:') === 0, okc = 0, parts = [], errs = [];
+  if (ok1) { okc++; parts.push(String(r1).slice(3)); } else errs.push('TH: ' + String(r1).replace(/^err:/, ''));
+  if (String(r2).indexOf('ok:') === 0) { okc++; parts.push(String(r2).slice(3)); } else if (String(r2).indexOf('skip:') !== 0) errs.push('Short: ' + String(r2).replace(/^err:/, ''));
+  if (String(r3).indexOf('ok:') === 0) { okc++; parts.push(String(r3).slice(3)); } else if (String(r3).indexOf('skip:') !== 0) errs.push('Short TH: ' + String(r3).replace(/^err:/, ''));
+  if (!ok1) parts = parts.concat(errs);
+  return okc ? ('ok:' + parts.join('  ·  ')) : ('err:' + errs.join('  ·  '));
 }
 
 // Verso 2 — genera una previa PNG del frame de la comp "Short".

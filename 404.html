@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verso</title>
+<script>
+// GitHub Pages distingue mayusculas/minusculas en las rutas: /Verso/lmg o /Verso/cm caerian en
+// esta pagina. Aqui se corrige el modelo (LMG / CM) y se redirige al instante, conservando
+// ?query y #hash. Si la ruta no es de un modelo, se muestra "Page not found" con los enlaces.
+(function(){
+  var MODELS={lmg:'LMG', cm:'CM'};
+  var segs=location.pathname.split('/'), fixed=false;
+  for(var i=0;i<segs.length;i++){
+    var k=segs[i].toLowerCase();
+    if(MODELS[k] && segs[i]!==MODELS[k]){ segs[i]=MODELS[k]; fixed=true; }
+  }
+  if(fixed){
+    var p=segs.join('/');
+    if(!/\/$/.test(p) && !/\.[a-z0-9]+$/i.test(p)) p+='/';
+    location.replace(p+location.search+location.hash);
+  }
+})();
+</script>
+<style>
+:root{--bg:#0E0E0E;--card:#191919;--tx:#fff;--dim:rgba(255,255,255,.5)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:-apple-system,'Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;box-sizing:border-box;text-align:center}
+h1{margin:0;font-size:22px;font-weight:600;letter-spacing:.01em}
+p{margin:0;color:var(--dim);font-size:13px}
+nav{display:flex;gap:6px;margin-top:10px;background:var(--card);border-radius:999px;padding:3px}
+a{color:var(--dim);text-decoration:none;font-size:12px;font-weight:600;padding:7px 16px;border-radius:999px;transition:color .3s ease,background-color .3s ease}
+a:hover{color:var(--tx);background:rgba(255,255,255,.08)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Verso</h1>
+  <p>Page not found.</p>
+  <nav><a id="mV" href="./">Verso</a><a id="mL" href="./LMG/">LMG</a><a id="mC" href="./CM/">CM</a></nav>
+</main>
+<script>
+// Base del sitio: en GitHub Pages (sitio de proyecto) es /<repo>/; en local, la primera carpeta
+// si se llama Verso..., o la raiz.
+(function(){
+  var segs=location.pathname.split('/').filter(function(s){ return s; }), base='/';
+  if(segs.length && !/^(lmg|cm)$/i.test(segs[0]) &&
+     (/\.github\.io$/i.test(location.hostname) || /^verso/i.test(segs[0]))) base='/'+segs[0]+'/';
+  document.getElementById('mV').href=base;
+  document.getElementById('mL').href=base+'LMG/';
+  document.getElementById('mC').href=base+'CM/';
+})();
+</script>
+</body>
+</html>

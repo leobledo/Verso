@@ -49,7 +49,7 @@
               <Width>900</Width>
             </Size>
             <MinSize>
-              <Height>380</Height>
+              <Height>64</Height>
               <Width>480</Width>
             </MinSize>
           </Geometry>

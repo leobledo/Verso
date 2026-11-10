@@ -238,6 +238,65 @@ La canción ya no va arriba. Abajo hay 3 módulos (píldoras `#191919`, botones 
 - Probado en el navegador a 1400, 760 (angosto: módulo 1 y 3 arriba, línea de tiempo abajo) y
   1996 px: un solo botón, sin errores; Export sin marcas de tiempo avisa como antes.
 
+## Ronda 10 (9 nov): AE compacto (panel bajo = una sola píldora)
+
+- **Solo After Effects, los 3 modelos.** Con el panel de **260 px de alto o menos** todo queda en
+  una sola píldora: a la izquierda la canción y a la derecha **cargar canciones · Import · Render**
+  (solo íconos; Import muestra una flecha hacia abajo y al pasar el mouse siguen saliendo SRT /
+  Bulk). Se ocultan la letra, la línea de tiempo, la velocidad y la lupa; los detalles no se abren.
+  Al agrandar el panel vuelve el diseño normal tal cual (en vivo, sin recargar).
+- **Verso:** espectro de audio + Artist/Song (editables como siempre).
+- **LMG / CM:** los íconos de los canales **empalmados**; el activo queda encima y encendido, los
+  demás más apagados. Clic en uno = ese canal (carga su canción del proyecto como siempre) y al
+  lado aparecen su Artist/Song. La rueda sobre la píldora también pasa de canal. En paneles
+  angostos los íconos se empalman más.
+- **Avisos:** lo que antes salía en la leyenda de la letra aparece unos segundos en lugar de
+  Artist/Song (clic = ocultarlo).
+- **Manifiestos:** el alto mínimo del panel bajó de 380 a **64 px** (si no, AE no deja achicarlo).
+  Hay que volver a copiar los paneles y reiniciar AE para que lo tome.
+- La web no cambia (nunca entra en modo compacto).
+- Probado con AE simulado (900×120, 480×100, 900×261 = normal, 900×600): clic en canales, rueda,
+  avisos, agrandar/achicar en vivo (los detalles abiertos se cierran al achicar). Siguen pasando las
+  pruebas de las rondas 5–7, la lupa y Verso solo Export. Respaldo: `scratchpad/alpha_before_r10`.
+  **No probado en AE real.**
+
+## Ronda 11 (9 nov): Refresh y Thumbnail en AE + CM web pide canción por canción
+
+- **AE, panel extendido:** en LMG y CM vuelve el botón **Thumbnail** a la cabecera de Channels
+  (Refresh · Thumbnail · Clear, como antes): actualiza **todas** las TH (Artist/Song de cada comp TH,
+  video y Short). Verso individual ya tenía Refresh · Thumbnail · Clear en su tarjeta.
+- **AE, panel compacto (los 3 modelos):** a la derecha de la píldora ahora van
+  **cargar canciones · Refresh · Thumbnail · Import · Render**. Hacen lo mismo que en el panel
+  extendido: en Verso, la canción abierta; en LMG/CM, todos los canales. Refresh gira mientras
+  trabaja. En paneles angostos (≤ 640 px) los botones se achican un poco.
+- **CM web, cargar canciones (como Master en AE):** si eliges **un** archivo, se carga en el canal
+  abierto y aparece una tarjeta "Song 2 of 4 · Brazil Chaos" → **Choose song** (o Enter) abre el
+  selector para ese canal, y así hasta el último. **Stop here**, Esc, clic fuera o Cancelar en el
+  selector = parar ahí. Si eliges **varios** a la vez se reparten como antes (por fecha, desde el
+  canal abierto). El navegador solo deja abrir el selector tras un clic o una tecla; por eso cada
+  canción se pide con la tarjeta y no se abre sola.
+- La web de Verso y LMG no cambia; en AE no cambia nada más.
+- Probado con AE simulado (900×600 extendido; 900×120 y 480×120 compacto: clics, giro de Refresh) y
+  en Chrome con archivos reales para la carga uno por uno (clic, Enter, Esc, Stop, clic fuera,
+  Cancelar, varios archivos, último canal). Respaldo: `scratchpad/alpha_before_r11`.
+  **No probado en AE real.**
+
+## Extra (9 nov): extensión "CM" (carpeta `Content Controler CM`)
+
+- Copia de Content Management con nombre **CM** e ícono magenta. La original no se tocó.
+- **Solo los 4 canales de CM** (Distrito Urbano, Brazilian Chaos, Anthems South, Anthems East) en
+  cualquier página de Verso, con las mismas dos pestañas (Songs con el calendario, y Genius).
+- Al abrir canciones abre **solo las canciones, nunca las pestañas "Interaction"** de District (y no
+  marca "Missing" a una canción por no tener Interaction). Sin el puntito de admin.district.biz.
+- Es otra extensión (otro ID): sus tokens de Notion se pegan aparte en su popup.
+- Si las dos están cargadas en el mismo Chrome, dentro de Verso **manda Content Management** y CM
+  no hace nada (no se pelean). Para usar CM: desactivar Content Management en `chrome://extensions`
+  y recargar la página de Verso (o usar CM en otro perfil / otra computadora).
+- Probado en Chrome real con Notion simulado: CM sola en Verso CM y en Verso LMG → 4 canciones de
+  CM, "Open 4" abre 4 pestañas, ninguna de District. Las dos cargadas (en los dos órdenes): se queda
+  Content Management y el módulo no cambia en 6 s. Sin probar con Notion real.
+- Tampoco se sube a GitHub.
+
 ## Cosas a tener en cuenta
 - **Datos guardados en el navegador:** los tres modelos comparten la velocidad
   de reproducción y los ids/token de Genius. Antes también pasaba: los tres
@@ -260,6 +319,8 @@ La canción ya no va arriba. Abajo hay 3 módulos (píldoras `#191919`, botones 
 - **No se subió** la carpeta `Content Controler/` (la extensión se carga desde el disco en
   `chrome://extensions`).
 - Los repos `VersoLMG` y `VersoCM` siguen como estaban (versión anterior, en sus propias URLs).
+- **Actualizado el 9 nov con las rondas 10 y 11** (AE compacto, Refresh/Thumbnail, CM web canción por
+  canción). Tampoco se subió `Content Controler CM/`.
 
 ## Cómo se probó la ronda 2
 - **Simulación de AE en Node**, con el `host.jsx` real de cada modelo. Se

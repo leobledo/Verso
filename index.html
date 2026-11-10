@@ -684,6 +684,51 @@ body.touch .mod-tl .tl-mid>.tl-wrap{height:46px}
   .mod-song{flex:1 1 220px;min-width:0}
   .mod-tl{order:3;flex:1 1 100%;min-width:0}
 }
+/* AE compacto (ronda 10): panel bajo (<= 260 px de alto) -> una sola pildora: cancion + cargar
+   canciones · Import · Render (sin letra, linea de tiempo, velocidad ni lupa). Clase html.ae-compact (JS). */
+html.ae-compact .app{padding:0 12px;justify-content:center}
+html.ae-compact .workspace{flex:0 0 auto}
+html.ae-compact #songsPanel,html.ae-compact #rszH,html.ae-compact #lyricsPanel,html.ae-compact #rszV{display:none!important}
+html.ae-compact .timeline-zone{padding:0!important}
+html.ae-compact .tl-row.mods{flex-wrap:nowrap;height:var(--mod-h);row-gap:0;gap:8px;padding:0 10px 0 7px;background:var(--mod-bg);border-radius:calc(var(--mod-h) / 2)}
+html.ae-compact .tl-row.mods>.mod{order:0;height:var(--mod-h);padding:0;background:transparent;border-radius:0;min-width:0}
+html.ae-compact .tl-row.mods>.mod-song{flex:1 1 auto;padding-left:0;cursor:default}
+html.ae-compact .tl-row.mods>.mod-tl,html.ae-compact .tl-row.mods>.mod-right{flex:0 0 auto;gap:8px}
+html.ae-compact .mod-tl .tl-mid,html.ae-compact #btnSpeed,html.ae-compact #btnLyrSearch,html.ae-compact .mod-gin,html.ae-compact .mod-exp{display:none!important}
+html.ae-compact .mod-ico{cursor:default}
+html.ae-compact #btnRender{padding:0 14px}
+html.ae-compact #btnRender span{display:none}
+#btnImport .cmp-only{display:none}
+/* ronda 11: Refresh y Thumbnail solo en la pildora compacta de AE (en el panel extendido van en
+   la cabecera de la tarjeta de detalles). Panel angosto: botones un poco mas chicos. */
+.cmp-btn{display:none!important}
+html.ae-compact .cmp-btn{display:inline-flex!important}
+html.ae-compact .cmp-btn.spinning svg{animation:spin .8s linear infinite}
+@media (max-width:640px){
+  html.ae-compact .tl-row.mods{gap:6px}
+  html.ae-compact .tl-row.mods>.mod-tl,html.ae-compact .tl-row.mods>.mod-right{gap:6px}
+  html.ae-compact .tl-row.mods .mod-btn,html.ae-compact #btnRender{min-width:36px;padding:0 10px}
+}
+html.ae-compact #btnImport svg{display:none}
+html.ae-compact #btnImport svg.cmp-only{display:block}
+/* avisos (los que salen en la leyenda de la letra) aparecen un momento en lugar de Artist/Song */
+.mod-msg{display:none}
+html.ae-compact .mod-msg{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);overflow:hidden;font-size:11.5px;line-height:15px;color:#cfcfcf;opacity:0;pointer-events:none;cursor:default;transition:opacity .2s ease}
+html.ae-compact .mod-meta.msg .mod-msg{opacity:1;pointer-events:auto}
+html.ae-compact .mod-in{transition:color .25s ease,opacity .2s ease}
+html.ae-compact .mod-meta.msg .mod-in{opacity:0}
+/* LMG / CM: iconos de los canales empalmados (el activo arriba y encendido); clic = ese canal */
+.mod-chans{display:none}
+html.ae-compact .mod-chans{--chov:-11px;display:flex;align-items:center;flex:0 0 auto;padding:0 2px 0 3px}
+html.ae-compact .mod-chans~.mod-ico{display:none}
+.mod-chan{position:relative;flex:0 0 auto;width:32px;height:32px;margin:0 0 0 var(--chov);padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;filter:brightness(.55) saturate(.7);transition:filter .25s ease,transform .3s cubic-bezier(.22,1,.36,1)}
+.mod-chan:first-child{margin-left:0}
+.mod-chan:focus{outline:none}
+.mod-chan .ch-av{width:32px;height:32px;font-size:13px;box-shadow:0 0 0 2px var(--mod-bg)}
+.mod-chan.on{z-index:30;filter:none}
+@media (hover:hover){ .mod-chan:hover{z-index:31;filter:none;transform:translateY(-2px)} }
+@media (max-width:700px){ html.ae-compact .mod-chans{--chov:-17px} }
+@media (max-width:560px){ html.ae-compact .mod-chans{--chov:-21px} }
 @media (prefers-reduced-motion:reduce){.mod-exp,.mod-gin,#modSong .details-panel{transition:none!important}}
 </style>
 </head>
@@ -1286,6 +1331,8 @@ function syncSpeedBtn(){ var b=document.getElementById('btnSpeed'); if(!b) retur
 var MOD_NOTE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
 var MOD_ARROWR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
 var MOD_PLAY_SVG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+var MOD_THUMB_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="M21 15l-5-5L5 18"/></svg>';   // Thumbnail (TH)
+var MOD_DOWN_SVG='<svg class="cmp-only" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>';   // Import en AE compacto
 var MOD_IMPORT_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
 function _modMid(onclick, title){
   var tl=document.getElementById('modTl'); if(!tl) return;
@@ -1313,7 +1360,9 @@ function buildActionBar(){
       '<button class="tl-icobtn" id="lt4" onclick="setLinesPerStamp(4)" title="4 lines per timestamp (key 4)">'+LINES4_SVG+'</button>'+
     '</div>';
     h+= IN_AE
-      ? '<div class="mod-imp" id="tlImp"><button class="mod-btn" id="btnImport" type="button" onclick="importClick(event)" title="Import timestamped lyrics to the comp">'+MOD_IMPORT_SVG+'</button>'+
+      ? '<button class="mod-btn cmp-btn" id="btnCmpRefresh" type="button" onclick="cmpRefresh(event)" title="'+CMP_REFRESH_TITLE+'">'+REFRESH_SVG+'</button>'+
+        '<button class="mod-btn cmp-btn" id="btnCmpThumb" type="button" onclick="cmpThumb(event)" title="'+CMP_THUMB_TITLE+'">'+MOD_THUMB_SVG+'</button>'+
+        '<div class="mod-imp" id="tlImp"><button class="mod-btn" id="btnImport" type="button" onclick="importClick(event)" title="Import timestamped lyrics to the comp">'+MOD_IMPORT_SVG+MOD_DOWN_SVG+'</button>'+
         '<div class="tl-imp-menu"><button class="tl-imp-opt" type="button" onclick="importSRTFile(event)" title="Import an external .srt into the comp">SRT</button></div></div>'+
         '<button class="mod-btn mod-wide" id="btnRender" type="button" onclick="renderAction(event)" title="Render">'+MOD_PLAY_SVG+'<span>Render</span></button>'
       : '<button class="mod-btn" id="mainActionBtn" type="button" onclick="importClick(event)" title="Export SRT">'+MOD_ARROWR_SVG+'</button>';
@@ -1430,6 +1479,7 @@ function _modFitExp(){
 }
 function toggleDetails(ev){ if(ev&&ev.stopPropagation) ev.stopPropagation(); var ms=document.getElementById('modSong'); if(!ms) return; setDetailsOpen(!ms.classList.contains('open')); }
 function setDetailsOpen(open){
+  if(open && document.documentElement.classList.contains('ae-compact')) return;   // AE compacto: sin detalles
   var ms=document.getElementById('modSong'), lp=document.getElementById('lyricsPanel'); if(!ms) return;
   open=!!open;
   if(open){ _modFitExp(); renderChannels(); }
@@ -3615,6 +3665,7 @@ function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 var _legendBase=(typeof _legendBase==='string')?_legendBase:'';
 function setLegend(msg){ _legendBase=(msg||'').trim(); var c=document.getElementById('tChannel'); if(c) c.textContent=_legendBase; }
 function toast(msg,ms){
+  try{ if(document.documentElement.classList.contains('ae-compact')) _modMsg(msg, ms); }catch(e){}
   var st=document.getElementById('tStatus');
   if(st){ st.textContent=msg; st.classList.add('on'); clearTimeout(st._t); st._t=setTimeout(function(){ st.classList.remove('on'); st.textContent=''; }, ms||4000); return; }
   var t=document.getElementById('toast'); if(t){ t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },ms||2200); }
@@ -3803,7 +3854,52 @@ function specEnv(data, hop){
   for(i=0;i<n;i++){ v=env[i]/ref; env[i]=Math.min(1, Math.pow(v, 0.8)); }
   return env;
 }
+// ═══ AE compacto (nov 2026, ronda 10) ═══
+// Con el panel de AE bajo (<= 260 px de alto) todo queda en UNA pildora: cancion (espectro en Verso;
+// iconos de los canales en LMG/CM) + cargar canciones · Import · Render. Al agrandar el panel vuelve
+// el diseno normal tal cual. Solo AE (en la web nunca se activa).
+// ronda 11: botones Refresh / Thumbnail de la pildora compacta (AE) = los de la tarjeta de detalles.
+var CMP_REFRESH_TITLE='Re-read the loaded song title', CMP_THUMB_TITLE='Update the thumbnail (Artist/Song text layers)';
+function cmpRefresh(ev){ if(ev&&ev.stopPropagation) ev.stopPropagation(); var ch=getActive(); if(ch) channelReload(ch.id); }
+function cmpThumb(ev){ if(ev&&ev.stopPropagation) ev.stopPropagation(); var ch=getActive(); if(ch) thumbnailAction(ch.id); }
+var AE_COMPACT_MQ='(max-height:260px)';
+function _aeCompactSet(on){
+  var root=document.documentElement; on=!!on;
+  if(root.classList.contains('ae-compact')===on) return;
+  root.classList.toggle('ae-compact', on);
+  var ms=document.getElementById('modSong');
+  if(on && ms){
+    if(ms.classList.contains('open')) closeDetails();
+    if(ms.classList.contains('gmode') && typeof closeGeniusInput==='function') closeGeniusInput();
+  }
+  if(!on) _modMsg('');
+  if(typeof _modChansSync==='function') _modChansSync();
+}
+function _aeCompactInit(){
+  if(!IN_AE || !window.matchMedia) return;
+  var meta=document.getElementById('modMeta');
+  if(meta && !document.getElementById('modMsg')){
+    var m=document.createElement('div'); m.className='mod-msg'; m.id='modMsg';
+    m.addEventListener('click', function(e){ e.stopPropagation(); _modMsg(''); });
+    meta.appendChild(m);
+    meta.addEventListener('focusin', function(){ _modMsg(''); });
+  }
+  var mq=window.matchMedia(AE_COMPACT_MQ), f=function(){ _aeCompactSet(mq.matches); };
+  if(mq.addEventListener) mq.addEventListener('change', f); else if(mq.addListener) mq.addListener(f);
+  window.addEventListener('resize', f);
+  f();
+}
+// Aviso dentro de la pildora (en lugar de Artist/Song) por unos segundos; clic = ocultarlo.
+function _modMsg(msg, ms){
+  var meta=document.getElementById('modMeta'), m=document.getElementById('modMsg'); if(!meta||!m) return;
+  clearTimeout(m._t);
+  if(!msg){ meta.classList.remove('msg'); return; }
+  if(typeof _modNav!=='undefined' && _modNav.idx>=0) return;   // pasando canales con la rueda: manda la vista previa
+  m.textContent=msg; m.title=msg; meta.classList.add('msg');
+  m._t=setTimeout(function(){ meta.classList.remove('msg'); }, Math.min(3500, Math.max(1500, ms||3000)));   // corto: no tapa mucho rato la cancion
+}
 try{ initModules(); }catch(e){ try{ console.error('[Verso] modules', e); }catch(e2){} }
+try{ _aeCompactInit(); }catch(e){ try{ console.error('[Verso] compact', e); }catch(e2){} }
 </script>
 </body>
 </html>

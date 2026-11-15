@@ -372,7 +372,7 @@ body.touch .app{height:100vh;height:100dvh}
 input[type=file]{display:none}
 
 /* ══════════════════════════════════════════════════════════════════════════
-   VERSO 2 REDESIGN — pill timeline bar + floating Details panel (11 channels)
+   VERSO 2 REDESIGN — pill timeline bar + floating Details panel (3 channels)
    ══════════════════════════════════════════════════════════════════════════ */
 /* Two panels only: lyrics + timeline. The channel list lives inside Details. */
 #songsPanel,#rszH{display:none !important}
@@ -426,7 +426,7 @@ input[type=file]{display:none}
 .tl-mid{align-self:center}
 .tl-mid>.tl-wrap{flex:1;min-width:0;height:22px;width:auto}
 
-/* ─── DETAILS PANEL — floating card over the lyrics, holds the 11 channels ─── */
+/* ─── DETAILS PANEL — floating card over the lyrics, holds the 3 channels ─── */
 .details-panel{position:absolute;top:12px;left:12px;bottom:12px;width:320px;max-width:calc(100% - 24px);z-index:8;
   background:#1b1b1b;border:1px solid rgba(255,255,255,.06);border-radius:14px;
   opacity:0;transform:scale(.97);transform-origin:left center;pointer-events:none;
@@ -1097,8 +1097,7 @@ var ICON_CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 var ICON_MAP={
   'distritourbano':'distrito urbano.png',
   'brazilchaos':'brazil chaos.png',
-  'anthemssouth':'anthems south.png',
-  'anthemseast':'anthems east.png'
+  'anthemssouth':'anthems south.png'
 };
 function chKey(name){ return (name||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function avatarFor(ch){
@@ -1301,11 +1300,11 @@ lyrStage.addEventListener('touchend', function(){ if(IS_TOUCH && selStampSet.siz
 // ─── CHANNELS (fixed list; each maps to its Lyrics + TH comp by exact name) ───
 // The list is always shown (never depends on reading the project). Only the
 // actions (Import / Thumbnail / audio) reach into AE, targeting these comps by name.
+// Verso Beta (nov 2026): sin Anthems East -> 3 canales (01 DU, 02 BC, 03 AS).
 var CH_DATA=[
   {name:'Distrito Urbano', lyr:'01 DU Lyrics', th:'01 Distrito Urbano TH', song:'01 DU Song'},
   {name:'Brazil Chaos',    lyr:'02 BC Lyrics', th:'02 Brazil Chaos TH',    song:'02 BC Song'},
-  {name:'Anthems South',   lyr:'03 AS Lyrics', th:'03 Anthems South TH',   song:'03 AS Song'},
-  {name:'Anthems East',    lyr:'04 AE Lyrics', th:'04 Anthems East TH',    song:'04 AE Song'}
+  {name:'Anthems South',   lyr:'03 AS Lyrics', th:'03 Anthems South TH',   song:'03 AS Song'}
 ];
 function _leadNumJS(s){ var m=(s||'').match(/^\s*(\d+)/); return m?parseInt(m[1],10):null; }
 
@@ -1781,7 +1780,7 @@ function loadActiveIntoWorkingSet(){ pendingId=null; var ch=getActive(); if(!ch)
 function avatar(name){ var h=0; for(var i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h); var hue=Math.abs(h)%360; return '<div class="ch-av" style="background:linear-gradient(135deg,hsl('+hue+',72%,56%),hsl('+((hue+45)%360)+',72%,44%))">'+esc((name.charAt(0)||'?').toUpperCase())+'</div>'; }
 
 // ─── RENDER CHANNELS ───
-// Build the Details panel: the 11 channels (each with Artist/Song/Lyrics), a bottom
+// Build the Details panel: the 3 channels (each with Artist/Song/Lyrics), a bottom
 // GLOBAL bar (Lyrics · Thumbnail · Clear) outside the channels, a Refresh button, and
 // the Genius bulk section that expands UPWARD from the bar (no popup).
 function renderChannels(){
@@ -2988,6 +2987,10 @@ function _songReadJsx(ch){
     'var list=[];'+
     'function find(want,isShort){var i,it,m;if(want){for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);'+
         'if(it instanceof FootageItem&&it.name.replace(/^\\s+|\\s+$/g,"").toLowerCase()===want)return it;}}'+
+      // Verso Beta: canales renumerados. "05 pp song" tambien encuentra "06 PP Song" (proyecto con
+      // la numeracion vieja): mismo nombre SIN el numero inicial. Antes del respaldo por numero.
+      'if(want&&/^\\d+\\s/.test(want)){var cw=want.replace(/^\\d+\\s*/,"");for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);'+
+        'if(it instanceof FootageItem&&/^\\s*\\d/.test(it.name)&&it.name.replace(/^\\s+|\\s+$/g,"").toLowerCase().replace(/^\\d+\\s*/,"")===cw)return it;}}'+
       'for(i=1;i<=app.project.numItems;i++){it=app.project.item(i);'+
         'if(it instanceof FootageItem&&it.name.toLowerCase().indexOf("song")!==-1&&((it.name.toLowerCase().indexOf("short")!==-1)===isShort)){'+
           'm=it.name.match(/^\\s*(\\d+)/);if(m&&parseInt(m[1],10)==='+num+')return it;}}'+
@@ -3097,12 +3100,17 @@ function masterAction(ev){
         var applied=0;
         r.songs.forEach(function(s){
           if(!s.path) return;
-          var sname=(s.name||'').toLowerCase().replace(/\s+/g,'');
-          for(var ci=0;ci<channels.length;ci++){
-            var ch=channels[ci];
-            if(!ch.songName) continue;
-            if(ch.songName.toLowerCase().replace(/\s+/g,'')===sname){ _applySongTitle(ch,s.path,true); applied++; break; }
+          var sname=(s.name||'').toLowerCase().replace(/\s+/g,''), score=sname.replace(/^\d+/,''), hit=null, ci, ch;
+          for(ci=0;ci<channels.length && !hit;ci++){
+            ch=channels[ci];
+            if(ch.songName && ch.songName.toLowerCase().replace(/\s+/g,'')===sname) hit=ch;
           }
+          // Verso Beta: proyecto con la numeracion vieja ("06 PP Song" = canal 05): mismo nombre sin numero.
+          for(ci=0;ci<channels.length && !hit && score!==sname;ci++){
+            ch=channels[ci];
+            if(ch.songName && ch.songName.toLowerCase().replace(/\s+/g,'').replace(/^\d+/,'')===score) hit=ch;
+          }
+          if(hit){ _applySongTitle(hit,s.path,true); applied++; }
         });
         if(applied>0){ renderChannels(); syncTitle(); loadChannelAudio(); }
         else { aeRefreshAfterMaster(); } // name match failed — fall back to re-reading from AE

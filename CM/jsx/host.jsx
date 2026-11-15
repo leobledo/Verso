@@ -1545,6 +1545,35 @@ function _findCompByNameCI(name) {
     var it = app.project.item(i);
     if (it instanceof CompItem && it.name.replace(/^\s+|\s+$/g, '').toLowerCase() === want) return it;
   }
+  return _findByCoreName(want, true);
+}
+
+// Verso Beta: una comp "… Short …" que no aparece por nombre = la gemela Short de su comp de VIDEO
+// (resuelta por nombre, con o sin la numeracion vieja). Asi el respaldo por NUMERO del panel
+// (renumerado) no cae en la comp de otro canal. videoName opcional (p.ej. la TH de video).
+function _shortViaVideo(name, videoName) {
+  if (!_isShortName(name)) return null;
+  var vc = _findCompByNameCI(videoName || _videoTwinName(name));
+  if (!vc || _isShortName(vc.name)) return null;
+  var tw = _shortTwinByName(vc);
+  return (tw && _isShortName(tw.name)) ? tw : null;
+}
+
+// Verso Beta (nov 2026): los canales se renumeraron (LMG 9, CM 3). Si el proyecto conserva la
+// numeracion vieja ("06 PP Lyrics"), el nombre nuevo del panel ("05 PP Lyrics") la encuentra por
+// el nombre SIN el numero inicial. Solo cuando el nombre exacto no existe; solo items numerados.
+function _coreName(s) {
+  return ('' + (s || '')).replace(/^\s+|\s+$/g, '').toLowerCase().replace(/^\d+\s*[-.)]?\s*/, '');
+}
+function _findByCoreName(want, wantComp) {
+  if (!/^\s*\d/.test(want || '')) return null;
+  var core = _coreName(want);
+  if (!core) return null;
+  for (var i = 1; i <= app.project.numItems; i++) {
+    var it = app.project.item(i);
+    var kindOk = wantComp ? (it instanceof CompItem) : (it instanceof FootageItem);
+    if (kindOk && /^\s*\d/.test(it.name) && _coreName(it.name) === core) return it;
+  }
   return null;
 }
 
@@ -1589,7 +1618,7 @@ function _findFootageByNameCI(name) {
     var it = app.project.item(i);
     if (it instanceof FootageItem && it.name.replace(/^\s+|\s+$/g, '').toLowerCase() === want) return it;
   }
-  return null;
+  return _findByCoreName(want, false);   // Verso Beta: numeracion vieja ("06 PP Song" = canal 05)
 }
 
 // Extrae la ruta en disco de un FootageItem (archivo ya cargado / reemplazado por Master).
@@ -2085,6 +2114,7 @@ function importLyricsToComp(lyrCompName, srtContent, optionsJSON) {
     var styleName = opt.styleLayerName || 'Style Controler';
 
     var comp = _findCompByNameCI(lyrCompName);
+    if (!comp) comp = _shortViaVideo(lyrCompName);   // Verso Beta
     if (!comp) {
       // Fallback CONSCIENTE del modo: para "… Short Lyrics" busca la Lyrics Short del canal,
       // no la de video (_lyricsCompByNum devolvia la primera = la de video). Mismo fix que ya
@@ -2133,7 +2163,7 @@ function importLyricsToMany(namesJSON, srtContent, optionsJSON) {
   for (var i = 0; i < names.length; i++) {
     if (!names[i]) continue;
     // Nov 2026 (Short por defecto): una "… Short Lyrics" que no existe se ignora sin aviso.
-    if (_isShortName(names[i]) && !_findCompByNameCI(names[i]) && !_shortLyricsByNum(_leadNum(names[i]))) continue;
+    if (_isShortName(names[i]) && !_findCompByNameCI(names[i]) && !_shortViaVideo(names[i]) && !_shortLyricsByNum(_leadNum(names[i]))) continue;
     var r = importLyricsToComp(names[i], srtContent, optionsJSON);
     if (String(r).indexOf('ok:') === 0) { okc++; parts.push(String(r).slice(3)); }
     else parts.push('ERR ' + names[i] + ': ' + String(r).replace(/^err:/, ''));
@@ -2221,6 +2251,7 @@ function bulkImportOne(lyrCompName, srtContent, optionsJSON) {
     var styleName = opt.styleLayerName || 'Style Controler';
 
     var comp = _findCompByNameCI(lyrCompName);
+    if (!comp) comp = _shortViaVideo(lyrCompName);   // Verso Beta
     if (!comp) {
       // Fallback CONSCIENTE del modo: para "… Short Lyrics" busca la Lyrics Short del canal,
       // no la de video (_lyricsCompByNum devolvia la primera = la de video).
@@ -2253,6 +2284,7 @@ function bulkImportOne(lyrCompName, srtContent, optionsJSON) {
 function clearLyricLayers(lyrCompName) {
   try {
     var comp = _findCompByNameCI(lyrCompName);
+    if (!comp) comp = _shortViaVideo(lyrCompName);   // Verso Beta
     if (!comp) comp = _lyricsCompByNum(_leadNum(lyrCompName));
     if (!comp) return 'ok:0';
     app.beginUndoGroup('Lyricator: Clear lyric layers');
@@ -2367,6 +2399,22 @@ function _fileDisplayName(f) {
 //  - Archivo SIN numero: va al siguiente canal libre, en orden de canal.
 // El valor de retorno de evalScript se PIERDE cuando la funcion abre un dialogo modal, por
 // eso el resultado tambien se vuelca a un temporal + evento (ver _writeResult).
+// Verso Beta: numero de CANAL de una Lyrics seleccionada, por la comp misma (no por el numero de su
+// nombre: con la numeracion vieja "06 PP Lyrics" es el canal 05). Si no es de ningun canal, su numero.
+function _selChannelNum(c, byNum, nums, panelMap) {
+  var k, e, tw;
+  for (k = 0; k < nums.length; k++) {
+    e = byNum[nums[k]];
+    if (!e || !e.comp) continue;
+    if (e.comp.id === c.id) return nums[k];
+    if (_isShortName(c.name)) {
+      tw = (panelMap[nums[k]] && panelMap[nums[k]].shortLyr) ? _findCompByNameCI(panelMap[nums[k]].shortLyr) : null;
+      if (!tw) tw = _shortTwinByName(e.comp);
+      if (tw && tw.id === c.id) return nums[k];
+    }
+  }
+  return _leadNum(c.name);
+}
 function importSRTBatch(isShort, mapJSON) {
   try {
     _clearResult();   // volcado limpio: el panel sondea hasta que aparezca el nuevo
@@ -2395,12 +2443,19 @@ function importSRTBatch(isShort, mapJSON) {
       }
     }
     nums.sort(function (a, b) { return a - b; });
+    // Verso Beta: los canales son los del panel (LMG 9, CM 3). Numeros del proyecto que no son
+    // canales del panel (comps de canales quitados, o de la numeracion vieja) no se tocan.
+    if (pm.length) {
+      var keepN = [];
+      for (i = 0; i < nums.length; i++) if (panelMap[nums[i]]) keepN.push(nums[i]);
+      nums = keepN;
+    }
 
     // Lyrics seleccionadas en el panel de Proyecto (video o Short) = limitar a esos canales.
     var sel = _selectedLyricsComps(), allow = null, anyAllowed = false;
     if (sel.length) {
       allow = {};
-      for (i = 0; i < sel.length; i++) { n = _leadNum(sel[i].name); if (n != null) allow[n] = true; }
+      for (i = 0; i < sel.length; i++) { n = _selChannelNum(sel[i], byNum, nums, panelMap); if (n != null) allow[n] = true; }
       for (i = 0; i < nums.length; i++) if (allow[nums[i]]) anyAllowed = true;
       if (!anyAllowed) allow = null;
     }
@@ -2548,6 +2603,8 @@ function updateThumbnailBoth(thName, shortName, artist, song) {
   var r1 = updateThumbnailComp(thName, artist, song);
   var okc = (String(r1).indexOf('ok:') === 0) ? 1 : 0, names = okc ? String(r1).slice(3) : '';
   if (shortName && shortName !== '') {
+    // Verso Beta: la Short TH del canal = la gemela de SU TH de video si no aparece por nombre.
+    if (!_findCompByNameCI(shortName)) { var stw = _shortViaVideo(shortName, thName); if (stw && isTHComp(stw)) shortName = stw.name; }
     var r2 = updateThumbnailComp(shortName, artist, song);
     if (String(r2).indexOf('ok:') === 0) { okc++; names += (names ? ' + ' : '') + String(r2).slice(3); }
   }

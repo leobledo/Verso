@@ -1,4 +1,4 @@
-# Verso Beta: LMG con 9 canales y CM con 3
+# Verso Beta: LMG con 9 canales y CM con 4
 
 Copia de `Verso Alpha` del 15 de noviembre de 2026, con todas sus rondas hasta la 11.
 `Verso Alpha` sigue intacta. La historia de Alpha sigue en `ALPHA.md`.
@@ -13,6 +13,32 @@ las dos extensiones (`Content Controler` = Content Management y `Content Control
 lista de Songs, calendario, grupos LMG/CM, bases de Notion, lanzador del popup y los íconos
 del manifest. Los archivos de esos íconos también se borraron.
 
+## DESTINED (CM 04, 16 de noviembre de 2026)
+
+- **Panel CM:** DESTINED es el canal 04, el último. Comps: `04 DES Lyrics`, `04 DESTINED TH` y
+  `04 DES Song`; las Short son `04 DES Short Lyrics`, `04 DES Short TH` y `04 DES Short Song`.
+  Ícono: `CM/Icons/destined.png`.
+  - Si en AE las nombras distinto (`04 DESTINED Lyrics`…) o el proyecto todavía tiene las de
+    Anthems East (`04 AE …`), el panel usa las comps que empiezan con `04`.
+  - Master: si la Song 04 tiene otro nombre, su título igual va a DESTINED. Solo pasa cuando
+    ninguna Song coincide por nombre con DESTINED.
+- **Extensiones** (las dos, v16.1): DESTINED va al final de CM en Songs, en el calendario y en
+  la descarga de MP3 (DU → BC → AS → DESTINED). Ícono: `DESTINED.png`.
+- **Notion:** la base del link tiene 3 fuentes de datos (DESTINED, más vistas de Anthems South y
+  Anthems East). La API que usa la extensión (2022-06-28) no consulta bases con varias fuentes.
+  Por eso DESTINED se consulta por su fuente de datos (`408387f1-0a52-802a-a5f5-000b6bad2861`)
+  con la API 2025-09-03. Las demás bases siguen igual.
+  - La integración de Notion de tus tokens necesita acceso a DESTINED. Si Songs o el calendario
+    marcan error en DESTINED: en Notion, ••• de esa base → Conexiones → agregar la integración.
+- **Probado** (sin AE ni Notion reales):
+  - `host.jsx` real en AE simulado: comps con los nombres del panel, con nombres completos y con
+    las viejas `04 AE …`. SRT 4/4 (video y Short), import, Bulk, miniatura y canción van al 04.
+  - Paneles en Chrome: CM con 4 canales, export `01–04`, MP3 en el orden de descarga, Master,
+    píldora con 4 avatares. LMG y Verso individual sin cambios.
+  - Extensión: `background.js` real con Notion simulado. DESTINED usa `data_sources` y 2025-09-03,
+    y las demás usan `databases` y 2022-06-28. Probé Songs, el análisis y llenado del calendario
+    (páginas nuevas con `data_source_id`) y el orden de MP3 (13 canales, grupo CM de 4).
+
 ## Nueva numeración
 
 | #  | LMG (antes)              | CM                |
@@ -20,14 +46,14 @@ del manifest. Los archivos de esos íconos también se borraron.
 | 01 | Nightclub Nostalgia      | Distrito Urbano   |
 | 02 | Lal Music Group          | Brazil Chaos      |
 | 03 | Rap Riot                 | Anthems South     |
-| 04 | Rock Surge               |                   |
+| 04 | Rock Surge               | DESTINED (nuevo)  |
 | 05 | Peaceful Polar (era 06)  |                   |
 | 06 | Accelerate (era 07)      |                   |
 | 07 | Retro Jams (era 08)      |                   |
 | 08 | House Fusion (era 09)    |                   |
 | 09 | Rap Rodeo (era 10)       |                   |
 
-- **SRT:** el export web nombra los archivos `01 …` a `09 …` en LMG y `01 …` a `03 …` en CM.
+- **SRT:** el export web nombra los archivos `01 …` a `09 …` en LMG y `01 …` a `04 …` en CM.
   El import de SRT en AE manda cada archivo a su canal por ese número.
 - **AE acepta los dos proyectos.** El panel usa los nombres nuevos (`05 PP Lyrics`, `05 Peaceful
   Polar TH`, `05 PP Song`…). Si el proyecto de AE aún tiene la numeración vieja (`06 PP LYrics`,
@@ -43,8 +69,8 @@ del manifest. Los archivos de esos íconos también se borraron.
 
 ## Descarga de MP3 (extensión)
 
-El orden de descarga en District es el orden maestro de la extensión: los 9 de LMG y luego los 3
-de CM. El grupo CM ya no son "los últimos 4" fijos: es la lista de canales de la página de CM (3).
+El orden de descarga en District es el orden maestro de la extensión: los 9 de LMG y luego los 4
+de CM. El grupo CM ya no son "los últimos 4" fijos: es la lista de canales de la página de CM (4, con DESTINED).
 Así Rap Rodeo cuenta como LMG y nunca se abre una pestaña de un canal de otro grupo. Las pestañas
 abiertas de los canales quitados se saltan ("channel not in the list").
 
@@ -52,7 +78,7 @@ abiertas de los canales quitados se saltan ("channel not in the list").
 
 - `LMG/index.html`: `CH_DATA` (9 canales, 01–09) e `ICON_MAP`. `_songReadJsx` y la respuesta de
   Master también reconocen los nombres con la numeración vieja.
-- `CM/index.html`: `CH_DATA` (3 canales) e `ICON_MAP`. Mismo cambio en `_songReadJsx` y en Master.
+- `CM/index.html`: `CH_DATA` (4 canales, con DESTINED) e `ICON_MAP`. Mismo cambio en `_songReadJsx` y en Master.
 - `LMG/jsx/host.jsx` y `CM/jsx/host.jsx`:
   - `_findCompByNameCI` / `_findFootageByNameCI` → `_findByCoreName` (nombre sin número).
   - `_shortViaVideo` (gemela Short).
@@ -75,7 +101,8 @@ abiertas de los canales quitados se saltan ("channel not in the list").
 - **Extensión:** cargar `Verso Beta/Content Controler` (o `Content Controler CM`) desde una ruta nueva
   le da otro ID, y hay que volver a poner los tokens de Notion en el popup. Para conservarlos, copia
   los archivos de Beta encima de la carpeta que ya tienes cargada y recarga la extensión.
-- **GitHub:** Beta no está publicada; `leobledo.github.io/Verso/` sigue siendo Alpha.
+- **GitHub:** Beta se publicó el 15 de noviembre (commit 92a2c91), sin las carpetas de las
+  extensiones. DESTINED se publicó el 16 de noviembre (también sin las extensiones).
 
 ## Probado (sin AE real)
 

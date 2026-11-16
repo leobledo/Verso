@@ -1097,7 +1097,8 @@ var ICON_CK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 var ICON_MAP={
   'distritourbano':'distrito urbano.png',
   'brazilchaos':'brazil chaos.png',
-  'anthemssouth':'anthems south.png'
+  'anthemssouth':'anthems south.png',
+  'destined':'destined.png'
 };
 function chKey(name){ return (name||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
 function avatarFor(ch){
@@ -1300,11 +1301,12 @@ lyrStage.addEventListener('touchend', function(){ if(IS_TOUCH && selStampSet.siz
 // ─── CHANNELS (fixed list; each maps to its Lyrics + TH comp by exact name) ───
 // The list is always shown (never depends on reading the project). Only the
 // actions (Import / Thumbnail / audio) reach into AE, targeting these comps by name.
-// Verso Beta (nov 2026): sin Anthems East -> 3 canales (01 DU, 02 BC, 03 AS).
+// Verso Beta (nov 2026): sin Anthems East; DESTINED nuevo al final -> 4 canales (01 DU, 02 BC, 03 AS, 04 DES).
 var CH_DATA=[
   {name:'Distrito Urbano', lyr:'01 DU Lyrics', th:'01 Distrito Urbano TH', song:'01 DU Song'},
   {name:'Brazil Chaos',    lyr:'02 BC Lyrics', th:'02 Brazil Chaos TH',    song:'02 BC Song'},
-  {name:'Anthems South',   lyr:'03 AS Lyrics', th:'03 Anthems South TH',   song:'03 AS Song'}
+  {name:'Anthems South',   lyr:'03 AS Lyrics', th:'03 Anthems South TH',   song:'03 AS Song'},
+  {name:'DESTINED',        lyr:'04 DES Lyrics', th:'04 DESTINED TH',       song:'04 DES Song'}
 ];
 function _leadNumJS(s){ var m=(s||'').match(/^\s*(\d+)/); return m?parseInt(m[1],10):null; }
 
@@ -3097,7 +3099,7 @@ function masterAction(ev){
       toast('✓ Canciones '+r.replaced+'/'+r.total+' · SRT borrados '+(r.srtRemoved!=null?r.srtRemoved:0)+' · Rangos '+r.rangeUpdated+'/'+r.rangeTotal, 6000);
       // Apply new song paths returned directly by masterRun (no second evalScript round-trip needed).
       if(r.songs && r.songs.length){
-        var applied=0;
+        var applied=0, pending=[], hitIds={};
         r.songs.forEach(function(s){
           if(!s.path) return;
           var sname=(s.name||'').toLowerCase().replace(/\s+/g,''), score=sname.replace(/^\d+/,''), hit=null, ci, ch;
@@ -3110,7 +3112,17 @@ function masterAction(ev){
             ch=channels[ci];
             if(ch.songName && ch.songName.toLowerCase().replace(/\s+/g,'').replace(/^\d+/,'')===score) hit=ch;
           }
-          if(hit){ _applySongTitle(hit,s.path,true); applied++; }
+          if(hit){ _applySongTitle(hit,s.path,true); applied++; hitIds[hit.id]=1; }
+          else pending.push(s);
+        });
+        // CM (DESTINED): los numeros de CM no cambiaron (04 = DESTINED, antes Anthems East). Una Song
+        // con otro nombre ("04 DESTINED Song", "04 AE Song") va al canal de su numero, solo si ese
+        // canal no recibio ya su Song por nombre y ninguna otra Song sin nombre comparte ese numero.
+        var byNum={};
+        pending.forEach(function(s){ var n=_leadNumJS(s.name); if(n!=null) byNum[n]=(n in byNum)?null:s; });
+        channels.forEach(function(ch){
+          var s=byNum[ch.num];
+          if(s && !hitIds[ch.id]){ _applySongTitle(ch,s.path,true); applied++; hitIds[ch.id]=1; }
         });
         if(applied>0){ renderChannels(); syncTitle(); loadChannelAudio(); }
         else { aeRefreshAfterMaster(); } // name match failed — fall back to re-reading from AE
